@@ -1,0 +1,992 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SIG FMCG Maracaibo v4.0</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+<style>
+:root{--verde:#0B6E4F;--verde-osc:#085a40;--naranja:#F4A261;--rojo:#E63946;--azul:#1D3557;--gris:#f5f7fa;--texto:#2c3e50;--borde:#e2e8f0;--sidebar:#0f1729;--sidebar-h:#1a2942}
+*{font-family:'Inter',sans-serif;box-sizing:border-box}
+body{background:var(--gris);margin:0;color:var(--texto)}
+#login{position:fixed;inset:0;display:flex;background:linear-gradient(135deg,#0B6E4F,#1D3557);align-items:center;justify-content:center;padding:20px;z-index:9999}
+.login-box{display:flex;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4);max-width:900px;width:100%}
+.login-left{flex:1;background:linear-gradient(135deg,#0B6E4F,#085a40);padding:50px 40px;color:#fff;position:relative;overflow:hidden}
+.login-left::after{content:'🚚';position:absolute;font-size:180px;opacity:.08;bottom:-30px;right:-20px}
+.login-left h1{font-size:1.8rem;font-weight:800}
+.login-left p{opacity:.9;font-size:.9rem}
+.login-left .feat{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:.85rem}
+.login-left .dot{width:8px;height:8px;background:var(--naranja);border-radius:50%}
+.login-right{flex:1;padding:50px 40px}
+.login-right h2{color:var(--verde);font-weight:800;margin-bottom:5px}
+.login-right .sub{color:#888;font-size:.85rem;margin-bottom:25px}
+.login-right input{width:100%;padding:12px 15px;border:2px solid var(--borde);border-radius:10px;margin-bottom:12px;font-size:.9rem}
+.login-right input:focus{outline:none;border-color:var(--verde)}
+.btn-login{background:var(--verde);color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:700;cursor:pointer}
+.btn-login:hover{background:var(--verde-osc)}
+.demo{background:#f0f8f4;padding:12px;border-radius:8px;font-size:.75rem;color:var(--verde);margin-top:15px}
+#app{display:none}
+.sidebar{width:250px;background:var(--sidebar);color:#fff;position:fixed;top:0;left:0;bottom:0;padding:20px 0;overflow-y:auto;z-index:100}
+.sb-logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:15px}
+.sb-logo h3{font-size:1rem;font-weight:800;margin:0}
+.sb-logo small{color:#8899aa;font-size:.72rem}
+.sidebar nav a{display:flex;align-items:center;gap:12px;padding:11px 20px;color:#8899aa;text-decoration:none;font-size:.82rem;font-weight:500;cursor:pointer;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--sidebar-h);color:#fff}
+.sidebar nav a.active{background:var(--sidebar-h);color:#fff;border-left-color:var(--verde)}
+.main{margin-left:250px}
+.topbar{background:#fff;padding:15px 30px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
+.topbar h4{margin:0;font-weight:700;font-size:1.1rem}
+.content{padding:25px 30px}
+.view{display:none}
+.view.active{display:block}
+.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--borde);margin-bottom:20px}
+.kpi{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--borde);position:relative;overflow:hidden;height:100%}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--verde),var(--naranja))}
+.kpi.warn::before{background:var(--naranja)}
+.kpi.danger::before{background:var(--rojo)}
+.kpi-icon{font-size:1.6rem;margin-bottom:8px;opacity:.85}
+.kpi-val{font-size:1.9rem;font-weight:800;line-height:1}
+.kpi-lbl{color:#8899aa;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;margin-top:6px;font-weight:600}
+.kpi-delta{font-size:.7rem;margin-top:6px}
+.kpi-delta.up{color:#2A9D8F}
+.kpi-delta.down{color:var(--rojo)}
+.btn{background:var(--verde);color:#fff;border:none;padding:9px 18px;border-radius:9px;font-weight:600;font-size:.82rem;cursor:pointer}
+.btn:hover{background:var(--verde-osc);color:#fff}
+.btn.gray{background:#e2e8f0;color:var(--texto)}
+.btn.gray:hover{background:#cbd5e1;color:var(--texto)}
+.btn.danger{background:var(--rojo)}
+.btn.danger:hover{background:#c22f3a}
+.btn.warn{background:var(--naranja)}
+.btn.warn:hover{background:#e08a3d}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.table{width:100%;border-collapse:collapse;font-size:.82rem}
+.table th{padding:10px;text-align:left;color:#8899aa;font-size:.68rem;text-transform:uppercase;border-bottom:2px solid var(--borde);font-weight:700}
+.table td{padding:10px;border-bottom:1px solid var(--borde);vertical-align:middle}
+.table tr:hover{background:rgba(11,110,79,.03)}
+.badge{padding:3px 9px;border-radius:20px;font-size:.68rem;font-weight:700}
+.badge.ok{background:#d4edda;color:#155724}
+.badge.warn{background:#fff3cd;color:#856404}
+.badge.danger{background:#f8d7da;color:#721c24}
+.badge.info{background:#cce5ff;color:#004085}
+#map{height:500px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
+#toast{position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:10px}
+.toast{padding:14px 20px;border-radius:12px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15);border-left:4px solid var(--verde);min-width:300px;animation:sl .3s}
+.toast.error{border-left-color:var(--rojo)}
+.toast.warn{border-left-color:var(--naranja)}
+.toast b{display:block;font-size:.85rem}
+.toast small{color:#666;font-size:.78rem}
+@keyframes sl{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
+.alert{padding:14px;border-radius:10px;margin-bottom:12px;font-size:.85rem;font-weight:500}
+.alert.ok{background:#d4edda;color:#155724;border-left:4px solid #28a745}
+.alert.danger{background:#f8d7da;color:#721c24;border-left:4px solid #dc3545;animation:pl 1.5s infinite}
+.alert.warn{background:#fff3cd;color:#856404;border-left:4px solid #ffc107}
+@keyframes pl{50%{opacity:.75}}
+.prod-row{padding:12px;background:var(--gris);border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
+.section-title{font-size:.95rem;font-weight:700;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid var(--borde);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
+input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{padding:10px 14px;border:2px solid var(--borde);border-radius:10px;font-size:.85rem;width:100%;background:#fff;font-family:inherit}
+input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde)}
+label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:block}
+.row-sp{display:flex;gap:10px;margin-bottom:12px}
+.row-sp>*{flex:1}
+.tabs-inline{display:flex;gap:5px;margin-bottom:15px;border-bottom:2px solid var(--borde)}
+.tabs-inline button{background:none;border:none;padding:10px 16px;font-weight:600;color:#8899aa;cursor:pointer;border-bottom:2px solid transparent;font-size:.82rem}
+.tabs-inline button.active{color:var(--verde);border-bottom-color:var(--verde)}
+.mini-chart{height:250px;position:relative}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login">
+  <div class="login-box">
+    <div class="login-left">
+      <h1>🏢 SIG FMCG</h1>
+      <p>Sistema de Información Gerencial<br>Maracaibo · v4.0 Profesional</p>
+      <div style="margin-top:25px">
+        <div class="feat"><div class="dot"></div>SQLite persistente + JWT</div>
+        <div class="feat"><div class="dot"></div>Geofencing GPS real</div>
+        <div class="feat"><div class="dot"></div>Cadena de frío + IoT</div>
+        <div class="feat"><div class="dot"></div>Smart Order + Retornables</div>
+        <div class="feat"><div class="dot"></div>VRP + Liquidación</div>
+      </div>
+    </div>
+    <div class="login-right">
+      <h2>Bienvenido</h2>
+      <p class="sub">Ingresa tus credenciales</p>
+      <input type="text" id="lu" placeholder="Usuario">
+      <input type="password" id="lp" placeholder="Contraseña" onkeypress="if(event.key==='Enter')doLogin()">
+      <button class="btn-login" onclick="doLogin()">INGRESAR →</button>
+      <div class="demo">
+        <b>👤 Usuarios demo:</b><br>
+        admin / admin123 · Gerente<br>
+        maria / maria123 · Supervisor<br>
+        pedro / pedro123 · Preventista
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <aside class="sidebar">
+    <div class="sb-logo"><h3>🏢 SIG FMCG</h3><small>Maracaibo v4.0</small></div>
+    <nav>
+      <a class="active" onclick="showView('dashboard',this)">📊 Dashboard</a>
+      <a onclick="showView('pdvs',this)">🏪 Puntos de Venta</a>
+      <a onclick="showView('mapa',this)">🗺️ Mapa & Geofencing</a>
+      <a onclick="showView('pedido',this)">🛒 Tomar Pedido</a>
+      <a onclick="showView('retornables',this)">♻️ Retornables</a>
+      <a onclick="showView('red',this)">📸 Auditoría RED</a>
+      <a onclick="showView('frio',this)">❄️ Cadena de Frío</a>
+      <a onclick="showView('comodato',this)">🧊 Activos Comodato</a>
+      <a onclick="showView('vrp',this)">🚚 Ruteo (VRP)</a>
+      <a onclick="showView('mermas',this)">📉 Mermas</a>
+      <a onclick="showView('liq',this)">💰 Liquidación</a>
+    </nav>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <h4 id="viewTitle">Dashboard Gerencial</h4>
+      <div style="display:flex;align-items:center;gap:12px">
+        <span id="userLabel" style="font-size:.82rem"></span>
+        <div id="avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--verde),var(--naranja));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">A</div>
+        <button class="btn gray" onclick="logout()">Salir</button>
+      </div>
+    </div>
+
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div id="view-dashboard" class="view active">
+        <div class="row g-3 mb-4">
+          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-val" id="kDrop">—</div><div class="kpi-lbl">Drop Rate</div><div class="kpi-delta" id="kDropM">Meta &gt;85%</div></div></div>
+          <div class="col-md-3 col-lg"><div class="kpi warn"><div class="kpi-icon">📸</div><div class="kpi-val" id="kRED">—</div><div class="kpi-lbl">Cumplimiento RED</div><div class="kpi-delta" id="kREDM">Meta &gt;90%</div></div></div>
+          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">❄️</div><div class="kpi-val" id="kFrio">—</div><div class="kpi-lbl">Adherencia Térmica</div><div class="kpi-delta" id="kFrioM">Meta 100%</div></div></div>
+          <div class="col-md-3 col-lg"><div class="kpi warn"><div class="kpi-icon">♻️</div><div class="kpi-val" id="kRet">—</div><div class="kpi-lbl">Retornabilidad</div><div class="kpi-delta" id="kRetM">Meta &gt;98%</div></div></div>
+          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">🚚</div><div class="kpi-val" id="kOTIF">—</div><div class="kpi-lbl">OTIF</div><div class="kpi-delta" id="kOTIFM">Meta &gt;92%</div></div></div>
+        </div>
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-val" id="kVentas" style="font-size:1.4rem">Bs 0</div><div class="kpi-lbl">Ventas del Día</div></div></div>
+          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">🌡️</div><div class="kpi-val" id="kTemp">4.0°C</div><div class="kpi-lbl">Temp. Camión</div></div></div>
+          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">🚫</div><div class="kpi-val" id="kBloq">0</div><div class="kpi-lbl">Clientes Bloqueados</div></div></div>
+        </div>
+        <div class="row g-3">
+          <div class="col-md-8"><div class="card"><div class="section-title">Ventas por Zona · Maracaibo</div><canvas id="chartZ" height="100"></canvas></div></div>
+          <div class="col-md-4"><div class="card"><div class="section-title">🔔 Alertas</div><div id="alertasList"></div></div></div>
+        </div>
+      </div>
+
+      <!-- PDVS -->
+      <div id="view-pdvs" class="view">
+        <div class="card">
+          <div class="section-title">Puntos de Venta <button class="btn" onclick="abrirPDV()">+ Nuevo PDV</button></div>
+          <input type="text" id="searchPDV" placeholder="🔍 Buscar por código, nombre o zona..." oninput="renderPDVs()" style="margin-bottom:15px">
+          <div style="overflow-x:auto">
+          <table class="table">
+            <thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Cestas</th><th>Botellas</th><th>Canal</th><th>Estado</th><th>Acciones</th></tr></thead>
+            <tbody id="tblPDVs"></tbody>
+          </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- MAPA -->
+      <div id="view-mapa" class="view">
+        <div class="row g-3">
+          <div class="col-md-8"><div id="map"></div></div>
+          <div class="col-md-4">
+            <div class="card" style="background:linear-gradient(135deg,var(--verde),var(--verde-osc));color:#fff">
+              <div class="section-title" style="color:#fff;border-color:rgba(255,255,255,.2)">📍 Check-in Geofencing</div>
+              <select id="selPDVCheckin" style="margin-bottom:12px;color:#2c3e50"></select>
+              <div id="gpsStatus" style="font-size:.82rem;margin-bottom:12px">GPS: esperando...</div>
+              <div id="distInfo" style="font-size:.82rem;margin-bottom:15px"></div>
+              <button class="btn" style="background:#fff;color:var(--verde);width:100%;margin-bottom:8px" onclick="getLocation()">🌐 Usar mi GPS real</button>
+              <button class="btn" style="background:var(--naranja);width:100%" onclick="simularCheckin()">🎯 Simular check-in</button>
+            </div>
+            <div class="card">
+              <div class="section-title" style="font-size:.85rem">Últimas visitas</div>
+              <div id="visitasList" style="font-size:.78rem;max-height:300px;overflow-y:auto"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PEDIDO -->
+      <div id="view-pedido" class="view">
+        <div class="row g-3">
+          <div class="col-md-5">
+            <div class="card">
+              <div class="section-title">Cliente</div>
+              <select id="selPDV" onchange="cargarPDV()" style="margin-bottom:15px"></select>
+              <div id="infoPDV"></div>
+              <div id="smartOrder" style="margin-top:15px"></div>
+            </div>
+            <div class="card">
+              <div class="section-title" style="font-size:.85rem">Promociones activas</div>
+              <div id="promosList" style="font-size:.78rem"></div>
+            </div>
+          </div>
+          <div class="col-md-7">
+            <div class="card">
+              <div class="section-title">Productos</div>
+              <div id="listaProds" style="max-height:400px;overflow-y:auto"></div>
+              <div style="padding:15px;background:var(--gris);border-radius:10px;margin-top:12px;font-size:.9rem">
+                <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Subtotal:</span><span id="subTotal">Bs 0</span></div>
+                <div style="display:flex;justify-content:space-between;color:var(--naranja);margin-bottom:4px"><span>Descuento:</span><span id="descTotal">Bs 0</span></div>
+                <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;border-top:1px solid var(--borde);padding-top:6px"><span>TOTAL:</span><span id="totalPedido">Bs 0</span></div>
+              </div>
+              <div class="row-sp" style="margin-top:12px">
+                <select id="metodoPago">
+                  <option value="Efectivo">💵 Efectivo</option>
+                  <option value="Transferencia">🏦 Transferencia</option>
+                  <option value="Pago Móvil">📱 Pago Móvil</option>
+                </select>
+              </div>
+              <button class="btn" style="width:100%" onclick="confirmarPedido()">✅ Confirmar Pedido</button>
+              <div id="pedidoMsg" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- RETORNABLES -->
+      <div id="view-retornables" class="view">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">🔄 Registrar Devolución</div>
+            <div class="row-sp"><div><label>PDV</label><select id="selRetPDV"></select></div></div>
+            <div class="row-sp">
+              <div><label>Tipo</label><select id="retTipo"><option value="Cesta">Cesta</option><option value="Botella">Botella</option></select></div>
+              <div><label>Cantidad</label><input type="number" id="retCant" value="1" min="1"></div>
+            </div>
+            <button class="btn" style="width:100%" onclick="registrarDevolucion()">Registrar devolución</button>
+          </div></div>
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">📊 Estado Retornables</div>
+            <div id="retStats"></div>
+          </div></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Estado por cliente</div>
+          <div style="overflow-x:auto">
+          <table class="table"><thead><tr><th>PDV</th><th>Cestas</th><th>Botellas</th><th>Límites</th><th>Estado</th></tr></thead><tbody id="tblRet"></tbody></table>
+          </div>
+        </div>
+      </div>
+
+      <!-- RED -->
+      <div id="view-red" class="view">
+        <div class="row g-3">
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">📸 Nueva Auditoría RED</div>
+            <select id="selPDVRed" style="margin-bottom:12px"></select>
+            <div style="border:2px dashed var(--borde);padding:30px;text-align:center;border-radius:12px;cursor:pointer;margin-bottom:12px" onclick="document.getElementById('fotoIn').click()">
+              <div style="font-size:3rem">📷</div>
+              <p style="color:#8899aa;margin:10px 0;font-size:.85rem">Click para subir foto del anaquel</p>
+              <input type="file" id="fotoIn" accept="image/*" style="display:none" onchange="previewFoto(event)">
+            </div>
+            <div id="fotoPrev" style="margin-bottom:12px"></div>
+            <button class="btn" style="width:100%" onclick="analizarRED()">🔍 Analizar cumplimiento RED</button>
+            <div id="redRes" style="margin-top:12px"></div>
+          </div></div>
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">📊 Historial de auditorías</div>
+            <div id="redHist" style="max-height:500px;overflow-y:auto"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- FRIO -->
+      <div id="view-frio" class="view">
+        <div class="row g-3 mb-3">
+          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">🌡️</div><div class="kpi-val" id="fTemp">—</div><div class="kpi-lbl">Temperatura Actual</div></div></div>
+          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">📊</div><div class="kpi-val" id="fAdh">—</div><div class="kpi-lbl">Adherencia</div></div></div>
+          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="fAlert">0</div><div class="kpi-lbl">Alertas (últimas 50)</div></div></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Monitoreo en Tiempo Real <button class="btn warn" onclick="toggleSim()" id="btnSim">▶ Iniciar simulación</button></div>
+          <div class="mini-chart"><canvas id="chartF"></canvas></div>
+          <div id="frioAlert" style="margin-top:12px"></div>
+        </div>
+      </div>
+
+      <!-- COMODATO -->
+      <div id="view-comodato" class="view">
+        <div class="card">
+          <div class="section-title">Activos en Comodato (Neveras / Exhibidores)</div>
+          <div id="comodatosList"></div>
+        </div>
+      </div>
+
+      <!-- VRP -->
+      <div id="view-vrp" class="view">
+        <div class="row g-3">
+          <div class="col-md-5"><div class="card">
+            <div class="section-title">🚚 Ruteo Óptimo (VRP)</div>
+            <p style="font-size:.82rem;color:#666">Selecciona los PDVs a visitar. El algoritmo calcula la ruta más corta usando vecino más cercano desde el almacén.</p>
+            <div id="vrpChecks" style="max-height:400px;overflow-y:auto;margin-bottom:15px"></div>
+            <button class="btn" style="width:100%" onclick="calcularVRP()">Calcular ruta óptima</button>
+          </div></div>
+          <div class="col-md-7"><div class="card">
+            <div class="section-title">Resultado</div>
+            <div id="vrpResult"><p style="color:#8899aa;text-align:center;padding:30px">Selecciona PDVs y calcula la ruta</p></div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- MERMAS -->
+      <div id="view-mermas" class="view">
+        <div class="row g-3">
+          <div class="col-md-5"><div class="card">
+            <div class="section-title">📉 Registrar Merma</div>
+            <div style="margin-bottom:12px"><label>PDV (opcional)</label><select id="merPDV"></select></div>
+            <div style="margin-bottom:12px"><label>Producto (opcional)</label><select id="merProd"></select></div>
+            <div style="margin-bottom:12px"><label>Cantidad</label><input type="number" id="merCant" value="1" min="1"></div>
+            <div style="margin-bottom:12px"><label>Causa</label><select id="merCausa"><option>Rotura</option><option>Vencimiento</option><option>Falla de empaque</option><option>Daño en transporte</option></select></div>
+            <button class="btn" style="width:100%" onclick="registrarMerma()">Registrar merma</button>
+          </div></div>
+          <div class="col-md-7"><div class="card">
+            <div class="section-title">Historial de mermas</div>
+            <div id="mermasList" style="max-height:500px;overflow-y:auto"></div>
+          </div></div>
+        </div>
+      </div>
+
+      <!-- LIQUIDACION -->
+      <div id="view-liq" class="view">
+        <div class="row g-3 mb-3">
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">💰 Cerrar Turno</div>
+            <div style="margin-bottom:12px"><label>Efectivo entregado (Bs)</label><input type="number" id="liqEfectivo" value="0" min="0"></div>
+            <div style="margin-bottom:12px"><label>Transferencias (Bs)</label><input type="number" id="liqTrans" value="0" min="0"></div>
+            <button class="btn" style="width:100%" onclick="cerrarTurno()">Liquidar turno</button>
+            <div id="liqResult" style="margin-top:12px"></div>
+          </div></div>
+          <div class="col-md-6"><div class="card">
+            <div class="section-title">Historial de liquidaciones</div>
+            <div id="liqHist" style="max-height:400px;overflow-y:auto"></div>
+          </div></div>
+        </div>
+        <div class="card">
+          <div class="section-title">Pedidos del día <button class="btn gray" onclick="window.print()">🖨️ Imprimir</button></div>
+          <div id="tablaLiq"></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- MODAL PDV -->
+<div class="modal fade" id="modalPDV" tabindex="-1">
+  <div class="modal-dialog modal-lg"><div class="modal-content">
+    <div class="modal-header"><h5 class="modal-title">Nuevo / Editar PDV</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
+    <div class="modal-body">
+      <input type="hidden" id="pId">
+      <div class="row-sp"><div><label>Código</label><input type="text" id="pCodigo"></div><div><label>Nombre comercial</label><input type="text" id="pNombre"></div></div>
+      <div class="row-sp"><div><label>Razón social</label><input type="text" id="pRazon"></div><div><label>Dirección</label><input type="text" id="pDireccion"></div></div>
+      <div class="row-sp">
+        <div><label>Zona</label><select id="pZona"></select></div>
+        <div><label>Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
+      </div>
+      <div class="row-sp">
+        <div><label>Latitud</label><input type="text" id="pLat" value="10.65"></div>
+        <div><label>Longitud</label><input type="text" id="pLng" value="-71.62"></div>
+        <div><label>Radio geofence (m)</label><input type="number" id="pRadio" value="50"></div>
+      </div>
+      <div class="row-sp">
+        <div><label>Saldo cestas</label><input type="number" id="pSaldoC" value="0"></div>
+        <div><label>Límite cestas</label><input type="number" id="pLimC" value="10"></div>
+        <div><label>Saldo botellas</label><input type="number" id="pSaldoB" value="0"></div>
+        <div><label>Límite botellas</label><input type="number" id="pLimB" value="20"></div>
+      </div>
+    </div>
+    <div class="modal-footer"><button class="btn gray" data-bs-dismiss="modal">Cancelar</button><button class="btn" onclick="guardarPDV()">Guardar</button></div>
+  </div></div>
+</div>
+
+<div id="toast"></div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+// ===== ESTADO GLOBAL =====
+let TOKEN = sessionStorage.getItem('token');
+let USER = JSON.parse(sessionStorage.getItem('user') || 'null');
+let PDVS = [], ZONAS = [], PRODS = [], PROMOS = [];
+let map = null, chartZ = null, chartF = null, simInt = null;
+
+// ===== API =====
+async function api(path, opts = {}) {
+  const res = await fetch('/api' + path, {
+    ...opts,
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, ...(opts.headers || {}) }
+  });
+  if (res.status === 401) { logout(); throw new Error('Sesión expirada'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.mensaje || data.error || 'Error');
+  return data;
+}
+
+// ===== TOAST =====
+function toast(msg, sub = '', type = '') {
+  const d = document.createElement('div');
+  d.className = 'toast ' + type;
+  d.innerHTML = `<b>${msg}</b>${sub ? `<small>${sub}</small>` : ''}`;
+  document.getElementById('toast').appendChild(d);
+  setTimeout(() => d.remove(), 4000);
+}
+
+// ===== LOGIN =====
+async function doLogin() {
+  const usuario = document.getElementById('lu').value.trim();
+  const password = document.getElementById('lp').value.trim();
+  if (!usuario || !password) return toast('Complete datos', '', 'warn');
+  try {
+    const res = await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario, password })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Error');
+    TOKEN = data.token; USER = data.user;
+    sessionStorage.setItem('token', TOKEN);
+    sessionStorage.setItem('user', JSON.stringify(USER));
+    initApp();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+function logout() { sessionStorage.clear(); location.reload(); }
+
+// ===== INIT =====
+async function initApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
+  document.getElementById('avatar').textContent = USER.nombre[0];
+
+  [PDVS, ZONAS, PRODS, PROMOS] = await Promise.all([
+    api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones')
+  ]);
+
+  // Poblar selects
+  const optsPDV = PDVS.map(p => `<option value="${p.id}">${p.codigo} - ${p.nombre}</option>`).join('');
+  ['selPDV','selPDVCheckin','selPDVRed','selRetPDV','merPDV'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.innerHTML = (id === 'merPDV' ? '<option value="">— Sin PDV —</option>' : '') + optsPDV;
+  });
+  document.getElementById('merProd').innerHTML = '<option value="">— Sin producto —</option>' + PRODS.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
+  document.getElementById('pZona').innerHTML = ZONAS.map(z => `<option value="${z.id}">${z.nombre}</option>`).join('');
+
+  renderProductos();
+  renderPDVs();
+  renderPromos();
+  renderVRPChecks();
+  cargarKPIs();
+  cargarComodatos();
+  cargarMermas();
+  cargarLiquidaciones();
+  cargarVisitas();
+  cargarRedHist();
+  setTimeout(initMap, 150);
+}
+
+// ===== NAVEGACIÓN =====
+function showView(id, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
+  document.getElementById('view-' + id).classList.add('active');
+  el.classList.add('active');
+  const titles = {dashboard:'Dashboard Gerencial',pdvs:'Puntos de Venta',mapa:'Mapa & Geofencing',pedido:'Tomar Pedido',retornables:'Retornables',red:'Auditoría RED',frio:'Cadena de Frío',comodato:'Activos en Comodato',vrp:'Ruteo VRP',mermas:'Mermas',liq:'Liquidación'};
+  document.getElementById('viewTitle').textContent = titles[id];
+  if (id === 'mapa' && map) setTimeout(() => map.invalidateSize(), 100);
+  if (id === 'pedido') cargarPDV();
+  if (id === 'retornables') renderRetornables();
+  if (id === 'liq') renderLiquidacion();
+  if (id === 'frio') renderChartFrio();
+  if (id === 'comodato') cargarComodatos();
+  if (id === 'mermas') cargarMermas();
+  if (id === 'mapa') cargarVisitas();
+}
+
+// ===== DASHBOARD =====
+async function cargarKPIs() {
+  try {
+    const k = await api('/kpis');
+    document.getElementById('kDrop').textContent = k.dropRate + '%';
+    document.getElementById('kRED').textContent = k.cumplimientoRED + '%';
+    document.getElementById('kFrio').textContent = k.adherenciaTermica + '%';
+    document.getElementById('kRet').textContent = k.retornabilidad + '%';
+    document.getElementById('kOTIF').textContent = k.otif + '%';
+    document.getElementById('kDropM').textContent = k.dropRate >= 85 ? '✓ Cumple meta' : '⚠ Bajo meta';
+    document.getElementById('kDropM').className = 'kpi-delta ' + (k.dropRate >= 85 ? 'up' : 'down');
+    document.getElementById('kREDM').textContent = k.cumplimientoRED >= 90 ? '✓ Cumple meta' : '⚠ Bajo meta';
+    document.getElementById('kREDM').className = 'kpi-delta ' + (k.cumplimientoRED >= 90 ? 'up' : 'down');
+    document.getElementById('kFrioM').textContent = k.adherenciaTermica === 100 ? '✓ Óptimo' : k.adherenciaTermica + '%';
+    document.getElementById('kFrioM').className = 'kpi-delta ' + (k.adherenciaTermica >= 95 ? 'up' : 'down');
+    document.getElementById('kRetM').textContent = k.retornabilidad >= 98 ? '✓ Cumple meta' : '⚠ Bajo meta';
+    document.getElementById('kRetM').className = 'kpi-delta ' + (k.retornabilidad >= 98 ? 'up' : 'down');
+    document.getElementById('kOTIFM').textContent = k.otif >= 92 ? '✓ Cumple meta' : '⚠ Bajo meta';
+    document.getElementById('kOTIFM').className = 'kpi-delta ' + (k.otif >= 92 ? 'up' : 'down');
+    document.getElementById('kVentas').textContent = 'Bs ' + k.ventasHoy.toLocaleString();
+    document.getElementById('kTemp').textContent = k.tempActual.toFixed(1) + '°C';
+    document.getElementById('kTemp').style.color = (k.tempActual > 8 || k.tempActual < 2) ? '#E63946' : '#0B6E4F';
+    document.getElementById('kBloq').textContent = k.bloqueados;
+
+    const ventas = await api('/ventas-zona');
+    const ctx = document.getElementById('chartZ');
+    if (chartZ) chartZ.destroy();
+    chartZ = new Chart(ctx, {
+      type: 'bar',
+      data: { labels: ventas.map(v => v.nombre), datasets: [{ label:'Ventas Bs', data: ventas.map(v => v.total), backgroundColor: ventas.map(v => v.color), borderRadius: 8 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
+    });
+
+    const alertas = [];
+    PDVS.forEach(p => { if (p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas) alertas.push({ t:'danger', i:'⚠️', m:p.nombre + ' bloqueado', s:`Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}` }); });
+    if (k.tempActual > 8 || k.tempActual < 2) alertas.push({ t:'danger', i:'🌡️', m:'Temperatura fuera de rango', s:k.tempActual.toFixed(1) + '°C' });
+    if (!alertas.length) alertas.push({ t:'ok', i:'✓', m:'Sin alertas', s:'Todo operativo' });
+    document.getElementById('alertasList').innerHTML = alertas.slice(0, 8).map(a => `<div class="alert ${a.t}"><b>${a.i} ${a.m}</b><br>${a.s}</div>`).join('');
+  } catch (e) { console.error(e); }
+}
+
+// ===== PDVS =====
+function renderPDVs() {
+  const q = (document.getElementById('searchPDV')?.value || '').toLowerCase();
+  const filtered = PDVS.filter(p => !q || (p.codigo+p.nombre+p.zona_nombre).toLowerCase().includes(q));
+  document.getElementById('tblPDVs').innerHTML = filtered.map(p => {
+    const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+    return `<tr>
+      <td><b>${p.codigo}</b></td>
+      <td>${p.nombre}</td>
+      <td><span class="badge" style="background:${p.zona_color}20;color:${p.zona_color}">${p.zona_nombre}</span></td>
+      <td>${p.saldo_cestas}/${p.limite_cestas}</td>
+      <td>${p.saldo_botellas}/${p.limite_botellas}</td>
+      <td>${p.canal}</td>
+      <td>${bloq ? '<span class="badge danger">🚫 Bloq.</span>' : '<span class="badge ok">✓ OK</span>'}</td>
+      <td style="white-space:nowrap">
+        <button class="btn gray" style="padding:4px 10px;font-size:.72rem" onclick="abrirPDV(${p.id})">✏️</button>
+        <button class="btn danger" style="padding:4px 10px;font-size:.72rem" onclick="eliminarPDV(${p.id})">🗑️</button>
+      </td>
+    </tr>`;
+  }).join('');
+}
+function abrirPDV(id) {
+  if (id) {
+    const p = PDVS.find(x => x.id === id);
+    const f = (k, v) => document.getElementById(k).value = v;
+    f('pId', p.id); f('pCodigo', p.codigo); f('pNombre', p.nombre); f('pRazon', p.razon_social||''); f('pDireccion', p.direccion||'');
+    f('pZona', p.zona_id); f('pCanal', p.canal||'Abasto/Bodega'); f('pLat', p.lat); f('pLng', p.lng); f('pRadio', p.geofence_radio_m||50);
+    f('pSaldoC', p.saldo_cestas); f('pLimC', p.limite_cestas); f('pSaldoB', p.saldo_botellas); f('pLimB', p.limite_botellas);
+  } else {
+    ['pId','pCodigo','pNombre','pRazon','pDireccion'].forEach(k => document.getElementById(k).value = '');
+    document.getElementById('pLat').value = '10.65';
+    document.getElementById('pLng').value = '-71.62';
+    document.getElementById('pRadio').value = 50;
+    document.getElementById('pSaldoC').value = 0;
+    document.getElementById('pSaldoB').value = 0;
+    document.getElementById('pLimC').value = 10;
+    document.getElementById('pLimB').value = 20;
+  }
+  new bootstrap.Modal(document.getElementById('modalPDV')).show();
+}
+async function guardarPDV() {
+  const id = document.getElementById('pId').value;
+  const data = {
+    codigo: document.getElementById('pCodigo').value,
+    nombre: document.getElementById('pNombre').value,
+    razon_social: document.getElementById('pRazon').value,
+    direccion: document.getElementById('pDireccion').value,
+    zona_id: +document.getElementById('pZona').value,
+    canal: document.getElementById('pCanal').value,
+    lat: +document.getElementById('pLat').value,
+    lng: +document.getElementById('pLng').value,
+    geofence_radio_m: +document.getElementById('pRadio').value,
+    saldo_cestas: +document.getElementById('pSaldoC').value,
+    limite_cestas: +document.getElementById('pLimC').value,
+    saldo_botellas: +document.getElementById('pSaldoB').value,
+    limite_botellas: +document.getElementById('pLimB').value
+  };
+  try {
+    if (id) await api('/pdvs/' + id, { method: 'PUT', body: JSON.stringify(data) });
+    else await api('/pdvs', { method: 'POST', body: JSON.stringify(data) });
+    toast('PDV guardado', data.nombre);
+    bootstrap.Modal.getInstance(document.getElementById('modalPDV')).hide();
+    PDVS = await api('/pdvs');
+    renderPDVs(); cargarKPIs(); cargarVRPChecks();
+    if (map) refreshMarkers();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function eliminarPDV(id) {
+  if (!confirm('¿Eliminar este PDV?')) return;
+  try {
+    await api('/pdvs/' + id, { method: 'DELETE' });
+    PDVS = await api('/pdvs');
+    renderPDVs(); cargarKPIs();
+    if (map) refreshMarkers();
+    toast('PDV eliminado');
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+
+// ===== MAPA =====
+function initMap() {
+  if (map) return;
+  map = L.map('map').setView([10.654, -71.63], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+  refreshMarkers();
+}
+function refreshMarkers() {
+  map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+  PDVS.forEach(p => {
+    const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+    const icon = L.divIcon({ html: `<div style="background:${p.zona_color};width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className:'', iconSize:[22,22] });
+    L.marker([p.lat, p.lng], { icon }).addTo(map)
+      .bindPopup(`<b>${p.nombre}</b><br>${p.codigo}<br>${p.zona_nombre}<br>Cestas: ${p.saldo_cestas}/${p.limite_cestas}<br>Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>${bloq ? '🚫 BLOQUEADO' : '✓ OK'}`);
+  });
+}
+function hav(lat1, lon1, lat2, lon2) {
+  const R=6371000, r=x=>x*Math.PI/180;
+  const dLat=r(lat2-lat1), dLon=r(lon2-lon1);
+  const a=Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+async function getLocation() {
+  const id = +document.getElementById('selPDVCheckin').value;
+  const pdv = PDVS.find(p => p.id === id);
+  if (!navigator.geolocation) return toast('GPS no disponible', '', 'error');
+  document.getElementById('gpsStatus').textContent = 'GPS: obteniendo ubicación...';
+  navigator.geolocation.getCurrentPosition(async pos => {
+    const { latitude: lat, longitude: lng } = pos.coords;
+    const dist = hav(lat, lng, pdv.lat, pdv.lng);
+    document.getElementById('gpsStatus').textContent = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    document.getElementById('distInfo').innerHTML = `Distancia: <b>${dist.toFixed(0)}m</b><br>${dist <= pdv.geofence_radio_m ? '<span style="color:#8fe39a">✓ Dentro del radio</span>' : '<span style="color:#ffb3b8">✗ Fuera del radio</span>'}`;
+    try {
+      await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat, lng }) });
+      toast('Check-in exitoso', `${pdv.nombre} · ${dist.toFixed(0)}m`);
+      cargarVisitas(); cargarKPIs();
+    } catch (e) { toast('Check-in rechazado', e.message, 'error'); }
+  }, () => { document.getElementById('gpsStatus').textContent = 'GPS: error o denegado'; toast('GPS bloqueado', 'Usa Simular check-in', 'warn'); }, { enableHighAccuracy: true, timeout: 10000 });
+}
+async function simularCheckin() {
+  const id = +document.getElementById('selPDVCheckin').value;
+  const pdv = PDVS.find(p => p.id === id);
+  document.getElementById('gpsStatus').textContent = 'GPS (simulado): 10.652, -71.630';
+  document.getElementById('distInfo').innerHTML = 'Distancia: <b>15m</b><br><span style="color:#8fe39a">✓ Check-in válido</span>';
+  try {
+    await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) });
+    toast('Check-in simulado', pdv.nombre);
+    cargarVisitas(); cargarKPIs();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function cargarVisitas() {
+  try {
+    const v = await api('/visitas');
+    const cont = document.getElementById('visitasList');
+    if (!cont) return;
+    if (!v.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin visitas registradas</p>'; return; }
+    cont.innerHTML = v.slice(0, 15).map(x => `<div style="padding:8px;border-bottom:1px solid var(--borde)"><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha_checkin).toLocaleString()} · ${x.vendedor} · ${x.distancia_m ? x.distancia_m.toFixed(0)+'m' : ''} <span class="badge ${x.estado==='Efectiva'?'ok':'warn'}">${x.estado}</span></small></div>`).join('');
+  } catch (e) {}
+}
+
+// ===== PEDIDO =====
+function renderProductos() {
+  document.getElementById('listaProds').innerHTML = PRODS.map(p => `
+    <div class="prod-row">
+      <div style="flex:1"><b>${p.nombre}</b><br><small style="color:#8899aa">Bs ${p.precio} ${p.retornable ? '· ♻️ ' + p.tipo_envase : ''} ${p.fecha_vencimiento && new Date(p.fecha_vencimiento) > new Date() ? '· vence ' + p.fecha_vencimiento : ''}</small></div>
+      <input type="number" min="0" value="0" id="prod_${p.id}" style="width:75px" oninput="calcTotal()">
+    </div>
+  `).join('');
+}
+function renderPromos() {
+  const cont = document.getElementById('promosList');
+  if (!PROMOS.length) { cont.innerHTML = '<p style="color:#8899aa">Sin promociones activas</p>'; return; }
+  cont.innerHTML = PROMOS.map(pr => `<div style="padding:8px;background:#fff3cd;border-radius:8px;margin-bottom:6px">🏷️ <b>${pr.nombre}</b><br><small>${pr.tipo === 'Volumen' ? `Mínimo ${pr.min_cantidad} unidades → ${pr.descuento_pct}% dcto` : `${pr.descuento_pct}% descuento en producto`}</small></div>`).join('');
+}
+async function cargarPDV() {
+  const id = +document.getElementById('selPDV').value;
+  const p = PDVS.find(x => x.id === id);
+  if (!p) return;
+  const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+  document.getElementById('infoPDV').innerHTML = `
+    <div class="alert ${bloq ? 'danger' : 'ok'}">
+      <b>${p.nombre}</b> · ${p.codigo}<br>
+      Zona: ${p.zona_nombre} · Canal: ${p.canal}<br>
+      Cestas: ${p.saldo_cestas}/${p.limite_cestas} · Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>
+      ${bloq ? '<b>🚫 CLIENTE BLOQUEADO</b> — requiere autorización de supervisor' : '<b>✓ Habilitado</b>'}
+    </div>`;
+  try {
+    const sugerencias = await api('/smart-order/' + id);
+    if (sugerencias.length) {
+      document.getElementById('smartOrder').innerHTML = `<div style="background:#e0f2fe;padding:12px;border-radius:10px;font-size:.8rem"><b>💡 Smart Order:</b><br>${sugerencias.slice(0,4).map(s => `• ${s.nombre} x${s.cantidad_sugerida}`).join('<br>')}</div>`;
+    }
+  } catch (e) {}
+}
+function calcTotal() {
+  let sub = 0, desc = 0;
+  PRODS.forEach(p => {
+    const c = +document.getElementById('prod_' + p.id)?.value || 0;
+    if (c === 0) return;
+    const s = c * p.precio;
+    sub += s;
+    const promo = PROMOS.find(pr => pr.producto_id === p.id && pr.tipo === 'Volumen' && c >= pr.min_cantidad);
+    if (promo) desc += s * (promo.descuento_pct / 100);
+    if (p.fecha_vencimiento) {
+      const dias = Math.ceil((new Date(p.fecha_vencimiento) - new Date()) / 86400000);
+      if (dias >= 0 && dias <= 30) {
+        const promoSD = PROMOS.find(pr => pr.producto_id === p.id && pr.tipo === 'ShortDate');
+        if (promoSD) desc += s * (promoSD.descuento_pct / 100);
+      }
+    }
+  });
+  document.getElementById('subTotal').textContent = 'Bs ' + sub.toLocaleString();
+  document.getElementById('descTotal').textContent = 'Bs ' + desc.toLocaleString();
+  document.getElementById('totalPedido').textContent = 'Bs ' + (sub - desc).toLocaleString();
+}
+async function confirmarPedido() {
+  const pdv_id = +document.getElementById('selPDV').value;
+  const items = [];
+  PRODS.forEach(p => {
+    const c = +document.getElementById('prod_' + p.id).value || 0;
+    if (c > 0) items.push({ producto_id: p.id, cantidad: c });
+  });
+  if (!items.length) return toast('Sin productos', 'Selecciona al menos uno', 'warn');
+  try {
+    const r = await api('/pedidos', { method: 'POST', body: JSON.stringify({ pdv_id, items, metodo_pago: document.getElementById('metodoPago').value }) });
+    document.getElementById('pedidoMsg').innerHTML = `<div class="alert ok"><b>✅ Pedido #${r.id} confirmado</b><br>Subtotal: Bs ${r.subtotal.toLocaleString()}<br>Descuento: Bs ${r.descuento.toLocaleString()}<br><b>Total: Bs ${r.total.toLocaleString()}</b></div>`;
+    toast('Pedido confirmado', `#${r.id} · Bs ${r.total.toLocaleString()}`);
+    PDVS = await api('/pdvs');
+    renderPDVs(); cargarPDV(); cargarKPIs();
+    PRODS.forEach(p => document.getElementById('prod_' + p.id).value = 0);
+    calcTotal();
+  } catch (e) {
+    document.getElementById('pedidoMsg').innerHTML = `<div class="alert danger"><b>🚫 ${e.message === 'BLOQUEADO' ? 'PEDIDO BLOQUEADO' : 'Error'}</b><br>${e.message}</div>`;
+    toast('Pedido bloqueado', e.message, 'error');
+  }
+}
+
+// ===== RETORNABLES =====
+async function renderRetornables() {
+  const r = await api('/retornables');
+  const totalC = r.reduce((s,p) => s+p.saldo_cestas,0);
+  const totalB = r.reduce((s,p) => s+p.saldo_botellas,0);
+  const bloq = r.filter(p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas).length;
+  document.getElementById('retStats').innerHTML = `
+    <div style="margin-bottom:12px"><b>Cestas adeudadas:</b> ${totalC}</div>
+    <div style="margin-bottom:12px"><b>Botellas adeudadas:</b> ${totalB}</div>
+    <div style="margin-bottom:12px"><b>Clientes bloqueados:</b> <span style="color:var(--rojo);font-weight:700">${bloq}</span></div>
+  `;
+  document.getElementById('tblRet').innerHTML = r.map(p => {
+    const b = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+    return `<tr>
+      <td><b>${p.nombre}</b><br><small>${p.codigo}</small></td>
+      <td>${p.saldo_cestas}/${p.limite_cestas}</td>
+      <td>${p.saldo_botellas}/${p.limite_botellas}</td>
+      <td>C:${p.limite_cestas} · B:${p.limite_botellas}</td>
+      <td>${b ? '<span class="badge danger">🚫 Bloqueado</span>' : '<span class="badge ok">✓ OK</span>'}</td>
+    </tr>`;
+  }).join('');
+}
+async function registrarDevolucion() {
+  const pdv_id = +document.getElementById('selRetPDV').value;
+  const tipo = document.getElementById('retTipo').value;
+  const cantidad = +document.getElementById('retCant').value;
+  if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
+  try {
+    const r = await api('/retornables/devolucion', { method: 'POST', body: JSON.stringify({ pdv_id, tipo, cantidad }) });
+    toast('Devolución registrada', `Nuevo saldo: ${r.nuevo_saldo}`);
+    PDVS = await api('/pdvs');
+    renderRetornables(); renderPDVs(); cargarKPIs();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+
+// ===== RED =====
+let fotoBase64 = null;
+function previewFoto(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    fotoBase64 = ev.target.result;
+    document.getElementById('fotoPrev').innerHTML = `<img src="${fotoBase64}" style="width:100%;border-radius:12px;max-height:220px;object-fit:cover">`;
+    toast('Foto cargada');
+  };
+  r.readAsDataURL(f);
+}
+async function analizarRED() {
+  if (!fotoBase64) return toast('Sin foto', 'Sube una imagen primero', 'warn');
+  const pdv_id = +document.getElementById('selPDVRed').value;
+  const cumplimiento = Math.round(70 + Math.random() * 30);
+  try {
+    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, foto_base64: fotoBase64, cumplimiento_pct: cumplimiento, observaciones: 'Análisis automático' }) });
+    const color = cumplimiento >= 90 ? '#2A9D8F' : cumplimiento >= 75 ? '#F4A261' : '#E63946';
+    document.getElementById('redRes').innerHTML = `<div class="alert ok"><div style="text-align:center"><div style="font-size:2.5rem;font-weight:800;color:${color}">${cumplimiento}%</div><div style="color:#8899aa;font-size:.8rem;margin-bottom:10px">Share of Shelf</div></div>
+      <div style="margin-bottom:6px"><small>Marca propia ${cumplimiento}% · Competencia ${100-cumplimiento}%</small></div>
+      <div style="height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;display:flex"><div style="width:${cumplimiento}%;background:${color}"></div><div style="width:${100-cumplimiento}%;background:#E63946"></div></div>
+      <div style="margin-top:10px"><b>${cumplimiento >= 90 ? '✓ Cumple estándar RED' : '⚠ Requiere corrección'}</b></div></div>`;
+    toast('Análisis RED completo', `${cumplimiento}%`);
+    cargarRedHist(); cargarKPIs();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function cargarRedHist() {
+  try {
+    const r = await api('/red');
+    const cont = document.getElementById('redHist'); if (!cont) return;
+    if (!r.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin auditorías</p>'; return; }
+    cont.innerHTML = r.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center"><div><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha).toLocaleString()}</small></div><span class="badge ${x.cumplimiento_pct>=90?'ok':x.cumplimiento_pct>=75?'warn':'danger'}">${x.cumplimiento_pct.toFixed(0)}%</span></div>`).join('');
+  } catch (e) {}
+}
+
+// ===== FRIO =====
+async function renderChartFrio() {
+  const data = await api('/frio');
+  const ctx = document.getElementById('chartF');
+  if (chartF) chartF.destroy();
+  chartF = new Chart(ctx, {
+    type: 'line',
+    data: { labels: data.map((_,i) => i), datasets: [{ label:'°C', data: data.map(x=>x.temperatura), borderColor:'#0B6E4F', backgroundColor:'rgba(11,110,79,.1)', tension:.4, fill:true, pointRadius:2 }] },
+    options: { plugins: { legend: { display: false } }, scales: { y: { min:0, max:12 }, x: { display: false } }, responsive: true, maintainAspectRatio: false }
+  });
+  if (data.length) {
+    const ult = data[data.length-1].temperatura;
+    document.getElementById('fTemp').textContent = ult.toFixed(1) + '°C';
+    document.getElementById('fTemp').style.color = (ult>8||ult<2) ? '#E63946' : '#0B6E4F';
+    const alertas = data.filter(x => x.alerta).length;
+    document.getElementById('fAlert').textContent = alertas;
+    document.getElementById('fAdh').textContent = Math.round((1 - alertas/data.length)*100) + '%';
+  }
+}
+function toggleSim() {
+  if (simInt) { clearInterval(simInt); simInt = null; document.getElementById('btnSim').textContent = '▶ Iniciar simulación'; return; }
+  document.getElementById('btnSim').textContent = '⏸ Detener';
+  simInt = setInterval(async () => {
+    const v = 2 + Math.random() * 8;
+    await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
+    const alert = document.getElementById('frioAlert');
+    if (v > 8 || v < 2) alert.innerHTML = `<div class="alert danger"><b>⚠️ ALERTA: ${v.toFixed(1)}°C — Fuera de rango</b> — Notificar supervisor</div>`;
+    else alert.innerHTML = `<div class="alert ok"><b>✓ Temperatura óptima</b> — ${v.toFixed(1)}°C</div>`;
+    await renderChartFrio();
+  }, 2000);
+}
+
+// ===== COMODATO =====
+async function cargarComodatos() {
+  try {
+    const a = await api('/comodatos');
+    const cont = document.getElementById('comodatosList'); if (!cont) return;
+    if (!a.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin activos registrados</p>'; return; }
+    cont.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${a.map(x => `
+      <div style="border:1px solid var(--borde);border-radius:12px;padding:15px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <b>${x.tipo}</b><span class="badge info">${x.codigo_qr}</span>
+        </div>
+        <div style="font-size:.8rem;color:#666;margin-bottom:10px">
+          📍 ${x.pdv_nombre}<br>
+          Marca: ${x.marca}<br>
+          Instalado: ${x.fecha_instalacion}<br>
+          Mantenimiento: ${x.ultimo_mantenimiento}
+        </div>
+        <div style="padding:10px;background:${x.temperatura_actual === null ? '#f8f9fa' : (x.temperatura_actual > x.temp_max || x.temperatura_actual < x.temp_min) ? '#f8d7da' : '#d4edda'};border-radius:8px;text-align:center;margin-bottom:10px">
+          🌡️ ${x.temperatura_actual !== null ? x.temperatura_actual.toFixed(1) + '°C' : 'Sin lectura'}<br>
+          <small>Rango: ${x.temp_min}–${x.temp_max}°C</small>
+        </div>
+        <button class="btn" style="width:100%;padding:6px" onclick="verificarComodato(${x.id})">✓ Verificar temperatura</button>
+      </div>
+    `).join('')}</div>`;
+  } catch (e) {}
+}
+async function verificarComodato(id) {
+  const t = prompt('Ingresa la temperatura actual (°C):', '4.5');
+  if (t === null) return;
+  try {
+    const r = await api(`/comodatos/${id}/verificar`, { method: 'POST', body: JSON.stringify({ temperatura_actual: +t }) });
+    toast(r.alerta ? '⚠️ Temperatura fuera de rango' : 'Temperatura OK', `Registrada: ${t}°C`, r.alerta ? 'error' : '');
+    cargarComodatos();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+
+// ===== VRP =====
+function renderVRPChecks() {
+  const cont = document.getElementById('vrpChecks'); if (!cont) return;
+  cont.innerHTML = PDVS.map(p => `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.82rem;font-weight:400;color:var(--texto)"><input type="checkbox" value="${p.id}" style="width:auto"> <span>${p.codigo} - ${p.nombre}</span></label>`).join('');
+}
+async function calcularVRP() {
+  const checked = [...document.querySelectorAll('#vrpChecks input:checked')].map(c => +c.value);
+  if (checked.length === 0) return toast('Selecciona PDVs', '', 'warn');
+  try {
+    const r = await api('/vrp', { method: 'POST', body: JSON.stringify({ pdv_ids: checked }) });
+    document.getElementById('vrpResult').innerHTML = `
+      <div style="background:#f0f8f4;padding:12px;border-radius:10px;margin-bottom:12px"><b>Distancia total:</b> ${r.total_km} km · <b>${r.ruta.length - 1} paradas</b></div>
+      <table class="table"><thead><tr><th>#</th><th>PDV</th><th>Distancia desde anterior</th></tr></thead><tbody>
+        ${r.ruta.map((x, i) => `<tr><td>${i === 0 ? '🏭' : i}</td><td>${x.nombre}</td><td>${i === 0 ? 'Origen' : (x.distancia_desde_anterior_m/1000).toFixed(2) + ' km (' + x.distancia_desde_anterior_m + 'm)'}</td></tr>`).join('')}
+      </tbody></table>`;
+    toast('Ruta calculada', `${r.total_km} km totales`);
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+
+// ===== MERMAS =====
+async function registrarMerma() {
+  const pdv_id = +document.getElementById('merPDV').value || null;
+  const producto_id = +document.getElementById('merProd').value || null;
+  const cantidad = +document.getElementById('merCant').value;
+  const causa = document.getElementById('merCausa').value;
+  if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
+  try {
+    await api('/mermas', { method: 'POST', body: JSON.stringify({ pdv_id, producto_id, cantidad, causa }) });
+    toast('Merma registrada', causa);
+    cargarMermas();
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function cargarMermas() {
+  try {
+    const m = await api('/mermas');
+    const cont = document.getElementById('mermasList'); if (!cont) return;
+    if (!m.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin mermas registradas</p>'; return; }
+    cont.innerHTML = m.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde)"><b>${x.producto || 'N/A'}</b> x${x.cantidad}<br><small>${x.causa} · ${x.pdv_nombre || 'Sin PDV'} · ${new Date(x.fecha).toLocaleString()}</small></div>`).join('');
+  } catch (e) {}
+}
+
+// ===== LIQUIDACION =====
+async function cerrarTurno() {
+  const efectivo_entregado = +document.getElementById('liqEfectivo').value;
+  const transferencias = +document.getElementById('liqTrans').value;
+  try {
+    const r = await api('/liquidaciones', { method: 'POST', body: JSON.stringify({ efectivo_entregado, transferencias }) });
+    const ok = Math.abs(r.diferencia) < 1;
+    document.getElementById('liqResult').innerHTML = `<div class="alert ${ok ? 'ok' : 'danger'}"><b>${ok ? '✓ Turno cerrado sin diferencia' : '⚠ Diferencia detectada'}</b><br>Efectivo esperado: Bs ${r.efectivo_esperado.toLocaleString()}<br>Diferencia: Bs ${r.diferencia.toLocaleString()}</div>`;
+    cargarLiquidaciones();
+    toast(ok ? 'Turno cerrado' : 'Diferencia en caja', `Bs ${r.diferencia.toLocaleString()}`, ok ? '' : 'error');
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function cargarLiquidaciones() {
+  try {
+    const l = await api('/liquidaciones');
+    const cont = document.getElementById('liqHist'); if (!cont) return;
+    if (!l.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin liquidaciones</p>'; return; }
+    cont.innerHTML = l.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde)"><b>${x.vendedor}</b> · ${new Date(x.fecha).toLocaleDateString()}<br><small>Esperado: Bs ${x.efectivo_esperado.toLocaleString()} · Entregado: Bs ${x.efectivo_entregado.toLocaleString()} · Diferencia: <b style="color:${Math.abs(x.diferencia)<1?'#2A9D8F':'#E63946'}">Bs ${x.diferencia.toLocaleString()}</b></small></div>`).join('');
+  } catch (e) {}
+}
+async function renderLiquidacion() {
+  const pedidos = await api('/pedidos');
+  if (!pedidos.length) { document.getElementById('tablaLiq').innerHTML = '<p style="color:#8899aa;text-align:center;padding:30px">Sin pedidos registrados hoy.</p>'; return; }
+  const total = pedidos.reduce((s,p) => s+p.total, 0);
+  document.getElementById('tablaLiq').innerHTML = `
+    <div style="margin-bottom:15px"><b>Total del día:</b> Bs ${total.toLocaleString()} · <b>Pedidos:</b> ${pedidos.length}</div>
+    <table class="table">
+      <thead><tr><th>#</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Método</th><th>Productos</th><th>Total</th></tr></thead>
+      <tbody>${pedidos.map(p => `<tr>
+        <td>${p.id}</td><td>${p.pdv_nombre}</td><td>${p.vendedor}</td><td>${new Date(p.fecha).toLocaleTimeString()}</td>
+        <td>${p.metodo_pago}</td>
+        <td style="font-size:.72rem">${p.items.map(i => `${i.nombre} x${i.cantidad}`).join('<br>')}</td>
+        <td><b>Bs ${p.total.toLocaleString()}</b></td>
+      </tr>`).join('')}</tbody>
+      <tfoot><tr style="background:var(--gris);font-weight:700"><td colspan="6" style="text-align:right">TOTAL</td><td>Bs ${total.toLocaleString()}</td></tr></tfoot>
+    </table>`;
+}
+
+// AUTO-LOGIN
+if (TOKEN && USER) initApp();
+</script>
+</body>
+</html>
