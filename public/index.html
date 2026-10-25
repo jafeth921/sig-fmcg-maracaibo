@@ -3,97 +3,146 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>SIG FMCG Maracaibo v4.0</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+<title>SIG FMCG Maracaibo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
-:root{--verde:#0B6E4F;--verde-osc:#085a40;--naranja:#F4A261;--rojo:#E63946;--azul:#1D3557;--gris:#f5f7fa;--texto:#2c3e50;--borde:#e2e8f0;--sidebar:#0f1729;--sidebar-h:#1a2942}
-*{font-family:'Inter',sans-serif;box-sizing:border-box}
-body{background:var(--gris);margin:0;color:var(--texto)}
-#login{position:fixed;inset:0;display:flex;background:linear-gradient(135deg,#0B6E4F,#1D3557);align-items:center;justify-content:center;padding:20px;z-index:9999}
-.login-box{display:flex;background:#fff;border-radius:24px;overflow:hidden;box-shadow:0 30px 80px rgba(0,0,0,.4);max-width:900px;width:100%}
-.login-left{flex:1;background:linear-gradient(135deg,#0B6E4F,#085a40);padding:50px 40px;color:#fff;position:relative;overflow:hidden}
-.login-left::after{content:'🚚';position:absolute;font-size:180px;opacity:.08;bottom:-30px;right:-20px}
-.login-left h1{font-size:1.8rem;font-weight:800}
-.login-left p{opacity:.9;font-size:.9rem}
-.login-left .feat{display:flex;align-items:center;gap:10px;margin:12px 0;font-size:.85rem}
-.login-left .dot{width:8px;height:8px;background:var(--naranja);border-radius:50%}
-.login-right{flex:1;padding:50px 40px}
-.login-right h2{color:var(--verde);font-weight:800;margin-bottom:5px}
-.login-right .sub{color:#888;font-size:.85rem;margin-bottom:25px}
-.login-right input{width:100%;padding:12px 15px;border:2px solid var(--borde);border-radius:10px;margin-bottom:12px;font-size:.9rem}
-.login-right input:focus{outline:none;border-color:var(--verde)}
-.btn-login{background:var(--verde);color:#fff;width:100%;padding:14px;border:none;border-radius:10px;font-weight:700;cursor:pointer}
-.btn-login:hover{background:var(--verde-osc)}
-.demo{background:#f0f8f4;padding:12px;border-radius:8px;font-size:.75rem;color:var(--verde);margin-top:15px}
+:root{
+  --bg:#F3F5F8;--surface:#fff;--ink:#0F172A;--muted:#64748B;--line:#E4E8EE;
+  --primary:#0F766E;--primary-d:#115E59;--primary-l:#E6F4F1;
+  --navy:#0B1220;--navy-2:#131D31;--gold:#B45309;--gold-l:#FEF3E2;
+  --ok:#15803D;--ok-l:#E3F4E8;--bad:#B91C1C;--bad-l:#FBE7E7;--warn:#B45309;--warn-l:#FEF3E2;--info:#1D4ED8;--info-l:#E5EDFD;
+  --radius:12px;--shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.05)
+}
+*{box-sizing:border-box;font-family:'Inter',system-ui,sans-serif}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+h1,h2,h3,h4,h5{margin:0}
+.num{font-variant-numeric:tabular-nums}
+
+/* Login */
+#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;background:radial-gradient(1200px 600px at 10% 0%,#13584f 0,transparent 60%),linear-gradient(135deg,#0B1220,#0F2A33)}
+.login-box{display:grid;grid-template-columns:1.05fr 1fr;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.45);max-width:920px;width:100%}
+.login-left{padding:52px 44px;color:#fff;background:linear-gradient(160deg,#0F766E,#0B3B3A)}
+.brand-mark{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.5px;margin-bottom:22px;border:1px solid rgba(255,255,255,.25)}
+.login-left h1{font-size:1.7rem;font-weight:800;line-height:1.2}
+.login-left p{opacity:.85;margin:10px 0 28px;line-height:1.5}
+.feat{display:flex;gap:10px;align-items:center;margin:11px 0;font-size:.88rem;opacity:.95}
+.feat i{width:6px;height:6px;border-radius:50%;background:#F5C26B;flex:none}
+.login-right{padding:52px 44px}
+.login-right h2{font-size:1.5rem;font-weight:800}
+.login-right .sub{color:var(--muted);margin:6px 0 26px}
+.demo{margin-top:20px;padding:14px;border-radius:10px;background:var(--primary-l);color:var(--primary-d);font-size:.78rem;line-height:1.7}
+
+/* Layout */
 #app{display:none}
-.sidebar{width:250px;background:var(--sidebar);color:#fff;position:fixed;top:0;left:0;bottom:0;padding:20px 0;overflow-y:auto;z-index:100}
-.sb-logo{padding:0 20px 20px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:15px}
-.sb-logo h3{font-size:1rem;font-weight:800;margin:0}
-.sb-logo small{color:#8899aa;font-size:.72rem}
-.sidebar nav a{display:flex;align-items:center;gap:12px;padding:11px 20px;color:#8899aa;text-decoration:none;font-size:.82rem;font-weight:500;cursor:pointer;border-left:3px solid transparent}
-.sidebar nav a:hover{background:var(--sidebar-h);color:#fff}
-.sidebar nav a.active{background:var(--sidebar-h);color:#fff;border-left-color:var(--verde)}
-.main{margin-left:250px}
-.topbar{background:#fff;padding:15px 30px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center;position:sticky;top:0;z-index:50}
-.topbar h4{margin:0;font-weight:700;font-size:1.1rem}
-.content{padding:25px 30px}
-.view{display:none}
-.view.active{display:block}
-.card{background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 10px rgba(0,0,0,.04);border:1px solid var(--borde);margin-bottom:20px}
-.kpi{background:#fff;border-radius:14px;padding:20px;border:1px solid var(--borde);position:relative;overflow:hidden;height:100%}
-.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,var(--verde),var(--naranja))}
-.kpi.warn::before{background:var(--naranja)}
-.kpi.danger::before{background:var(--rojo)}
-.kpi-icon{font-size:1.6rem;margin-bottom:8px;opacity:.85}
-.kpi-val{font-size:1.9rem;font-weight:800;line-height:1}
-.kpi-lbl{color:#8899aa;font-size:.7rem;text-transform:uppercase;letter-spacing:.5px;margin-top:6px;font-weight:600}
-.kpi-delta{font-size:.7rem;margin-top:6px}
-.kpi-delta.up{color:#2A9D8F}
-.kpi-delta.down{color:var(--rojo)}
-.btn{background:var(--verde);color:#fff;border:none;padding:9px 18px;border-radius:9px;font-weight:600;font-size:.82rem;cursor:pointer}
-.btn:hover{background:var(--verde-osc);color:#fff}
-.btn.gray{background:#e2e8f0;color:var(--texto)}
-.btn.gray:hover{background:#cbd5e1;color:var(--texto)}
-.btn.danger{background:var(--rojo)}
-.btn.danger:hover{background:#c22f3a}
-.btn.warn{background:var(--naranja)}
-.btn.warn:hover{background:#e08a3d}
-.btn:disabled{opacity:.5;cursor:not-allowed}
-.table{width:100%;border-collapse:collapse;font-size:.82rem}
-.table th{padding:10px;text-align:left;color:#8899aa;font-size:.68rem;text-transform:uppercase;border-bottom:2px solid var(--borde);font-weight:700}
-.table td{padding:10px;border-bottom:1px solid var(--borde);vertical-align:middle}
-.table tr:hover{background:rgba(11,110,79,.03)}
-.badge{padding:3px 9px;border-radius:20px;font-size:.68rem;font-weight:700}
-.badge.ok{background:#d4edda;color:#155724}
-.badge.warn{background:#fff3cd;color:#856404}
-.badge.danger{background:#f8d7da;color:#721c24}
-.badge.info{background:#cce5ff;color:#004085}
-#map{height:500px;border-radius:14px;box-shadow:0 4px 20px rgba(0,0,0,.08)}
-#toast{position:fixed;top:20px;right:20px;z-index:99999;display:flex;flex-direction:column;gap:10px}
-.toast{padding:14px 20px;border-radius:12px;background:#fff;box-shadow:0 10px 30px rgba(0,0,0,.15);border-left:4px solid var(--verde);min-width:300px;animation:sl .3s}
-.toast.error{border-left-color:var(--rojo)}
-.toast.warn{border-left-color:var(--naranja)}
-.toast b{display:block;font-size:.85rem}
-.toast small{color:#666;font-size:.78rem}
-@keyframes sl{from{transform:translateX(400px);opacity:0}to{transform:translateX(0);opacity:1}}
-.alert{padding:14px;border-radius:10px;margin-bottom:12px;font-size:.85rem;font-weight:500}
-.alert.ok{background:#d4edda;color:#155724;border-left:4px solid #28a745}
-.alert.danger{background:#f8d7da;color:#721c24;border-left:4px solid #dc3545;animation:pl 1.5s infinite}
-.alert.warn{background:#fff3cd;color:#856404;border-left:4px solid #ffc107}
-@keyframes pl{50%{opacity:.75}}
-.prod-row{padding:12px;background:var(--gris);border-radius:10px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:center;gap:10px}
-.section-title{font-size:.95rem;font-weight:700;margin-bottom:15px;padding-bottom:10px;border-bottom:2px solid var(--borde);display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px}
-input[type=text],input[type=password],input[type=number],input[type=date],select,textarea{padding:10px 14px;border:2px solid var(--borde);border-radius:10px;font-size:.85rem;width:100%;background:#fff;font-family:inherit}
-input:focus,select:focus,textarea:focus{outline:none;border-color:var(--verde)}
-label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:block}
-.row-sp{display:flex;gap:10px;margin-bottom:12px}
-.row-sp>*{flex:1}
-.tabs-inline{display:flex;gap:5px;margin-bottom:15px;border-bottom:2px solid var(--borde)}
-.tabs-inline button{background:none;border:none;padding:10px 16px;font-weight:600;color:#8899aa;cursor:pointer;border-bottom:2px solid transparent;font-size:.82rem}
-.tabs-inline button.active{color:var(--verde);border-bottom-color:var(--verde)}
-.mini-chart{height:250px;position:relative}
+.sidebar{position:fixed;inset:0 auto 0 0;width:248px;background:var(--navy);color:#cbd5e1;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
+.sb-logo{padding:22px 22px 18px;display:flex;gap:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.07)}
+.sb-logo .brand-mark{margin:0;width:38px;height:38px;font-size:.85rem;background:var(--primary);border:0}
+.sb-logo b{display:block;color:#fff;font-size:.95rem}
+.sb-logo small{color:#7C8AA5;font-size:.72rem}
+.sb-group{padding:18px 22px 6px;font-size:.66rem;text-transform:uppercase;letter-spacing:1.2px;color:#5B6B88;font-weight:700}
+.sidebar nav a{display:block;padding:10px 22px;color:#A7B3C9;font-size:.86rem;font-weight:500;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+.sidebar nav a:hover{background:var(--navy-2);color:#fff}
+.sidebar nav a.active{background:var(--navy-2);color:#fff;border-left-color:#2DD4BF;font-weight:600}
+.main{margin-left:248px;min-height:100vh}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.topbar h4{font-size:1.1rem;font-weight:700}
+.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.rate{display:flex;align-items:center;gap:10px;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.rate .lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
+.rate .val{font-weight:800;font-size:.95rem}
+.rate .meta{font-size:.7rem;color:var(--muted)}
+.rate.stale{border-color:#F2C27A;background:var(--gold-l)}
+.rate.none{border-color:#F0B4B4;background:var(--bad-l)}
+.avatar{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
+.content{padding:24px 28px 40px}
+.menu-btn{display:none}
+.view{display:none}.view.active{display:block}
+
+/* Grid */
+.grid{display:grid;gap:16px;margin-bottom:16px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
+.s83{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.s57{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
+.s64{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}.s11{grid-template-columns:1fr 1fr}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
+.card.flat{box-shadow:none}
+.card-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.95rem;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
+.card-title small{font-weight:500;color:var(--muted)}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--primary)}
+.kpi.gold::before{background:var(--gold)}.kpi.red::before{background:var(--bad)}.kpi.navy::before{background:var(--navy)}
+.kpi-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
+.kpi-val{font-size:1.8rem;font-weight:800;margin:8px 0 8px;line-height:1.1}
+.kpi-sub{font-size:.78rem;color:var(--muted)}
+
+/* Elements */
+.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:700;white-space:nowrap}
+.pill.ok{background:var(--ok-l);color:var(--ok)}.pill.bad{background:var(--bad-l);color:var(--bad)}
+.pill.warn{background:var(--warn-l);color:var(--warn)}.pill.info{background:var(--info-l);color:var(--info)}.pill.mute{background:#EEF1F5;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--primary);color:#fff;border:0;padding:9px 16px;border-radius:9px;font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s}
+.btn:hover{background:var(--primary-d)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.ghost:hover{background:#F6F8FA}
+.btn.gold{background:var(--gold)}.btn.gold:hover{background:#92400E}
+.btn.danger{background:var(--bad)}.btn.danger:hover{background:#991B1B}
+.btn.sm{padding:5px 10px;font-size:.75rem}.btn.block{width:100%}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid #D5DBE4;border-radius:9px;font-size:.88rem;background:#fff;color:var(--ink)}
+input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
+.field{margin-bottom:14px}
+.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:4px}
+.table{width:100%;border-collapse:collapse;font-size:.84rem}
+.table th{padding:10px 12px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--line);background:#F8FAFC;font-weight:700}
+.table td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
+.table tbody tr:hover{background:#FAFBFC}
+.table .r{text-align:right}
+.scroll{overflow-x:auto}
+.note{padding:13px 15px;border-radius:10px;font-size:.85rem;margin-bottom:12px;border:1px solid transparent;line-height:1.5}
+.note.ok{background:var(--ok-l);color:#14532D;border-color:#BFE3CA}.note.bad{background:var(--bad-l);color:#7F1D1D;border-color:#F2C4C4}
+.note.warn{background:var(--warn-l);color:#7C2D12;border-color:#F2D3A3}.note.info{background:var(--info-l);color:#1E3A8A;border-color:#C3D3F7}
+.empty{color:var(--muted);text-align:center;padding:26px 10px;font-size:.85rem}
+.row-item{padding:11px 4px;border-bottom:1px solid var(--line);font-size:.84rem}
+.row-item small{color:var(--muted)}
+.prod{display:grid;grid-template-columns:1fr auto 84px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.prod b{display:block}.prod small{color:var(--muted)}
+.prod .p{text-align:right;font-weight:700}.prod .p small{display:block;font-weight:500}
+.totals{background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
+.totals .l{display:flex;justify-content:space-between;padding:3px 0}
+.totals .big{font-weight:800;font-size:1.1rem;border-top:1px solid var(--line);margin-top:6px;padding-top:9px}
+.totals .bs{color:var(--gold);font-weight:700}
+.paybox{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}
+.paybox h5{font-size:.8rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px}
+.payrow{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
+#map{height:520px;border-radius:var(--radius);border:1px solid var(--line)}
+.dark-card{background:linear-gradient(150deg,#0F766E,#0B3B3A);color:#fff;border:0}
+.dark-card .card-title{border-color:rgba(255,255,255,.2)}
+.mini-chart{height:260px;position:relative}
+.bar{height:10px;border-radius:6px;overflow:hidden;display:flex;background:#E5E9EF}
+
+/* Toast / Modal */
+#toast{position:fixed;top:18px;right:18px;z-index:99999;display:flex;flex-direction:column;gap:10px}
+.toast{background:#fff;border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:10px;padding:12px 16px;min-width:290px;max-width:380px;box-shadow:0 12px 30px rgba(15,23,42,.18);animation:in .25s}
+.toast.error{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--gold)}
+.toast b{display:block;font-size:.86rem}.toast small{color:var(--muted);font-size:.78rem}
+@keyframes in{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
+.modal{display:none;position:fixed;inset:0;background:rgba(11,18,32,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal.open{display:flex}
+.modal-card{background:#fff;border-radius:16px;width:100%;max-width:720px;max-height:92vh;overflow:auto;box-shadow:0 30px 70px rgba(0,0,0,.35)}
+.modal-card.sm{max-width:420px}
+.modal-h{padding:18px 22px;border-bottom:1px solid var(--line);font-weight:700;font-size:1rem}
+.modal-b{padding:20px 22px}
+.modal-f{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+
+@media (max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.s83,.s57,.s64,.s11,.g3{grid-template-columns:1fr}}
+@media (max-width:900px){
+  .sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:none}
+  .main{margin-left:0}.menu-btn{display:inline-flex}.content{padding:18px 14px}.topbar{padding:10px 14px}
+  .login-box{grid-template-columns:1fr}.login-left{display:none}.g2{grid-template-columns:1fr}
+  .payrow{grid-template-columns:1fr 1fr}
+}
+@media print{.sidebar,.topbar,.btn,.no-print{display:none!important}.main{margin:0}.card{box-shadow:none}}
 </style>
 </head>
 <body>
@@ -102,58 +151,65 @@ label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:bloc
 <div id="login">
   <div class="login-box">
     <div class="login-left">
-      <h1>🏢 SIG FMCG</h1>
-      <p>Sistema de Información Gerencial<br>Maracaibo · v4.0 Profesional</p>
-      <div style="margin-top:25px">
-        <div class="feat"><div class="dot"></div>PostgreSQL persistente + JWT</div>
-        <div class="feat"><div class="dot"></div>Geofencing GPS real</div>
-        <div class="feat"><div class="dot"></div>Cadena de frío + IoT</div>
-        <div class="feat"><div class="dot"></div>Smart Order + Retornables</div>
-        <div class="feat"><div class="dot"></div>VRP + Liquidación</div>
-      </div>
+      <div class="brand-mark">SIG</div>
+      <h1>Sistema de Información Gerencial</h1>
+      <p>Distribución y consumo masivo, Maracaibo.</p>
+      <div class="feat"><i></i>Precios en USD con conversión a tasa BCV</div>
+      <div class="feat"><i></i>Cobro en efectivo, Zelle, Pago Móvil, punto de venta y crédito</div>
+      <div class="feat"><i></i>Geofencing GPS y ruteo de entregas</div>
+      <div class="feat"><i></i>Cadena de frío y envases retornables</div>
+      <div class="feat"><i></i>Liquidación de caja por moneda</div>
     </div>
     <div class="login-right">
-      <h2>Bienvenido</h2>
-      <p class="sub">Ingresa tus credenciales</p>
-      <input type="text" id="lu" placeholder="Usuario">
-      <input type="password" id="lp" placeholder="Contraseña" onkeypress="if(event.key==='Enter')doLogin()">
-      <button class="btn-login" onclick="doLogin()">INGRESAR →</button>
-      <div class="demo">
-        <b>👤 Usuarios demo:</b><br>
-        admin / admin123 · Gerente<br>
-        maria / maria123 · Supervisor<br>
-        pedro / pedro123 · Preventista
-      </div>
+      <h2>Iniciar sesión</h2>
+      <p class="sub">Ingrese sus credenciales para continuar</p>
+      <div class="field"><label>Usuario</label><input type="text" id="lu" autocomplete="username"></div>
+      <div class="field"><label>Contraseña</label><input type="password" id="lp" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()"></div>
+      <button class="btn block" style="padding:13px" onclick="doLogin()">Ingresar</button>
+      <div class="demo"><b>Usuarios de demostración</b><br>admin / admin123 (Gerente)<br>maria / maria123 (Supervisor)<br>pedro / pedro123 (Preventista)</div>
     </div>
   </div>
 </div>
 
 <!-- APP -->
 <div id="app">
-  <aside class="sidebar">
-    <div class="sb-logo"><h3>🏢 SIG FMCG</h3><small>Maracaibo v4.0</small></div>
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo"><div class="brand-mark">SIG</div><div><b>SIG FMCG</b><small>Maracaibo</small></div></div>
     <nav>
-      <a class="active" onclick="showView('dashboard',this)">📊 Dashboard</a>
-      <a onclick="showView('pdvs',this)">🏪 Puntos de Venta</a>
-      <a onclick="showView('mapa',this)">🗺️ Mapa & Geofencing</a>
-      <a onclick="showView('pedido',this)">🛒 Tomar Pedido</a>
-      <a onclick="showView('retornables',this)">♻️ Retornables</a>
-      <a onclick="showView('red',this)">📸 Auditoría RED</a>
-      <a onclick="showView('frio',this)">❄️ Cadena de Frío</a>
-      <a onclick="showView('comodato',this)">🧊 Activos Comodato</a>
-      <a onclick="showView('vrp',this)">🚚 Ruteo (VRP)</a>
-      <a onclick="showView('mermas',this)">📉 Mermas</a>
-      <a onclick="showView('liq',this)">💰 Liquidación</a>
+      <div class="sb-group">Operación</div>
+      <a class="active" onclick="showView('dashboard',this)">Dashboard</a>
+      <a onclick="showView('pdvs',this)">Puntos de venta</a>
+      <a onclick="showView('mapa',this)">Mapa y geofencing</a>
+      <a onclick="showView('pedido',this)">Tomar pedido</a>
+      <div class="sb-group">Finanzas</div>
+      <a onclick="showView('cobranza',this)">Cobranza y crédito</a>
+      <a onclick="showView('liq',this)">Liquidación de caja</a>
+      <div class="sb-group">Control</div>
+      <a onclick="showView('retornables',this)">Envases retornables</a>
+      <a onclick="showView('red',this)">Auditoría RED</a>
+      <a onclick="showView('frio',this)">Cadena de frío</a>
+      <a onclick="showView('comodato',this)">Activos en comodato</a>
+      <a onclick="showView('mermas',this)">Mermas</a>
+      <div class="sb-group">Logística</div>
+      <a onclick="showView('vrp',this)">Ruteo de entregas</a>
     </nav>
   </aside>
 
   <div class="main">
     <div class="topbar">
-      <h4 id="viewTitle">Dashboard Gerencial</h4>
       <div style="display:flex;align-items:center;gap:12px">
-        <span id="userLabel" style="font-size:.82rem"></span>
-        <div id="avatar" style="width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,var(--verde),var(--naranja));display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700">A</div>
-        <button class="btn gray" onclick="logout()">Salir</button>
+        <button class="btn ghost sm menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">Menú</button>
+        <h4 id="viewTitle">Dashboard gerencial</h4>
+      </div>
+      <div class="tools">
+        <div class="rate" id="rateBox">
+          <div><div class="lbl">Tasa BCV</div><div class="val num" id="rateVal">-</div></div>
+          <div class="meta" id="rateMeta"></div>
+          <span id="rateBtns" style="display:none;gap:6px"><button class="btn ghost sm" onclick="actualizarTasaBCV()" id="btnRate">Actualizar</button><button class="btn ghost sm" onclick="abrirTasa()">Fijar</button></span>
+        </div>
+        <span id="userLabel" style="font-size:.84rem;color:var(--muted)"></span>
+        <div class="avatar" id="avatar">A</div>
+        <button class="btn ghost sm" onclick="logout()">Salir</button>
       </div>
     </div>
 
@@ -161,217 +217,211 @@ label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:bloc
 
       <!-- DASHBOARD -->
       <div id="view-dashboard" class="view active">
-        <div class="row g-3 mb-4">
-          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">📈</div><div class="kpi-val" id="kDrop">—</div><div class="kpi-lbl">Drop Rate</div><div class="kpi-delta" id="kDropM">Meta &gt;85%</div></div></div>
-          <div class="col-md-3 col-lg"><div class="kpi warn"><div class="kpi-icon">📸</div><div class="kpi-val" id="kRED">—</div><div class="kpi-lbl">Cumplimiento RED</div><div class="kpi-delta" id="kREDM">Meta &gt;90%</div></div></div>
-          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">❄️</div><div class="kpi-val" id="kFrio">—</div><div class="kpi-lbl">Adherencia Térmica</div><div class="kpi-delta" id="kFrioM">Meta 100%</div></div></div>
-          <div class="col-md-3 col-lg"><div class="kpi warn"><div class="kpi-icon">♻️</div><div class="kpi-val" id="kRet">—</div><div class="kpi-lbl">Retornabilidad</div><div class="kpi-delta" id="kRetM">Meta &gt;98%</div></div></div>
-          <div class="col-md-3 col-lg"><div class="kpi"><div class="kpi-icon">🚚</div><div class="kpi-val" id="kOTIF">—</div><div class="kpi-lbl">OTIF</div><div class="kpi-delta" id="kOTIFM">Meta &gt;92%</div></div></div>
+        <div class="grid g4">
+          <div class="kpi navy"><div class="kpi-lbl">Ventas del día (USD)</div><div class="kpi-val num" id="kVentasUsd">$ 0,00</div><div class="kpi-sub num" id="kVentasBs">Bs 0,00</div></div>
+          <div class="kpi gold"><div class="kpi-lbl">Cuentas por cobrar</div><div class="kpi-val num" id="kCxc">$ 0,00</div><div class="kpi-sub num" id="kCxcBs">Bs 0,00</div></div>
+          <div class="kpi"><div class="kpi-lbl">Temperatura del camión</div><div class="kpi-val num" id="kTemp">-</div><div class="kpi-sub">Rango operativo 2 a 8 °C</div></div>
+          <div class="kpi red"><div class="kpi-lbl">Clientes bloqueados</div><div class="kpi-val num" id="kBloq">0</div><div class="kpi-sub">Por exceso de envases</div></div>
         </div>
-        <div class="row g-3 mb-3">
-          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">💰</div><div class="kpi-val" id="kVentas" style="font-size:1.4rem">Bs 0</div><div class="kpi-lbl">Ventas del Día</div></div></div>
-          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">🌡️</div><div class="kpi-val" id="kTemp">4.0°C</div><div class="kpi-lbl">Temp. Camión</div></div></div>
-          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">🚫</div><div class="kpi-val" id="kBloq">0</div><div class="kpi-lbl">Clientes Bloqueados</div></div></div>
+        <div class="grid g5">
+          <div class="kpi"><div class="kpi-lbl">Drop rate</div><div class="kpi-val num" id="kDrop">-</div><span class="pill mute" id="kDropM">Meta superior a 85%</span></div>
+          <div class="kpi"><div class="kpi-lbl">Cumplimiento RED</div><div class="kpi-val num" id="kRED">-</div><span class="pill mute" id="kREDM">Meta superior a 90%</span></div>
+          <div class="kpi"><div class="kpi-lbl">Adherencia térmica</div><div class="kpi-val num" id="kFrio">-</div><span class="pill mute" id="kFrioM">Meta 100%</span></div>
+          <div class="kpi"><div class="kpi-lbl">Retornabilidad</div><div class="kpi-val num" id="kRet">-</div><span class="pill mute" id="kRetM">Meta superior a 98%</span></div>
+          <div class="kpi"><div class="kpi-lbl">OTIF</div><div class="kpi-val num" id="kOTIF">-</div><span class="pill mute" id="kOTIFM">Meta superior a 92%</span></div>
         </div>
-        <div class="row g-3">
-          <div class="col-md-8"><div class="card"><div class="section-title">Ventas por Zona · Maracaibo</div><canvas id="chartZ" height="100"></canvas></div></div>
-          <div class="col-md-4"><div class="card"><div class="section-title">🔔 Alertas</div><div id="alertasList"></div></div></div>
+        <div class="grid s83">
+          <div class="card"><div class="card-title">Ventas por zona <small>Acumulado en USD</small></div><canvas id="chartZ" height="110"></canvas></div>
+          <div class="card"><div class="card-title">Alertas</div><div id="alertasList"></div></div>
         </div>
       </div>
 
       <!-- PDVS -->
       <div id="view-pdvs" class="view">
         <div class="card">
-          <div class="section-title">Puntos de Venta <button class="btn" onclick="abrirPDV()">+ Nuevo PDV</button></div>
-          <input type="text" id="searchPDV" placeholder="🔍 Buscar por código, nombre o zona..." oninput="renderPDVs()" style="margin-bottom:15px">
-          <div style="overflow-x:auto">
-          <table class="table">
-            <thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Cestas</th><th>Botellas</th><th>Canal</th><th>Estado</th><th>Acciones</th></tr></thead>
+          <div class="card-title">Puntos de venta <button class="btn" onclick="abrirPDV()">Nuevo PDV</button></div>
+          <input type="text" id="searchPDV" placeholder="Buscar por código, nombre o zona" oninput="renderPDVs()" style="margin-bottom:14px">
+          <div class="scroll"><table class="table">
+            <thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Cestas</th><th>Botellas</th><th class="r">Límite crédito</th><th>Canal</th><th>Estado</th><th></th></tr></thead>
             <tbody id="tblPDVs"></tbody>
-          </table>
-          </div>
+          </table></div>
         </div>
       </div>
 
       <!-- MAPA -->
       <div id="view-mapa" class="view">
-        <div class="row g-3">
-          <div class="col-md-8"><div id="map"></div></div>
-          <div class="col-md-4">
-            <div class="card" style="background:linear-gradient(135deg,var(--verde),var(--verde-osc));color:#fff">
-              <div class="section-title" style="color:#fff;border-color:rgba(255,255,255,.2)">📍 Check-in Geofencing</div>
-              <select id="selPDVCheckin" style="margin-bottom:12px;color:#2c3e50"></select>
-              <div id="gpsStatus" style="font-size:.82rem;margin-bottom:12px">GPS: esperando...</div>
-              <div id="distInfo" style="font-size:.82rem;margin-bottom:15px"></div>
-              <button class="btn" style="background:#fff;color:var(--verde);width:100%;margin-bottom:8px" onclick="getLocation()">🌐 Usar mi GPS real</button>
-              <button class="btn" style="background:var(--naranja);width:100%" onclick="simularCheckin()">🎯 Simular check-in</button>
+        <div class="grid s83">
+          <div id="map"></div>
+          <div>
+            <div class="card dark-card">
+              <div class="card-title">Check-in por geofencing</div>
+              <div class="field"><select id="selPDVCheckin"></select></div>
+              <div id="gpsStatus" style="font-size:.84rem;margin-bottom:8px">GPS: en espera</div>
+              <div id="distInfo" style="font-size:.84rem;margin-bottom:14px"></div>
+              <button class="btn block" style="background:#fff;color:var(--primary-d);margin-bottom:8px" onclick="getLocation()">Usar mi ubicación</button>
+              <button class="btn block gold" onclick="simularCheckin()">Simular check-in</button>
             </div>
-            <div class="card">
-              <div class="section-title" style="font-size:.85rem">Últimas visitas</div>
-              <div id="visitasList" style="font-size:.78rem;max-height:300px;overflow-y:auto"></div>
-            </div>
+            <div class="card"><div class="card-title">Últimas visitas</div><div id="visitasList" style="max-height:300px;overflow-y:auto"></div></div>
           </div>
         </div>
       </div>
 
       <!-- PEDIDO -->
       <div id="view-pedido" class="view">
-        <div class="row g-3">
-          <div class="col-md-5">
+        <div class="grid s57">
+          <div>
             <div class="card">
-              <div class="section-title">Cliente</div>
-              <select id="selPDV" onchange="cargarPDV()" style="margin-bottom:15px"></select>
+              <div class="card-title">Cliente</div>
+              <select id="selPDV" onchange="cargarPDV()" style="margin-bottom:14px"></select>
               <div id="infoPDV"></div>
-              <div id="smartOrder" style="margin-top:15px"></div>
+              <div id="smartOrder"></div>
             </div>
-            <div class="card">
-              <div class="section-title" style="font-size:.85rem">Promociones activas</div>
-              <div id="promosList" style="font-size:.78rem"></div>
-            </div>
+            <div class="card"><div class="card-title">Promociones activas</div><div id="promosList"></div></div>
           </div>
-          <div class="col-md-7">
-            <div class="card">
-              <div class="section-title">Productos</div>
-              <div id="listaProds" style="max-height:400px;overflow-y:auto"></div>
-              <div style="padding:15px;background:var(--gris);border-radius:10px;margin-top:12px;font-size:.9rem">
-                <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span>Subtotal:</span><span id="subTotal">Bs 0</span></div>
-                <div style="display:flex;justify-content:space-between;color:var(--naranja);margin-bottom:4px"><span>Descuento:</span><span id="descTotal">Bs 0</span></div>
-                <div style="display:flex;justify-content:space-between;font-weight:800;font-size:1.1rem;border-top:1px solid var(--borde);padding-top:6px"><span>TOTAL:</span><span id="totalPedido">Bs 0</span></div>
-              </div>
-              <div class="row-sp" style="margin-top:12px">
-                <select id="metodoPago">
-                  <option value="Efectivo">💵 Efectivo</option>
-                  <option value="Transferencia">🏦 Transferencia</option>
-                  <option value="Pago Móvil">📱 Pago Móvil</option>
-                </select>
-              </div>
-              <button class="btn" style="width:100%" onclick="confirmarPedido()">✅ Confirmar Pedido</button>
-              <div id="pedidoMsg" style="margin-top:12px"></div>
+          <div class="card">
+            <div class="card-title">Productos <small>Precios en USD, equivalente en Bs a tasa BCV</small></div>
+            <div id="listaProds" style="max-height:340px;overflow-y:auto"></div>
+            <div class="totals num">
+              <div class="l"><span>Subtotal</span><span id="subTotal"></span></div>
+              <div class="l" style="color:var(--gold)"><span>Descuento</span><span id="descTotal"></span></div>
+              <div class="l big"><span>Total en USD</span><span id="totalUsd"></span></div>
+              <div class="l bs"><span>Total en Bs</span><span id="totalBs"></span></div>
             </div>
+            <div class="paybox">
+              <h5>Forma de pago</h5>
+              <div class="payrow">
+                <div><label>Método</label><select id="payMetodo" onchange="onMetodo()"></select></div>
+                <div><label id="payLbl">Monto</label><input type="number" id="payMonto" step="0.01" min="0"></div>
+                <div><label>Referencia</label><input type="text" id="payRef"></div>
+                <button class="btn" onclick="addPago()">Agregar</button>
+              </div>
+              <button class="btn ghost sm" onclick="pagarSaldo()">Cobrar saldo con el método seleccionado</button>
+              <div id="payList" style="margin-top:12px"></div>
+            </div>
+            <button class="btn block" style="margin-top:14px;padding:13px" onclick="confirmarPedido()">Confirmar pedido</button>
+            <div id="pedidoMsg" style="margin-top:14px"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COBRANZA -->
+      <div id="view-cobranza" class="view">
+        <div class="grid s57">
+          <div class="card">
+            <div class="card-title">Registrar abono</div>
+            <div class="field"><label>Cliente</label><select id="cobPDV"></select></div>
+            <div class="field"><label>Método</label><select id="cobMetodo" onchange="onCobMetodo()"></select></div>
+            <div class="field"><label id="cobLbl">Monto</label><input type="number" id="cobMonto" step="0.01" min="0"></div>
+            <div class="field"><label>Referencia</label><input type="text" id="cobRef"></div>
+            <button class="btn block" onclick="registrarAbono()">Registrar abono</button>
+          </div>
+          <div class="card">
+            <div class="card-title">Cuentas por cobrar <small>Saldo pendiente por cliente</small></div>
+            <div class="scroll"><table class="table"><thead><tr><th>Cliente</th><th class="r">Límite</th><th class="r">Saldo USD</th><th class="r">Saldo Bs</th><th class="r">Disponible</th></tr></thead><tbody id="tblCxc"></tbody></table></div>
           </div>
         </div>
       </div>
 
       <!-- RETORNABLES -->
       <div id="view-retornables" class="view">
-        <div class="row g-3 mb-3">
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">🔄 Registrar Devolución</div>
-            <div class="row-sp"><div><label>PDV</label><select id="selRetPDV"></select></div></div>
-            <div class="row-sp">
-              <div><label>Tipo</label><select id="retTipo"><option value="Cesta">Cesta</option><option value="Botella">Botella</option></select></div>
-              <div><label>Cantidad</label><input type="number" id="retCant" value="1" min="1"></div>
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-title">Registrar devolución</div>
+            <div class="field"><label>PDV</label><select id="selRetPDV"></select></div>
+            <div class="fgrid">
+              <div class="field"><label>Tipo</label><select id="retTipo"><option value="Cesta">Cesta</option><option value="Botella">Botella</option></select></div>
+              <div class="field"><label>Cantidad</label><input type="number" id="retCant" value="1" min="1"></div>
             </div>
-            <button class="btn" style="width:100%" onclick="registrarDevolucion()">Registrar devolución</button>
-          </div></div>
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">📊 Estado Retornables</div>
-            <div id="retStats"></div>
-          </div></div>
-        </div>
-        <div class="card">
-          <div class="section-title">Estado por cliente</div>
-          <div style="overflow-x:auto">
-          <table class="table"><thead><tr><th>PDV</th><th>Cestas</th><th>Botellas</th><th>Límites</th><th>Estado</th></tr></thead><tbody id="tblRet"></tbody></table>
+            <button class="btn block" onclick="registrarDevolucion()">Registrar devolución</button>
           </div>
+          <div class="card"><div class="card-title">Resumen</div><div id="retStats"></div></div>
+        </div>
+        <div class="card"><div class="card-title">Estado por cliente</div>
+          <div class="scroll"><table class="table"><thead><tr><th>PDV</th><th>Cestas</th><th>Botellas</th><th>Límites</th><th>Estado</th></tr></thead><tbody id="tblRet"></tbody></table></div>
         </div>
       </div>
 
       <!-- RED -->
       <div id="view-red" class="view">
-        <div class="row g-3">
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">📸 Nueva Auditoría RED</div>
-            <select id="selPDVRed" style="margin-bottom:12px"></select>
-            <div style="border:2px dashed var(--borde);padding:30px;text-align:center;border-radius:12px;cursor:pointer;margin-bottom:12px" onclick="document.getElementById('fotoIn').click()">
-              <div style="font-size:3rem">📷</div>
-              <p style="color:#8899aa;margin:10px 0;font-size:.85rem">Click para subir foto del anaquel</p>
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-title">Nueva auditoría RED</div>
+            <div class="field"><select id="selPDVRed"></select></div>
+            <div style="border:2px dashed #CBD3DF;border-radius:12px;padding:30px;text-align:center;cursor:pointer;margin-bottom:12px" onclick="document.getElementById('fotoIn').click()">
+              <b>Subir fotografía del anaquel</b>
+              <p style="color:var(--muted);margin:6px 0 0;font-size:.82rem">Haga clic para seleccionar una imagen</p>
               <input type="file" id="fotoIn" accept="image/*" style="display:none" onchange="previewFoto(event)">
             </div>
             <div id="fotoPrev" style="margin-bottom:12px"></div>
-            <button class="btn" style="width:100%" onclick="analizarRED()">🔍 Analizar cumplimiento RED</button>
-            <div id="redRes" style="margin-top:12px"></div>
-          </div></div>
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">📊 Historial de auditorías</div>
-            <div id="redHist" style="max-height:500px;overflow-y:auto"></div>
-          </div></div>
+            <button class="btn block" onclick="analizarRED()">Analizar cumplimiento</button>
+            <div id="redRes" style="margin-top:14px"></div>
+          </div>
+          <div class="card"><div class="card-title">Historial de auditorías</div><div id="redHist" style="max-height:520px;overflow-y:auto"></div></div>
         </div>
       </div>
 
       <!-- FRIO -->
       <div id="view-frio" class="view">
-        <div class="row g-3 mb-3">
-          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">🌡️</div><div class="kpi-val" id="fTemp">—</div><div class="kpi-lbl">Temperatura Actual</div></div></div>
-          <div class="col-md-4"><div class="kpi"><div class="kpi-icon">📊</div><div class="kpi-val" id="fAdh">—</div><div class="kpi-lbl">Adherencia</div></div></div>
-          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="fAlert">0</div><div class="kpi-lbl">Alertas (últimas lecturas)</div></div></div>
+        <div class="grid g3">
+          <div class="kpi"><div class="kpi-lbl">Temperatura actual</div><div class="kpi-val num" id="fTemp">-</div></div>
+          <div class="kpi"><div class="kpi-lbl">Adherencia</div><div class="kpi-val num" id="fAdh">-</div></div>
+          <div class="kpi red"><div class="kpi-lbl">Alertas (últimas lecturas)</div><div class="kpi-val num" id="fAlert">0</div></div>
         </div>
         <div class="card">
-          <div class="section-title">Monitoreo en Tiempo Real <button class="btn warn" onclick="toggleSim()" id="btnSim">▶ Iniciar simulación</button></div>
+          <div class="card-title">Monitoreo en tiempo real <button class="btn gold" onclick="toggleSim()" id="btnSim">Iniciar simulación</button></div>
           <div class="mini-chart"><canvas id="chartF"></canvas></div>
-          <div id="frioAlert" style="margin-top:12px"></div>
+          <div id="frioAlert" style="margin-top:14px"></div>
         </div>
       </div>
 
       <!-- COMODATO -->
-      <div id="view-comodato" class="view">
-        <div class="card">
-          <div class="section-title">Activos en Comodato (Neveras / Exhibidores)</div>
-          <div id="comodatosList"></div>
-        </div>
-      </div>
+      <div id="view-comodato" class="view"><div class="card"><div class="card-title">Neveras y exhibidores en comodato</div><div id="comodatosList"></div></div></div>
 
       <!-- VRP -->
       <div id="view-vrp" class="view">
-        <div class="row g-3">
-          <div class="col-md-5"><div class="card">
-            <div class="section-title">🚚 Ruteo Óptimo (VRP)</div>
-            <p style="font-size:.82rem;color:#666">Selecciona los PDVs a visitar. El algoritmo calcula la ruta más corta usando vecino más cercano desde el almacén.</p>
-            <div id="vrpChecks" style="max-height:400px;overflow-y:auto;margin-bottom:15px"></div>
-            <button class="btn" style="width:100%" onclick="calcularVRP()">Calcular ruta óptima</button>
-          </div></div>
-          <div class="col-md-7"><div class="card">
-            <div class="section-title">Resultado</div>
-            <div id="vrpResult"><p style="color:#8899aa;text-align:center;padding:30px">Selecciona PDVs y calcula la ruta</p></div>
-          </div></div>
+        <div class="grid s57">
+          <div class="card">
+            <div class="card-title">Ruteo de entregas</div>
+            <p style="color:var(--muted);margin:0 0 12px;font-size:.84rem">Seleccione los PDV a visitar. El algoritmo de vecino más cercano calcula la secuencia desde el almacén.</p>
+            <div id="vrpChecks" style="max-height:360px;overflow-y:auto;margin-bottom:14px"></div>
+            <button class="btn block" onclick="calcularVRP()">Calcular ruta</button>
+          </div>
+          <div class="card"><div class="card-title">Resultado</div><div id="vrpResult"><div class="empty">Seleccione PDV y calcule la ruta</div></div></div>
         </div>
       </div>
 
       <!-- MERMAS -->
       <div id="view-mermas" class="view">
-        <div class="row g-3">
-          <div class="col-md-5"><div class="card">
-            <div class="section-title">📉 Registrar Merma</div>
-            <div style="margin-bottom:12px"><label>PDV (opcional)</label><select id="merPDV"></select></div>
-            <div style="margin-bottom:12px"><label>Producto (opcional)</label><select id="merProd"></select></div>
-            <div style="margin-bottom:12px"><label>Cantidad</label><input type="number" id="merCant" value="1" min="1"></div>
-            <div style="margin-bottom:12px"><label>Causa</label><select id="merCausa"><option>Rotura</option><option>Vencimiento</option><option>Falla de empaque</option><option>Daño en transporte</option></select></div>
-            <button class="btn" style="width:100%" onclick="registrarMerma()">Registrar merma</button>
-          </div></div>
-          <div class="col-md-7"><div class="card">
-            <div class="section-title">Historial de mermas</div>
-            <div id="mermasList" style="max-height:500px;overflow-y:auto"></div>
-          </div></div>
+        <div class="grid s57">
+          <div class="card">
+            <div class="card-title">Registrar merma</div>
+            <div class="field"><label>PDV (opcional)</label><select id="merPDV"></select></div>
+            <div class="field"><label>Producto (opcional)</label><select id="merProd"></select></div>
+            <div class="field"><label>Cantidad</label><input type="number" id="merCant" value="1" min="1"></div>
+            <div class="field"><label>Causa</label><select id="merCausa"><option>Rotura</option><option>Vencimiento</option><option>Falla de empaque</option><option>Daño en transporte</option></select></div>
+            <button class="btn block" onclick="registrarMerma()">Registrar merma</button>
+          </div>
+          <div class="card"><div class="card-title">Historial de mermas</div><div id="mermasList" style="max-height:520px;overflow-y:auto"></div></div>
         </div>
       </div>
 
       <!-- LIQUIDACION -->
       <div id="view-liq" class="view">
-        <div class="row g-3 mb-3">
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">💰 Cerrar Turno</div>
-            <div style="margin-bottom:12px"><label>Efectivo entregado (Bs)</label><input type="number" id="liqEfectivo" value="0" min="0"></div>
-            <div style="margin-bottom:12px"><label>Transferencias (Bs)</label><input type="number" id="liqTrans" value="0" min="0"></div>
-            <button class="btn" style="width:100%" onclick="cerrarTurno()">Liquidar turno</button>
-            <div id="liqResult" style="margin-top:12px"></div>
-          </div></div>
-          <div class="col-md-6"><div class="card">
-            <div class="section-title">Historial de liquidaciones</div>
-            <div id="liqHist" style="max-height:400px;overflow-y:auto"></div>
-          </div></div>
+        <div class="grid g2">
+          <div class="card">
+            <div class="card-title">Cierre de turno <small id="liqTasa"></small></div>
+            <div id="liqResumen"></div>
+            <div class="fgrid" style="margin-top:14px">
+              <div class="field"><label>Efectivo USD contado</label><input type="number" id="liqUsd" step="0.01" min="0" value="0"></div>
+              <div class="field"><label>Efectivo Bs contado</label><input type="number" id="liqBs" step="0.01" min="0" value="0"></div>
+            </div>
+            <button class="btn block" onclick="cerrarTurno()">Liquidar turno</button>
+            <div id="liqResult" style="margin-top:14px"></div>
+          </div>
+          <div class="card"><div class="card-title">Historial de liquidaciones</div><div id="liqHist" style="max-height:480px;overflow-y:auto"></div></div>
         </div>
         <div class="card">
-          <div class="section-title">Pedidos del día <button class="btn gray" onclick="window.print()">🖨️ Imprimir</button></div>
+          <div class="card-title">Pedidos del día <button class="btn ghost sm" onclick="window.print()">Imprimir</button></div>
           <div id="tablaLiq"></div>
         </div>
       </div>
@@ -381,261 +431,242 @@ label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:bloc
 </div>
 
 <!-- MODAL PDV -->
-<div class="modal fade" id="modalPDV" tabindex="-1">
-  <div class="modal-dialog modal-lg"><div class="modal-content">
-    <div class="modal-header"><h5 class="modal-title">Nuevo / Editar PDV</h5><button class="btn-close" data-bs-dismiss="modal"></button></div>
-    <div class="modal-body">
+<div class="modal" id="modalPDV">
+  <div class="modal-card">
+    <div class="modal-h">Punto de venta</div>
+    <div class="modal-b">
       <input type="hidden" id="pId">
-      <div class="row-sp"><div><label>Código</label><input type="text" id="pCodigo"></div><div><label>Nombre comercial</label><input type="text" id="pNombre"></div></div>
-      <div class="row-sp"><div><label>Razón social</label><input type="text" id="pRazon"></div><div><label>Dirección</label><input type="text" id="pDireccion"></div></div>
-      <div class="row-sp">
-        <div><label>Zona</label><select id="pZona"></select></div>
-        <div><label>Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
-      </div>
-      <div class="row-sp">
-        <div><label>Latitud</label><input type="text" id="pLat" value="10.65"></div>
-        <div><label>Longitud</label><input type="text" id="pLng" value="-71.62"></div>
-        <div><label>Radio geofence (m)</label><input type="number" id="pRadio" value="50"></div>
-      </div>
-      <div class="row-sp">
-        <div><label>Saldo cestas</label><input type="number" id="pSaldoC" value="0"></div>
-        <div><label>Límite cestas</label><input type="number" id="pLimC" value="10"></div>
-        <div><label>Saldo botellas</label><input type="number" id="pSaldoB" value="0"></div>
-        <div><label>Límite botellas</label><input type="number" id="pLimB" value="20"></div>
-      </div>
+      <div class="fgrid"><div class="field"><label>Código</label><input type="text" id="pCodigo"></div><div class="field"><label>Nombre comercial</label><input type="text" id="pNombre"></div></div>
+      <div class="fgrid"><div class="field"><label>Razón social</label><input type="text" id="pRazon"></div><div class="field"><label>Dirección</label><input type="text" id="pDireccion"></div></div>
+      <div class="fgrid"><div class="field"><label>Zona</label><select id="pZona"></select></div>
+        <div class="field"><label>Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
+        <div class="field"><label>Límite de crédito (USD)</label><input type="number" id="pCredito" min="0" step="0.01" value="0"></div></div>
+      <div class="fgrid"><div class="field"><label>Latitud</label><input type="text" id="pLat"></div><div class="field"><label>Longitud</label><input type="text" id="pLng"></div><div class="field"><label>Radio geofence (m)</label><input type="number" id="pRadio"></div></div>
+      <div class="fgrid"><div class="field"><label>Saldo cestas</label><input type="number" id="pSaldoC"></div><div class="field"><label>Límite cestas</label><input type="number" id="pLimC"></div>
+        <div class="field"><label>Saldo botellas</label><input type="number" id="pSaldoB"></div><div class="field"><label>Límite botellas</label><input type="number" id="pLimB"></div></div>
     </div>
-    <div class="modal-footer"><button class="btn gray" data-bs-dismiss="modal">Cancelar</button><button class="btn" onclick="guardarPDV()">Guardar</button></div>
-  </div></div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="guardarPDV()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL TASA -->
+<div class="modal" id="modalTasa">
+  <div class="modal-card sm">
+    <div class="modal-h">Fijar tasa manualmente</div>
+    <div class="modal-b">
+      <p style="margin:0 0 14px;color:var(--muted);font-size:.84rem">Use esta opción solo si el servicio automático no está disponible. La tasa quedará marcada como manual hasta que pulse Actualizar.</p>
+      <div class="field"><label>Bs por 1 USD</label><input type="number" id="tasaManual" step="0.0001" min="0"></div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalTasa')">Cancelar</button><button class="btn" onclick="guardarTasaManual()">Guardar</button></div>
+  </div>
 </div>
 
 <div id="toast"></div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
 <script>
-// ===== ESTADO GLOBAL =====
+// ===== ESTADO =====
 let TOKEN = sessionStorage.getItem('token');
 let USER = JSON.parse(sessionStorage.getItem('user') || 'null');
-let PDVS = [], ZONAS = [], PRODS = [], PROMOS = [];
+let PDVS = [], ZONAS = [], PRODS = [], PROMOS = [], METODOS = [], TASA = { tasa: 0 };
+let PAGOS = [], CUR = { sub: 0, desc: 0, total: 0 };
 let map = null, chartZ = null, chartF = null, simInt = null;
 
-// ===== API =====
+// ===== UTILIDADES =====
+const $ = id => document.getElementById(id);
+const nf = new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const usd = n => '$ ' + nf.format(+n || 0);
+const bs = n => 'Bs ' + nf.format(+n || 0);
+const toBs = u => (+u || 0) * (TASA.tasa || 0);
+const r2 = x => Math.round((+x || 0) * 100) / 100;
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const canRate = () => USER && ['Gerente', 'Supervisor'].includes(USER.rol);
+const metInfo = n => METODOS.find(m => m.nombre === n) || {};
+const fmtMonto = (monto, moneda) => moneda === 'USD' ? usd(monto) : bs(monto);
+const isBloq = p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+const openModal = id => $(id).classList.add('open');
+const closeModal = id => $(id).classList.remove('open');
+
 async function api(path, opts = {}) {
-  const res = await fetch('/api' + path, {
-    ...opts,
-    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, ...(opts.headers || {}) }
-  });
+  const res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, ...(opts.headers || {}) } });
   if (res.status === 401) { logout(); throw new Error('Sesión expirada'); }
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.mensaje || data.error || 'Error');
+  if (!res.ok) throw new Error(data.mensaje || data.error || 'Error del servidor (' + res.status + ')');
   return data;
 }
-
-// ===== TOAST =====
 function toast(msg, sub = '', type = '') {
   const d = document.createElement('div');
   d.className = 'toast ' + type;
-  d.innerHTML = `<b>${msg}</b>${sub ? `<small>${sub}</small>` : ''}`;
-  document.getElementById('toast').appendChild(d);
-  setTimeout(() => d.remove(), 4000);
+  const b = document.createElement('b'); b.textContent = msg; d.appendChild(b);
+  if (sub) { const s = document.createElement('small'); s.textContent = sub; d.appendChild(s); }
+  $('toast').appendChild(d);
+  setTimeout(() => d.remove(), 4500);
 }
 
 // ===== LOGIN =====
 async function doLogin() {
-  const usuario = document.getElementById('lu').value.trim();
-  const password = document.getElementById('lp').value.trim();
-  if (!usuario || !password) return toast('Complete datos', '', 'warn');
+  const usuario = $('lu').value.trim(), password = $('lp').value.trim();
+  if (!usuario || !password) return toast('Complete usuario y contraseña', '', 'warn');
   try {
-    const res = await fetch('/api/login', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario, password })
-    });
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario, password }) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Error del servidor (' + res.status + ')');
     TOKEN = data.token; USER = data.user;
-    sessionStorage.setItem('token', TOKEN);
-    sessionStorage.setItem('user', JSON.stringify(USER));
+    sessionStorage.setItem('token', TOKEN); sessionStorage.setItem('user', JSON.stringify(USER));
     initApp();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  } catch (e) { toast('No se pudo iniciar sesión', e.message, 'error'); }
 }
 function logout() { sessionStorage.clear(); location.reload(); }
 
-// ===== SELECTS =====
-function poblarSelects() {
-  const optsPDV = PDVS.map(p => `<option value="${p.id}">${p.codigo} - ${p.nombre}</option>`).join('');
-  ['selPDV','selPDVCheckin','selPDVRed','selRetPDV','merPDV'].forEach(id => {
-    const el = document.getElementById(id);
-    if (el) el.innerHTML = (id === 'merPDV' ? '<option value="">— Sin PDV —</option>' : '') + optsPDV;
-  });
-  document.getElementById('merProd').innerHTML = '<option value="">— Sin producto —</option>' + PRODS.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
-  document.getElementById('pZona').innerHTML = ZONAS.map(z => `<option value="${z.id}">${z.nombre}</option>`).join('');
+// ===== TASA BCV =====
+function renderTasa() {
+  const box = $('rateBox');
+  $('rateBtns').style.display = canRate() ? 'inline-flex' : 'none';
+  if (!(TASA.tasa > 0)) {
+    box.className = 'rate none'; $('rateVal').textContent = 'No configurada';
+    $('rateMeta').textContent = 'Actualice o fije la tasa'; return;
+  }
+  $('rateVal').textContent = 'Bs ' + new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(TASA.tasa);
+  const f = TASA.fecha ? new Date(TASA.fecha) : null;
+  const edad = f ? (Date.now() - f.getTime()) / 86400000 : 99;
+  $('rateMeta').textContent = (TASA.fuente || '') + (f ? ' · ' + f.toLocaleDateString('es-VE') : '');
+  box.className = 'rate' + (edad > 3 || TASA.fuente === 'Manual' ? ' stale' : '');
+}
+function refrescarMontos() { renderProductos(); calcTotal(); cargarKPIs(); }
+async function actualizarTasaBCV() {
+  const b = $('btnRate'); b.disabled = true;
+  try { TASA = await api('/tasa/actualizar', { method: 'POST' }); renderTasa(); refrescarMontos(); toast('Tasa actualizada', 'Bs ' + TASA.tasa + ' por USD'); }
+  catch (e) { toast('No se pudo actualizar', e.message, 'error'); }
+  b.disabled = false;
+}
+function abrirTasa() { $('tasaManual').value = TASA.tasa || ''; openModal('modalTasa'); }
+async function guardarTasaManual() {
+  try { TASA = await api('/tasa', { method: 'PUT', body: JSON.stringify({ tasa: +$('tasaManual').value }) }); closeModal('modalTasa'); renderTasa(); refrescarMontos(); toast('Tasa fijada manualmente'); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== INIT =====
+function poblarSelects() {
+  const optsPDV = PDVS.map(p => `<option value="${p.id}">${esc(p.codigo)} - ${esc(p.nombre)}</option>`).join('');
+  ['selPDV', 'selPDVCheckin', 'selPDVRed', 'selRetPDV', 'cobPDV'].forEach(id => { if ($(id)) $(id).innerHTML = optsPDV; });
+  $('merPDV').innerHTML = '<option value="">Sin PDV</option>' + optsPDV;
+  $('merProd').innerHTML = '<option value="">Sin producto</option>' + PRODS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
+  $('pZona').innerHTML = ZONAS.map(z => `<option value="${z.id}">${esc(z.nombre)}</option>`).join('');
+  const opts = METODOS.map(m => `<option value="${esc(m.nombre)}">${esc(m.nombre)} (${m.moneda === 'USD' ? 'USD' : 'Bs'})</option>`).join('');
+  $('payMetodo').innerHTML = opts;
+  $('cobMetodo').innerHTML = METODOS.filter(m => m.nombre !== 'Crédito').map(m => `<option value="${esc(m.nombre)}">${esc(m.nombre)} (${m.moneda === 'USD' ? 'USD' : 'Bs'})</option>`).join('');
+}
 async function initApp() {
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
-  document.getElementById('avatar').textContent = USER.nombre[0];
-
+  $('login').style.display = 'none'; $('app').style.display = 'block';
+  $('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
+  $('avatar').textContent = USER.nombre[0];
   try {
-    [PDVS, ZONAS, PRODS, PROMOS] = await Promise.all([
-      api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones')
-    ]);
-  } catch (e) {
-    toast('Error cargando datos', e.message, 'error');
-    return;
-  }
-
-  poblarSelects();
-  renderProductos();
-  renderPDVs();
-  renderPromos();
-  renderVRPChecks();
-  cargarKPIs();
-  cargarComodatos();
-  cargarMermas();
-  cargarLiquidaciones();
-  cargarVisitas();
-  cargarRedHist();
+    let cfg;
+    [PDVS, ZONAS, PRODS, PROMOS, cfg] = await Promise.all([api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones'), api('/config')]);
+    METODOS = cfg.metodos; TASA = cfg.tasa;
+  } catch (e) { toast('Error al cargar datos', e.message, 'error'); return; }
+  renderTasa(); poblarSelects(); renderProductos(); renderPDVs(); renderPromos(); renderVRPChecks(); onMetodo(); onCobMetodo(); renderPagos();
+  cargarKPIs(); cargarComodatos(); cargarMermas(); cargarVisitas(); cargarRedHist(); cargarLiquidaciones();
   setTimeout(initMap, 150);
 }
 
-// ===== NAVEGACIÓN =====
+// ===== NAVEGACION =====
+const TITULOS = { dashboard: 'Dashboard gerencial', pdvs: 'Puntos de venta', mapa: 'Mapa y geofencing', pedido: 'Tomar pedido', cobranza: 'Cobranza y crédito', retornables: 'Envases retornables', red: 'Auditoría RED', frio: 'Cadena de frío', comodato: 'Activos en comodato', vrp: 'Ruteo de entregas', mermas: 'Mermas', liq: 'Liquidación de caja' };
 function showView(id, el) {
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
-  document.getElementById('view-' + id).classList.add('active');
-  el.classList.add('active');
-  const titles = {dashboard:'Dashboard Gerencial',pdvs:'Puntos de Venta',mapa:'Mapa & Geofencing',pedido:'Tomar Pedido',retornables:'Retornables',red:'Auditoría RED',frio:'Cadena de Frío',comodato:'Activos en Comodato',vrp:'Ruteo VRP',mermas:'Mermas',liq:'Liquidación'};
-  document.getElementById('viewTitle').textContent = titles[id];
-  if (id === 'mapa' && map) setTimeout(() => map.invalidateSize(), 100);
+  $('view-' + id).classList.add('active'); el.classList.add('active');
+  $('viewTitle').textContent = TITULOS[id];
+  $('sidebar').classList.remove('open');
+  if (id === 'mapa') { if (map) setTimeout(() => map.invalidateSize(), 100); cargarVisitas(); }
   if (id === 'pedido') cargarPDV();
+  if (id === 'cobranza') cargarCobranza();
   if (id === 'retornables') renderRetornables();
   if (id === 'liq') renderLiquidacion();
   if (id === 'frio') renderChartFrio();
   if (id === 'comodato') cargarComodatos();
   if (id === 'mermas') cargarMermas();
-  if (id === 'mapa') cargarVisitas();
   if (id === 'dashboard') cargarKPIs();
 }
 
 // ===== DASHBOARD =====
+function meta(id, val, min) {
+  const el = $(id);
+  if (val == null) { el.className = 'pill mute'; el.textContent = 'Sin datos'; return; }
+  const ok = val >= min; el.className = 'pill ' + (ok ? 'ok' : 'bad'); el.textContent = ok ? 'Cumple la meta' : 'Bajo la meta';
+}
 async function cargarKPIs() {
   try {
     const k = await api('/kpis');
-    document.getElementById('kDrop').textContent = k.dropRate + '%';
-    document.getElementById('kRED').textContent = k.cumplimientoRED + '%';
-    document.getElementById('kFrio').textContent = k.adherenciaTermica + '%';
-    document.getElementById('kRet').textContent = k.retornabilidad + '%';
-    document.getElementById('kOTIF').textContent = k.otif + '%';
-    document.getElementById('kDropM').textContent = k.dropRate >= 85 ? '✓ Cumple meta' : '⚠ Bajo meta';
-    document.getElementById('kDropM').className = 'kpi-delta ' + (k.dropRate >= 85 ? 'up' : 'down');
-    document.getElementById('kREDM').textContent = k.cumplimientoRED >= 90 ? '✓ Cumple meta' : '⚠ Bajo meta';
-    document.getElementById('kREDM').className = 'kpi-delta ' + (k.cumplimientoRED >= 90 ? 'up' : 'down');
-    document.getElementById('kFrioM').textContent = k.adherenciaTermica === 100 ? '✓ Óptimo' : k.adherenciaTermica + '%';
-    document.getElementById('kFrioM').className = 'kpi-delta ' + (k.adherenciaTermica >= 95 ? 'up' : 'down');
-    document.getElementById('kRetM').textContent = k.retornabilidad >= 98 ? '✓ Cumple meta' : '⚠ Bajo meta';
-    document.getElementById('kRetM').className = 'kpi-delta ' + (k.retornabilidad >= 98 ? 'up' : 'down');
-    document.getElementById('kOTIFM').textContent = k.otif >= 92 ? '✓ Cumple meta' : '⚠ Bajo meta';
-    document.getElementById('kOTIFM').className = 'kpi-delta ' + (k.otif >= 92 ? 'up' : 'down');
-    document.getElementById('kVentas').textContent = 'Bs ' + Number(k.ventasHoy).toLocaleString();
-    document.getElementById('kTemp').textContent = Number(k.tempActual).toFixed(1) + '°C';
-    document.getElementById('kTemp').style.color = (k.tempActual > 8 || k.tempActual < 2) ? '#E63946' : '#0B6E4F';
-    document.getElementById('kBloq').textContent = k.bloqueados;
+    const v = x => x == null ? 'N/D' : x + '%';
+    $('kDrop').textContent = v(k.dropRate); $('kRED').textContent = v(k.cumplimientoRED); $('kFrio').textContent = v(k.adherenciaTermica);
+    $('kRet').textContent = v(k.retornabilidad); $('kOTIF').textContent = v(k.otif);
+    meta('kDropM', k.dropRate, 85); meta('kREDM', k.cumplimientoRED, 90); meta('kFrioM', k.adherenciaTermica, 100); meta('kRetM', k.retornabilidad, 98); meta('kOTIFM', k.otif, 92);
+    $('kVentasUsd').textContent = usd(k.ventasUsd); $('kVentasBs').textContent = bs(k.ventasBs);
+    $('kCxc').textContent = usd(k.cxcUsd); $('kCxcBs').textContent = bs(toBs(k.cxcUsd));
+    const t = k.tempActual;
+    $('kTemp').textContent = t == null ? 'N/D' : Number(t).toFixed(1) + ' °C';
+    $('kTemp').style.color = (t != null && (t > 8 || t < 2)) ? 'var(--bad)' : '';
+    $('kBloq').textContent = k.bloqueados;
 
     const ventas = await api('/ventas-zona');
-    const ctx = document.getElementById('chartZ');
     if (chartZ) chartZ.destroy();
-    chartZ = new Chart(ctx, {
-      type: 'bar',
-      data: { labels: ventas.map(v => v.nombre), datasets: [{ label:'Ventas Bs', data: ventas.map(v => Number(v.total)), backgroundColor: ventas.map(v => v.color), borderRadius: 8 }] },
-      options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
-    });
+    chartZ = new Chart($('chartZ'), { type: 'bar',
+      data: { labels: ventas.map(x => x.nombre), datasets: [{ data: ventas.map(x => Number(x.total)), backgroundColor: ventas.map(x => x.color), borderRadius: 6, maxBarThickness: 60 }] },
+      options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => usd(c.parsed.y) + '  /  ' + bs(toBs(c.parsed.y)) } } }, scales: { y: { beginAtZero: true, grid: { color: '#EEF1F5' }, ticks: { callback: v => '$ ' + v } }, x: { grid: { display: false } } } } });
 
-    const alertas = [];
-    PDVS.forEach(p => { if (p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas) alertas.push({ t:'danger', i:'⚠️', m:p.nombre + ' bloqueado', s:`Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}` }); });
-    if (k.tempActual > 8 || k.tempActual < 2) alertas.push({ t:'danger', i:'🌡️', m:'Temperatura fuera de rango', s:Number(k.tempActual).toFixed(1) + '°C' });
-    if (!alertas.length) alertas.push({ t:'ok', i:'✓', m:'Sin alertas', s:'Todo operativo' });
-    document.getElementById('alertasList').innerHTML = alertas.slice(0, 8).map(a => `<div class="alert ${a.t}"><b>${a.i} ${a.m}</b><br>${a.s}</div>`).join('');
+    const al = [];
+    PDVS.filter(isBloq).forEach(p => al.push({ t: 'bad', m: esc(p.nombre) + ' bloqueado', s: `Cestas ${p.saldo_cestas}/${p.limite_cestas}, botellas ${p.saldo_botellas}/${p.limite_botellas}` }));
+    if (t != null && (t > 8 || t < 2)) al.push({ t: 'bad', m: 'Temperatura fuera de rango', s: Number(t).toFixed(1) + ' °C' });
+    if (!(TASA.tasa > 0)) al.push({ t: 'warn', m: 'Tasa BCV no configurada', s: 'No se pueden registrar pedidos' });
+    if (!al.length) al.push({ t: 'ok', m: 'Sin alertas', s: 'Operación normal' });
+    $('alertasList').innerHTML = al.slice(0, 8).map(a => `<div class="note ${a.t}"><b>${a.m}</b><br>${a.s}</div>`).join('');
   } catch (e) { console.error(e); }
 }
 
 // ===== PDVS =====
 function renderPDVs() {
-  const q = (document.getElementById('searchPDV')?.value || '').toLowerCase();
-  const filtered = PDVS.filter(p => !q || ((p.codigo||'')+(p.nombre||'')+(p.zona_nombre||'')).toLowerCase().includes(q));
-  document.getElementById('tblPDVs').innerHTML = filtered.map(p => {
-    const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-    return `<tr>
-      <td><b>${p.codigo}</b></td>
-      <td>${p.nombre}</td>
-      <td><span class="badge" style="background:${p.zona_color}20;color:${p.zona_color}">${p.zona_nombre || '—'}</span></td>
-      <td>${p.saldo_cestas}/${p.limite_cestas}</td>
-      <td>${p.saldo_botellas}/${p.limite_botellas}</td>
-      <td>${p.canal}</td>
-      <td>${bloq ? '<span class="badge danger">🚫 Bloq.</span>' : '<span class="badge ok">✓ OK</span>'}</td>
-      <td style="white-space:nowrap">
-        <button class="btn gray" style="padding:4px 10px;font-size:.72rem" onclick="abrirPDV(${p.id})">✏️</button>
-        <button class="btn danger" style="padding:4px 10px;font-size:.72rem" onclick="eliminarPDV(${p.id})">🗑️</button>
-      </td>
-    </tr>`;
-  }).join('');
+  const q = ($('searchPDV')?.value || '').toLowerCase();
+  const f = PDVS.filter(p => !q || ((p.codigo || '') + (p.nombre || '') + (p.zona_nombre || '')).toLowerCase().includes(q));
+  $('tblPDVs').innerHTML = f.map(p => `<tr>
+    <td><b>${esc(p.codigo)}</b></td><td>${esc(p.nombre)}</td>
+    <td><span class="pill" style="background:${esc(p.zona_color)}1F;color:${esc(p.zona_color)}">${esc(p.zona_nombre || 'Sin zona')}</span></td>
+    <td class="num">${p.saldo_cestas}/${p.limite_cestas}</td><td class="num">${p.saldo_botellas}/${p.limite_botellas}</td>
+    <td class="r num">${usd(p.limite_credito)}</td><td>${esc(p.canal)}</td>
+    <td>${isBloq(p) ? '<span class="pill bad">Bloqueado</span>' : '<span class="pill ok">Habilitado</span>'}</td>
+    <td style="white-space:nowrap"><button class="btn ghost sm" onclick="abrirPDV(${p.id})">Editar</button> <button class="btn danger sm" onclick="eliminarPDV(${p.id})">Eliminar</button></td></tr>`).join('');
 }
 function abrirPDV(id) {
+  const f = (k, v) => $(k).value = v;
   if (id) {
     const p = PDVS.find(x => x.id === id);
-    const f = (k, v) => document.getElementById(k).value = v;
-    f('pId', p.id); f('pCodigo', p.codigo); f('pNombre', p.nombre); f('pRazon', p.razon_social||''); f('pDireccion', p.direccion||'');
-    f('pZona', p.zona_id); f('pCanal', p.canal||'Abasto/Bodega'); f('pLat', p.lat); f('pLng', p.lng); f('pRadio', p.geofence_radio_m||50);
+    f('pId', p.id); f('pCodigo', p.codigo); f('pNombre', p.nombre); f('pRazon', p.razon_social || ''); f('pDireccion', p.direccion || '');
+    f('pZona', p.zona_id); f('pCanal', p.canal || 'Abasto/Bodega'); f('pCredito', p.limite_credito || 0); f('pLat', p.lat); f('pLng', p.lng); f('pRadio', p.geofence_radio_m || 50);
     f('pSaldoC', p.saldo_cestas); f('pLimC', p.limite_cestas); f('pSaldoB', p.saldo_botellas); f('pLimB', p.limite_botellas);
   } else {
-    ['pId','pCodigo','pNombre','pRazon','pDireccion'].forEach(k => document.getElementById(k).value = '');
-    document.getElementById('pLat').value = '10.65';
-    document.getElementById('pLng').value = '-71.62';
-    document.getElementById('pRadio').value = 50;
-    document.getElementById('pSaldoC').value = 0;
-    document.getElementById('pSaldoB').value = 0;
-    document.getElementById('pLimC').value = 10;
-    document.getElementById('pLimB').value = 20;
+    ['pId', 'pCodigo', 'pNombre', 'pRazon', 'pDireccion'].forEach(k => f(k, ''));
+    f('pLat', '10.65'); f('pLng', '-71.62'); f('pRadio', 50); f('pSaldoC', 0); f('pSaldoB', 0); f('pLimC', 10); f('pLimB', 20); f('pCredito', 0);
   }
-  new bootstrap.Modal(document.getElementById('modalPDV')).show();
+  openModal('modalPDV');
 }
 async function guardarPDV() {
-  const id = document.getElementById('pId').value;
-  const data = {
-    codigo: document.getElementById('pCodigo').value,
-    nombre: document.getElementById('pNombre').value,
-    razon_social: document.getElementById('pRazon').value,
-    direccion: document.getElementById('pDireccion').value,
-    zona_id: +document.getElementById('pZona').value,
-    canal: document.getElementById('pCanal').value,
-    lat: +document.getElementById('pLat').value,
-    lng: +document.getElementById('pLng').value,
-    geofence_radio_m: +document.getElementById('pRadio').value,
-    saldo_cestas: +document.getElementById('pSaldoC').value,
-    limite_cestas: +document.getElementById('pLimC').value,
-    saldo_botellas: +document.getElementById('pSaldoB').value,
-    limite_botellas: +document.getElementById('pLimB').value
-  };
+  const id = $('pId').value;
+  const data = { codigo: $('pCodigo').value.trim(), nombre: $('pNombre').value.trim(), razon_social: $('pRazon').value, direccion: $('pDireccion').value,
+    zona_id: +$('pZona').value, canal: $('pCanal').value, limite_credito: +$('pCredito').value || 0, lat: +$('pLat').value, lng: +$('pLng').value,
+    geofence_radio_m: +$('pRadio').value, saldo_cestas: +$('pSaldoC').value, limite_cestas: +$('pLimC').value, saldo_botellas: +$('pSaldoB').value, limite_botellas: +$('pLimB').value };
   try {
     if (id) await api('/pdvs/' + id, { method: 'PUT', body: JSON.stringify(data) });
     else await api('/pdvs', { method: 'POST', body: JSON.stringify(data) });
-    toast('PDV guardado', data.nombre);
-    bootstrap.Modal.getInstance(document.getElementById('modalPDV')).hide();
-    PDVS = await api('/pdvs');
-    poblarSelects(); renderPDVs(); cargarKPIs(); renderVRPChecks();
-    if (map) refreshMarkers();
+    toast('PDV guardado', data.nombre); closeModal('modalPDV');
+    PDVS = await api('/pdvs'); poblarSelects(); renderPDVs(); renderVRPChecks(); cargarKPIs(); if (map) refreshMarkers();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function eliminarPDV(id) {
-  if (!confirm('¿Eliminar este PDV?')) return;
+  if (!confirm('¿Eliminar este punto de venta?')) return;
   try {
     await api('/pdvs/' + id, { method: 'DELETE' });
-    PDVS = await api('/pdvs');
-    poblarSelects(); renderPDVs(); cargarKPIs(); renderVRPChecks();
-    if (map) refreshMarkers();
+    PDVS = await api('/pdvs'); poblarSelects(); renderPDVs(); renderVRPChecks(); cargarKPIs(); if (map) refreshMarkers();
     toast('PDV eliminado');
   } catch (e) { toast('Error', e.message, 'error'); }
 }
@@ -644,177 +675,158 @@ async function eliminarPDV(id) {
 function initMap() {
   if (map) return;
   map = L.map('map').setView([10.654, -71.63], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
   refreshMarkers();
 }
 function refreshMarkers() {
   map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
   PDVS.forEach(p => {
     if (p.lat == null || p.lng == null) return;
-    const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-    const icon = L.divIcon({ html: `<div style="background:${p.zona_color};width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className:'', iconSize:[22,22] });
-    L.marker([p.lat, p.lng], { icon }).addTo(map)
-      .bindPopup(`<b>${p.nombre}</b><br>${p.codigo}<br>${p.zona_nombre || ''}<br>Cestas: ${p.saldo_cestas}/${p.limite_cestas}<br>Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>${bloq ? '🚫 BLOQUEADO' : '✓ OK'}`);
+    const icon = L.divIcon({ html: `<div style="background:${esc(p.zona_color)};width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className: '', iconSize: [20, 20] });
+    L.marker([p.lat, p.lng], { icon }).addTo(map).bindPopup(`<b>${esc(p.nombre)}</b><br>${esc(p.codigo)} · ${esc(p.zona_nombre || '')}<br>Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}<br>${isBloq(p) ? 'Bloqueado' : 'Habilitado'}`);
   });
 }
 function hav(lat1, lon1, lat2, lon2) {
-  const R=6371000, r=x=>x*Math.PI/180;
-  const dLat=r(lat2-lat1), dLon=r(lon2-lon1);
-  const a=Math.sin(dLat/2)**2 + Math.cos(r(lat1))*Math.cos(r(lat2))*Math.sin(dLon/2)**2;
-  return R*2*Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  const R = 6371000, r = x => x * Math.PI / 180, dLat = r(lat2 - lat1), dLon = r(lon2 - lon1);
+  const a = Math.sin(dLat / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(dLon / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 async function getLocation() {
-  const id = +document.getElementById('selPDVCheckin').value;
-  const pdv = PDVS.find(p => p.id === id);
-  if (!pdv) return toast('Selecciona un PDV', '', 'warn');
+  const id = +$('selPDVCheckin').value, pdv = PDVS.find(p => p.id === id);
+  if (!pdv) return toast('Seleccione un PDV', '', 'warn');
   if (!navigator.geolocation) return toast('GPS no disponible', '', 'error');
-  document.getElementById('gpsStatus').textContent = 'GPS: obteniendo ubicación...';
+  $('gpsStatus').textContent = 'GPS: obteniendo ubicación';
   navigator.geolocation.getCurrentPosition(async pos => {
-    const { latitude: lat, longitude: lng } = pos.coords;
-    const dist = hav(lat, lng, pdv.lat, pdv.lng);
-    document.getElementById('gpsStatus').textContent = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    document.getElementById('distInfo').innerHTML = `Distancia: <b>${dist.toFixed(0)}m</b><br>${dist <= pdv.geofence_radio_m ? '<span style="color:#8fe39a">✓ Dentro del radio</span>' : '<span style="color:#ffb3b8">✗ Fuera del radio</span>'}`;
-    try {
-      await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat, lng }) });
-      toast('Check-in exitoso', `${pdv.nombre} · ${dist.toFixed(0)}m`);
-      cargarVisitas(); cargarKPIs();
-    } catch (e) { toast('Check-in rechazado', e.message, 'error'); }
-  }, () => { document.getElementById('gpsStatus').textContent = 'GPS: error o denegado'; toast('GPS bloqueado', 'Usa Simular check-in', 'warn'); }, { enableHighAccuracy: true, timeout: 10000 });
+    const { latitude: lat, longitude: lng } = pos.coords, dist = hav(lat, lng, pdv.lat, pdv.lng);
+    $('gpsStatus').textContent = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+    $('distInfo').innerHTML = `Distancia: <b>${dist.toFixed(0)} m</b> · ${dist <= pdv.geofence_radio_m ? 'Dentro del radio' : 'Fuera del radio'}`;
+    try { await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat, lng }) }); toast('Check-in registrado', `${pdv.nombre} · ${dist.toFixed(0)} m`); cargarVisitas(); cargarKPIs(); }
+    catch (e) { toast('Check-in rechazado', e.message, 'error'); }
+  }, () => { $('gpsStatus').textContent = 'GPS: sin permiso o error'; toast('GPS bloqueado', 'Use la simulación', 'warn'); }, { enableHighAccuracy: true, timeout: 10000 });
 }
 async function simularCheckin() {
-  const id = +document.getElementById('selPDVCheckin').value;
-  const pdv = PDVS.find(p => p.id === id);
-  if (!pdv) return toast('Selecciona un PDV', '', 'warn');
-  document.getElementById('gpsStatus').textContent = `GPS (simulado): ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`;
-  document.getElementById('distInfo').innerHTML = 'Distancia: <b>~15m</b><br><span style="color:#8fe39a">✓ Check-in válido</span>';
-  try {
-    await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) });
-    toast('Check-in simulado', pdv.nombre);
-    cargarVisitas(); cargarKPIs();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  const id = +$('selPDVCheckin').value, pdv = PDVS.find(p => p.id === id);
+  if (!pdv) return toast('Seleccione un PDV', '', 'warn');
+  $('gpsStatus').textContent = `GPS simulado: ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`;
+  $('distInfo').innerHTML = 'Distancia: <b>aprox. 15 m</b> · Dentro del radio';
+  try { await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) }); toast('Check-in simulado', pdv.nombre); cargarVisitas(); cargarKPIs(); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarVisitas() {
   try {
-    const v = await api('/visitas');
-    const cont = document.getElementById('visitasList');
-    if (!cont) return;
-    if (!v.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin visitas registradas</p>'; return; }
-    cont.innerHTML = v.slice(0, 15).map(x => `<div style="padding:8px;border-bottom:1px solid var(--borde)"><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha_checkin).toLocaleString()} · ${x.vendedor} · ${x.distancia_m != null ? Number(x.distancia_m).toFixed(0)+'m' : ''} <span class="badge ${x.estado==='Efectiva'?'ok':'warn'}">${x.estado}</span></small></div>`).join('');
+    const v = await api('/visitas'), c = $('visitasList');
+    c.innerHTML = v.length ? v.slice(0, 15).map(x => `<div class="row-item"><b>${esc(x.pdv_nombre)}</b><br><small>${new Date(x.fecha_checkin).toLocaleString('es-VE')} · ${esc(x.vendedor)} · ${x.distancia_m != null ? Number(x.distancia_m).toFixed(0) + ' m' : ''}</small></div>`).join('') : '<div class="empty">Sin visitas registradas</div>';
   } catch (e) {}
 }
 
 // ===== PEDIDO =====
 function renderProductos() {
-  document.getElementById('listaProds').innerHTML = PRODS.map(p => `
-    <div class="prod-row">
-      <div style="flex:1"><b>${p.nombre}</b><br><small style="color:#8899aa">Bs ${p.precio} ${p.retornable ? '· ♻️ ' + p.tipo_envase : ''} ${p.fecha_vencimiento && new Date(p.fecha_vencimiento) > new Date() ? '· vence ' + p.fecha_vencimiento : ''}</small></div>
-      <input type="number" min="0" value="0" id="prod_${p.id}" style="width:75px" oninput="calcTotal()">
-    </div>
-  `).join('');
+  const saved = {}; PRODS.forEach(p => { const el = $('prod_' + p.id); if (el) saved[p.id] = el.value; });
+  $('listaProds').innerHTML = PRODS.map(p => `<div class="prod">
+    <div><b>${esc(p.nombre)}</b><small>${p.retornable ? 'Retornable: ' + esc(p.tipo_envase) : 'No retornable'}</small></div>
+    <div class="p num">${usd(p.precio)}<small>${bs(toBs(p.precio))}</small></div>
+    <input type="number" min="0" value="${saved[p.id] || 0}" id="prod_${p.id}" oninput="calcTotal()"></div>`).join('');
 }
 function renderPromos() {
-  const cont = document.getElementById('promosList');
-  if (!PROMOS.length) { cont.innerHTML = '<p style="color:#8899aa">Sin promociones activas</p>'; return; }
-  cont.innerHTML = PROMOS.map(pr => `<div style="padding:8px;background:#fff3cd;border-radius:8px;margin-bottom:6px">🏷️ <b>${pr.nombre}</b><br><small>${pr.tipo === 'Volumen' ? `Mínimo ${pr.min_cantidad} unidades → ${pr.descuento_pct}% dcto` : `${pr.descuento_pct}% descuento en producto`}</small></div>`).join('');
+  $('promosList').innerHTML = PROMOS.length ? PROMOS.map(pr => `<div class="note warn"><b>${esc(pr.nombre)}</b><br>${pr.tipo === 'Volumen' ? `Mínimo ${pr.min_cantidad} unidades: ${pr.descuento_pct}% de descuento` : `${pr.descuento_pct}% de descuento por fecha corta`}</div>`).join('') : '<div class="empty">Sin promociones activas</div>';
 }
 async function cargarPDV() {
-  const id = +document.getElementById('selPDV').value;
-  const p = PDVS.find(x => x.id === id);
-  if (!p) return;
-  const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-  document.getElementById('infoPDV').innerHTML = `
-    <div class="alert ${bloq ? 'danger' : 'ok'}">
-      <b>${p.nombre}</b> · ${p.codigo}<br>
-      Zona: ${p.zona_nombre || '—'} · Canal: ${p.canal}<br>
-      Cestas: ${p.saldo_cestas}/${p.limite_cestas} · Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>
-      ${bloq ? '<b>🚫 CLIENTE BLOQUEADO</b> — requiere autorización de supervisor' : '<b>✓ Habilitado</b>'}
-    </div>`;
+  const p = PDVS.find(x => x.id === +$('selPDV').value); if (!p) return;
+  $('infoPDV').innerHTML = `<div class="note ${isBloq(p) ? 'bad' : 'ok'}"><b>${esc(p.nombre)}</b> · ${esc(p.codigo)}<br>Zona ${esc(p.zona_nombre || '-')} · ${esc(p.canal)}<br>Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas} · Crédito hasta ${usd(p.limite_credito)}<br><b>${isBloq(p) ? 'Cliente bloqueado: requiere autorización del supervisor' : 'Cliente habilitado'}</b></div>`;
   try {
-    const sugerencias = await api('/smart-order/' + id);
-    document.getElementById('smartOrder').innerHTML = sugerencias.length
-      ? `<div style="background:#e0f2fe;padding:12px;border-radius:10px;font-size:.8rem"><b>💡 Smart Order:</b><br>${sugerencias.slice(0,4).map(s => `• ${s.nombre} x${s.cantidad_sugerida}`).join('<br>')}</div>`
-      : '';
+    const s = await api('/smart-order/' + p.id);
+    $('smartOrder').innerHTML = s.length ? `<div class="note info"><b>Venta sugerida</b><br>${s.slice(0, 4).map(x => `${esc(x.nombre)}: ${x.cantidad_sugerida} unidades`).join('<br>')}</div>` : '';
   } catch (e) {}
 }
 function calcTotal() {
   let sub = 0, desc = 0;
   PRODS.forEach(p => {
-    const c = +document.getElementById('prod_' + p.id)?.value || 0;
-    if (c === 0) return;
-    const s = c * p.precio;
-    sub += s;
-    const promo = PROMOS.find(pr => pr.producto_id === p.id && pr.tipo === 'Volumen' && c >= pr.min_cantidad);
-    if (promo) desc += s * (promo.descuento_pct / 100);
-    if (p.fecha_vencimiento) {
-      const dias = Math.ceil((new Date(p.fecha_vencimiento) - new Date()) / 86400000);
-      if (dias >= 0 && dias <= 30) {
-        const promoSD = PROMOS.find(pr => pr.producto_id === p.id && pr.tipo === 'ShortDate');
-        if (promoSD) desc += s * (promoSD.descuento_pct / 100);
-      }
-    }
+    const c = +$('prod_' + p.id)?.value || 0; if (c <= 0) return;
+    const s = c * p.precio; sub += s; let pct = 0;
+    const pv = PROMOS.find(x => x.producto_id === p.id && x.tipo === 'Volumen' && c >= x.min_cantidad); if (pv) pct += pv.descuento_pct;
+    if (p.fecha_vencimiento) { const d = Math.ceil((new Date(p.fecha_vencimiento) - new Date()) / 86400000); if (d >= 0 && d <= 30) { const ps = PROMOS.find(x => x.producto_id === p.id && x.tipo === 'ShortDate'); if (ps) pct += ps.descuento_pct; } }
+    desc += s * pct / 100;
   });
-  document.getElementById('subTotal').textContent = 'Bs ' + sub.toLocaleString();
-  document.getElementById('descTotal').textContent = 'Bs ' + desc.toLocaleString();
-  document.getElementById('totalPedido').textContent = 'Bs ' + (sub - desc).toLocaleString();
+  sub = r2(sub); desc = r2(desc); CUR = { sub, desc, total: r2(sub - desc) };
+  $('subTotal').textContent = usd(sub); $('descTotal').textContent = '- ' + usd(desc);
+  $('totalUsd').textContent = usd(CUR.total); $('totalBs').textContent = bs(toBs(CUR.total));
+  renderPagos(); onMetodo();
+}
+// --- Pagos ---
+const pagadoUsd = () => PAGOS.reduce((s, p) => s + p.usd, 0);
+const restUsd = () => r2(CUR.total - pagadoUsd());
+function onMetodo() {
+  const m = metInfo($('payMetodo').value);
+  $('payLbl').textContent = 'Monto en ' + (m.moneda === 'USD' ? 'USD' : 'Bs');
+  $('payRef').placeholder = m.ref ? 'Obligatoria' : 'Opcional';
+  const rest = Math.max(0, restUsd());
+  $('payMonto').value = rest > 0 ? (m.moneda === 'USD' ? rest.toFixed(2) : toBs(rest).toFixed(2)) : '';
+}
+function addPago() {
+  if (CUR.total <= 0) return toast('Agregue productos al pedido', '', 'warn');
+  if (!(TASA.tasa > 0)) return toast('Tasa BCV no configurada', '', 'error');
+  const m = metInfo($('payMetodo').value), monto = +$('payMonto').value, ref = $('payRef').value.trim();
+  if (!(monto > 0)) return toast('Monto inválido', '', 'warn');
+  if (m.ref && !ref) return toast('Referencia requerida', 'El método ' + m.nombre + ' exige referencia', 'warn');
+  const u = m.moneda === 'USD' ? monto : monto / TASA.tasa;
+  if (u > restUsd() + 0.02) return toast('El monto excede el saldo', 'Saldo: ' + usd(restUsd()), 'warn');
+  PAGOS.push({ metodo: m.nombre, moneda: m.moneda, monto, usd: u, referencia: ref });
+  $('payRef').value = ''; renderPagos(); onMetodo();
+}
+function pagarSaldo() { onMetodo(); addPago(); }
+function quitarPago(i) { PAGOS.splice(i, 1); renderPagos(); onMetodo(); }
+function renderPagos() {
+  const rest = restUsd();
+  const filas = PAGOS.map((p, i) => `<tr><td>${esc(p.metodo)}</td><td class="r num">${fmtMonto(p.monto, p.moneda)}</td><td class="r num">${usd(p.usd)}</td><td>${esc(p.referencia || '-')}</td><td><button class="btn ghost sm" onclick="quitarPago(${i})">Quitar</button></td></tr>`).join('');
+  $('payList').innerHTML = (PAGOS.length ? `<div class="scroll"><table class="table"><thead><tr><th>Método</th><th class="r">Monto</th><th class="r">Equiv. USD</th><th>Ref.</th><th></th></tr></thead><tbody>${filas}</tbody></table></div>` : '<div class="empty" style="padding:12px">Aún no hay pagos registrados</div>') +
+    `<div class="totals num" style="margin:12px 0 0"><div class="l"><span>Pagado</span><span>${usd(pagadoUsd())}</span></div><div class="l big" style="color:${Math.abs(rest) <= 0.02 ? 'var(--ok)' : 'var(--ink)'}"><span>${rest < -0.02 ? 'Exceso' : 'Saldo por cobrar'}</span><span>${usd(Math.abs(rest))}</span></div><div class="l bs"><span></span><span>${bs(toBs(Math.abs(rest)))}</span></div></div>`;
 }
 async function confirmarPedido() {
-  const pdv_id = +document.getElementById('selPDV').value;
-  const items = [];
-  PRODS.forEach(p => {
-    const c = +document.getElementById('prod_' + p.id).value || 0;
-    if (c > 0) items.push({ producto_id: p.id, cantidad: c });
-  });
-  if (!items.length) return toast('Sin productos', 'Selecciona al menos uno', 'warn');
+  const pdv_id = +$('selPDV').value, items = [];
+  PRODS.forEach(p => { const c = +$('prod_' + p.id).value || 0; if (c > 0) items.push({ producto_id: p.id, cantidad: c }); });
+  if (!items.length) return toast('Sin productos', 'Seleccione al menos uno', 'warn');
+  if (Math.abs(restUsd()) > 0.02) return toast('El pago no cubre el total', 'Saldo: ' + usd(restUsd()), 'warn');
   try {
-    const r = await api('/pedidos', { method: 'POST', body: JSON.stringify({ pdv_id, items, metodo_pago: document.getElementById('metodoPago').value }) });
-    document.getElementById('pedidoMsg').innerHTML = `<div class="alert ok"><b>✅ Pedido #${r.id} confirmado</b><br>Subtotal: Bs ${r.subtotal.toLocaleString()}<br>Descuento: Bs ${r.descuento.toLocaleString()}<br><b>Total: Bs ${r.total.toLocaleString()}</b></div>`;
-    toast('Pedido confirmado', `#${r.id} · Bs ${r.total.toLocaleString()}`);
-    PDVS = await api('/pdvs');
-    renderPDVs(); cargarPDV(); cargarKPIs();
-    if (map) refreshMarkers();
-    PRODS.forEach(p => document.getElementById('prod_' + p.id).value = 0);
-    calcTotal();
-  } catch (e) {
-    document.getElementById('pedidoMsg').innerHTML = `<div class="alert danger"><b>🚫 Pedido no realizado</b><br>${e.message}</div>`;
-    toast('Pedido bloqueado', e.message, 'error');
-  }
+    const r = await api('/pedidos', { method: 'POST', body: JSON.stringify({ pdv_id, items, pagos: PAGOS.map(p => ({ metodo: p.metodo, monto: p.monto, referencia: p.referencia })) }) });
+    $('pedidoMsg').innerHTML = `<div class="note ok"><b>Pedido #${r.id} confirmado</b><br>Subtotal ${usd(r.subtotal)} · Descuento ${usd(r.descuento)}<br><b>Total ${usd(r.total)} / ${bs(r.total_bs)}</b> (tasa ${r.tasa})<br>${r.pagos.map(p => `${esc(p.metodo)}: ${fmtMonto(p.monto, p.moneda)}`).join('<br>')}</div>`;
+    toast('Pedido confirmado', `#${r.id} · ${usd(r.total)}`);
+    PAGOS = []; PRODS.forEach(p => $('prod_' + p.id).value = 0); calcTotal();
+    PDVS = await api('/pdvs'); renderPDVs(); cargarPDV(); cargarKPIs(); if (map) refreshMarkers();
+  } catch (e) { $('pedidoMsg').innerHTML = `<div class="note bad"><b>No se pudo registrar el pedido</b><br>${esc(e.message)}</div>`; toast('Pedido rechazado', e.message, 'error'); }
+}
+
+// ===== COBRANZA =====
+function onCobMetodo() { const m = metInfo($('cobMetodo').value); $('cobLbl').textContent = 'Monto en ' + (m.moneda === 'USD' ? 'USD' : 'Bs'); $('cobRef').placeholder = m.ref ? 'Obligatoria' : 'Opcional'; }
+async function cargarCobranza() {
+  try {
+    const r = await api('/cobranza');
+    $('tblCxc').innerHTML = r.map(x => { const s = Math.max(0, +x.saldo), disp = Math.max(0, x.limite_credito - s);
+      return `<tr><td><b>${esc(x.nombre)}</b><br><small style="color:var(--muted)">${esc(x.codigo)}</small></td><td class="r num">${usd(x.limite_credito)}</td><td class="r num"><b>${usd(s)}</b></td><td class="r num">${bs(toBs(s))}</td><td class="r num">${usd(disp)}</td></tr>`; }).join('');
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function registrarAbono() {
+  const pdv_id = +$('cobPDV').value, metodo = $('cobMetodo').value, monto = +$('cobMonto').value, referencia = $('cobRef').value.trim();
+  if (!(monto > 0)) return toast('Monto inválido', '', 'warn');
+  try {
+    const r = await api('/cobranza', { method: 'POST', body: JSON.stringify({ pdv_id, metodo, monto, referencia }) });
+    toast('Abono registrado', 'Saldo restante ' + usd(r.saldo)); $('cobMonto').value = ''; $('cobRef').value = ''; cargarCobranza(); cargarKPIs();
+  } catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== RETORNABLES =====
 async function renderRetornables() {
   try {
     const r = await api('/retornables');
-    const totalC = r.reduce((s,p) => s+p.saldo_cestas,0);
-    const totalB = r.reduce((s,p) => s+p.saldo_botellas,0);
-    const bloq = r.filter(p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas).length;
-    document.getElementById('retStats').innerHTML = `
-      <div style="margin-bottom:12px"><b>Cestas adeudadas:</b> ${totalC}</div>
-      <div style="margin-bottom:12px"><b>Botellas adeudadas:</b> ${totalB}</div>
-      <div style="margin-bottom:12px"><b>Clientes bloqueados:</b> <span style="color:var(--rojo);font-weight:700">${bloq}</span></div>
-    `;
-    document.getElementById('tblRet').innerHTML = r.map(p => {
-      const b = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-      return `<tr>
-        <td><b>${p.nombre}</b><br><small>${p.codigo}</small></td>
-        <td>${p.saldo_cestas}/${p.limite_cestas}</td>
-        <td>${p.saldo_botellas}/${p.limite_botellas}</td>
-        <td>C:${p.limite_cestas} · B:${p.limite_botellas}</td>
-        <td>${b ? '<span class="badge danger">🚫 Bloqueado</span>' : '<span class="badge ok">✓ OK</span>'}</td>
-      </tr>`;
-    }).join('');
+    const tc = r.reduce((s, p) => s + p.saldo_cestas, 0), tb = r.reduce((s, p) => s + p.saldo_botellas, 0), bq = r.filter(isBloq).length;
+    $('retStats').innerHTML = `<div class="row-item">Cestas adeudadas <b style="float:right" class="num">${tc}</b></div><div class="row-item">Botellas adeudadas <b style="float:right" class="num">${tb}</b></div><div class="row-item" style="border:0">Clientes bloqueados <b style="float:right;color:var(--bad)" class="num">${bq}</b></div>`;
+    $('tblRet').innerHTML = r.map(p => `<tr><td><b>${esc(p.nombre)}</b><br><small style="color:var(--muted)">${esc(p.codigo)}</small></td><td class="num">${p.saldo_cestas}/${p.limite_cestas}</td><td class="num">${p.saldo_botellas}/${p.limite_botellas}</td><td>Cestas ${p.limite_cestas} · Botellas ${p.limite_botellas}</td><td>${isBloq(p) ? '<span class="pill bad">Bloqueado</span>' : '<span class="pill ok">Habilitado</span>'}</td></tr>`).join('');
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function registrarDevolucion() {
-  const pdv_id = +document.getElementById('selRetPDV').value;
-  const tipo = document.getElementById('retTipo').value;
-  const cantidad = +document.getElementById('retCant').value;
+  const pdv_id = +$('selRetPDV').value, tipo = $('retTipo').value, cantidad = +$('retCant').value;
   if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
-  try {
-    const r = await api('/retornables/devolucion', { method: 'POST', body: JSON.stringify({ pdv_id, tipo, cantidad }) });
-    toast('Devolución registrada', `Nuevo saldo: ${r.nuevo_saldo}`);
-    PDVS = await api('/pdvs');
-    renderRetornables(); renderPDVs(); cargarKPIs();
-    if (map) refreshMarkers();
+  try { const r = await api('/retornables/devolucion', { method: 'POST', body: JSON.stringify({ pdv_id, tipo, cantidad }) });
+    toast('Devolución registrada', 'Nuevo saldo: ' + r.nuevo_saldo); PDVS = await api('/pdvs'); renderRetornables(); renderPDVs(); cargarKPIs(); if (map) refreshMarkers();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 
@@ -823,35 +835,24 @@ let fotoBase64 = null;
 function previewFoto(e) {
   const f = e.target.files[0]; if (!f) return;
   const r = new FileReader();
-  r.onload = ev => {
-    fotoBase64 = ev.target.result;
-    document.getElementById('fotoPrev').innerHTML = `<img src="${fotoBase64}" style="width:100%;border-radius:12px;max-height:220px;object-fit:cover">`;
-    toast('Foto cargada');
-  };
+  r.onload = ev => { fotoBase64 = ev.target.result; $('fotoPrev').innerHTML = `<img src="${fotoBase64}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover">`; toast('Fotografía cargada'); };
   r.readAsDataURL(f);
 }
 async function analizarRED() {
-  if (!fotoBase64) return toast('Sin foto', 'Sube una imagen primero', 'warn');
-  const pdv_id = +document.getElementById('selPDVRed').value;
-  const cumplimiento = Math.round(70 + Math.random() * 30);
+  if (!fotoBase64) return toast('Sin fotografía', 'Suba una imagen primero', 'warn');
+  const pdv_id = +$('selPDVRed').value, c = Math.round(70 + Math.random() * 30);
   try {
-    // La foto no se envía (límite de tamaño en Vercel); solo se guarda el resultado
-    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, cumplimiento_pct: cumplimiento }) });
-    const color = cumplimiento >= 90 ? '#2A9D8F' : cumplimiento >= 75 ? '#F4A261' : '#E63946';
-    document.getElementById('redRes').innerHTML = `<div class="alert ok"><div style="text-align:center"><div style="font-size:2.5rem;font-weight:800;color:${color}">${cumplimiento}%</div><div style="color:#8899aa;font-size:.8rem;margin-bottom:10px">Share of Shelf</div></div>
-      <div style="margin-bottom:6px"><small>Marca propia ${cumplimiento}% · Competencia ${100-cumplimiento}%</small></div>
-      <div style="height:10px;background:#e2e8f0;border-radius:5px;overflow:hidden;display:flex"><div style="width:${cumplimiento}%;background:${color}"></div><div style="width:${100-cumplimiento}%;background:#E63946"></div></div>
-      <div style="margin-top:10px"><b>${cumplimiento >= 90 ? '✓ Cumple estándar RED' : '⚠ Requiere corrección'}</b></div></div>`;
-    toast('Análisis RED completo', `${cumplimiento}%`);
-    cargarRedHist(); cargarKPIs();
+    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, cumplimiento_pct: c }) });
+    const col = c >= 90 ? '#15803D' : c >= 75 ? '#B45309' : '#B91C1C';
+    $('redRes').innerHTML = `<div class="note ${c >= 90 ? 'ok' : 'warn'}"><div style="text-align:center"><div style="font-size:2.4rem;font-weight:800;color:${col}">${c}%</div><small>Cuota de anaquel (Share of Shelf)</small></div>
+      <div class="bar" style="margin:10px 0 6px"><div style="width:${c}%;background:${col}"></div></div><small>Marca propia ${c}% · Competencia ${100 - c}%</small><br><b>${c >= 90 ? 'Cumple el estándar RED' : 'Requiere corrección'}</b></div>`;
+    toast('Análisis completado', c + '%'); cargarRedHist(); cargarKPIs();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarRedHist() {
   try {
-    const r = await api('/red');
-    const cont = document.getElementById('redHist'); if (!cont) return;
-    if (!r.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin auditorías</p>'; return; }
-    cont.innerHTML = r.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center"><div><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha).toLocaleString()}</small></div><span class="badge ${x.cumplimiento_pct>=90?'ok':x.cumplimiento_pct>=75?'warn':'danger'}">${Number(x.cumplimiento_pct).toFixed(0)}%</span></div>`).join('');
+    const r = await api('/red'), c = $('redHist');
+    c.innerHTML = r.length ? r.map(x => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center"><div><b>${esc(x.pdv_nombre)}</b><br><small>${new Date(x.fecha).toLocaleString('es-VE')}</small></div><span class="pill ${x.cumplimiento_pct >= 90 ? 'ok' : x.cumplimiento_pct >= 75 ? 'warn' : 'bad'}">${Number(x.cumplimiento_pct).toFixed(0)}%</span></div>`).join('') : '<div class="empty">Sin auditorías</div>';
   } catch (e) {}
 }
 
@@ -859,33 +860,25 @@ async function cargarRedHist() {
 async function renderChartFrio() {
   try {
     const data = await api('/frio');
-    const ctx = document.getElementById('chartF');
     if (chartF) chartF.destroy();
-    chartF = new Chart(ctx, {
-      type: 'line',
-      data: { labels: data.map((_,i) => i), datasets: [{ label:'°C', data: data.map(x=>x.temperatura), borderColor:'#0B6E4F', backgroundColor:'rgba(11,110,79,.1)', tension:.4, fill:true, pointRadius:2 }] },
-      options: { plugins: { legend: { display: false } }, scales: { y: { min:0, max:12 }, x: { display: false } }, responsive: true, maintainAspectRatio: false }
-    });
+    chartF = new Chart($('chartF'), { type: 'line',
+      data: { labels: data.map((_, i) => i), datasets: [{ data: data.map(x => x.temperatura), borderColor: '#0F766E', backgroundColor: 'rgba(15,118,110,.1)', tension: .35, fill: true, pointRadius: 2 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 12, grid: { color: '#EEF1F5' } }, x: { display: false } }, responsive: true, maintainAspectRatio: false } });
     if (data.length) {
-      const ult = data[data.length-1].temperatura;
-      document.getElementById('fTemp').textContent = ult.toFixed(1) + '°C';
-      document.getElementById('fTemp').style.color = (ult>8||ult<2) ? '#E63946' : '#0B6E4F';
-      const alertas = data.filter(x => x.alerta).length;
-      document.getElementById('fAlert').textContent = alertas;
-      document.getElementById('fAdh').textContent = Math.round((1 - alertas/data.length)*100) + '%';
+      const u = data[data.length - 1].temperatura, al = data.filter(x => x.alerta).length;
+      $('fTemp').textContent = u.toFixed(1) + ' °C'; $('fTemp').style.color = (u > 8 || u < 2) ? 'var(--bad)' : '';
+      $('fAlert').textContent = al; $('fAdh').textContent = Math.round((1 - al / data.length) * 100) + '%';
     }
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 function toggleSim() {
-  if (simInt) { clearInterval(simInt); simInt = null; document.getElementById('btnSim').textContent = '▶ Iniciar simulación'; return; }
-  document.getElementById('btnSim').textContent = '⏸ Detener';
+  if (simInt) { clearInterval(simInt); simInt = null; $('btnSim').textContent = 'Iniciar simulación'; return; }
+  $('btnSim').textContent = 'Detener simulación';
   simInt = setInterval(async () => {
     try {
       const v = 2 + Math.random() * 8;
       await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
-      const alert = document.getElementById('frioAlert');
-      if (v > 8 || v < 2) alert.innerHTML = `<div class="alert danger"><b>⚠️ ALERTA: ${v.toFixed(1)}°C — Fuera de rango</b> — Notificar supervisor</div>`;
-      else alert.innerHTML = `<div class="alert ok"><b>✓ Temperatura óptima</b> — ${v.toFixed(1)}°C</div>`;
+      $('frioAlert').innerHTML = (v > 8 || v < 2) ? `<div class="note bad"><b>Alerta: ${v.toFixed(1)} °C, fuera de rango.</b> Notifique al supervisor.</div>` : `<div class="note ok"><b>Temperatura dentro de rango:</b> ${v.toFixed(1)} °C</div>`;
       await renderChartFrio();
     } catch (e) { console.error(e); }
   }, 2000);
@@ -894,121 +887,81 @@ function toggleSim() {
 // ===== COMODATO =====
 async function cargarComodatos() {
   try {
-    const a = await api('/comodatos');
-    const cont = document.getElementById('comodatosList'); if (!cont) return;
-    if (!a.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin activos registrados</p>'; return; }
-    cont.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px">${a.map(x => `
-      <div style="border:1px solid var(--borde);border-radius:12px;padding:15px">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <b>${x.tipo}</b><span class="badge info">${x.codigo_qr}</span>
-        </div>
-        <div style="font-size:.8rem;color:#666;margin-bottom:10px">
-          📍 ${x.pdv_nombre}<br>
-          Marca: ${x.marca}<br>
-          Instalado: ${x.fecha_instalacion || '—'}<br>
-          Mantenimiento: ${x.ultimo_mantenimiento || '—'}
-        </div>
-        <div style="padding:10px;background:${x.temperatura_actual === null ? '#f8f9fa' : (x.temperatura_actual > x.temp_max || x.temperatura_actual < x.temp_min) ? '#f8d7da' : '#d4edda'};border-radius:8px;text-align:center;margin-bottom:10px">
-          🌡️ ${x.temperatura_actual !== null ? Number(x.temperatura_actual).toFixed(1) + '°C' : 'Sin lectura'}<br>
-          <small>Rango: ${x.temp_min}–${x.temp_max}°C</small>
-        </div>
-        <button class="btn" style="width:100%;padding:6px" onclick="verificarComodato(${x.id})">✓ Verificar temperatura</button>
-      </div>
-    `).join('')}</div>`;
+    const a = await api('/comodatos'), c = $('comodatosList');
+    if (!a.length) { c.innerHTML = '<div class="empty">Sin activos registrados</div>'; return; }
+    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">${a.map(x => {
+      const t = x.temperatura_actual, fuera = t != null && (t > x.temp_max || t < x.temp_min);
+      return `<div class="card flat"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>${esc(x.tipo)}</b><span class="pill info">${esc(x.codigo_qr)}</span></div>
+        <div style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:12px">${esc(x.pdv_nombre)}<br>Marca ${esc(x.marca)}<br>Instalado ${esc(x.fecha_instalacion || '-')}<br>Último mantenimiento ${esc(x.ultimo_mantenimiento || '-')}</div>
+        <div class="note ${t == null ? 'info' : fuera ? 'bad' : 'ok'}" style="text-align:center"><b>${t != null ? Number(t).toFixed(1) + ' °C' : 'Sin lectura'}</b><br><small>Rango ${x.temp_min} a ${x.temp_max} °C</small></div>
+        <button class="btn block sm" onclick="verificarComodato(${x.id})">Registrar temperatura</button></div>`; }).join('')}</div>`;
   } catch (e) {}
 }
 async function verificarComodato(id) {
-  const t = prompt('Ingresa la temperatura actual (°C):', '4.5');
-  if (t === null) return;
-  try {
-    const r = await api(`/comodatos/${id}/verificar`, { method: 'POST', body: JSON.stringify({ temperatura_actual: +t }) });
-    toast(r.alerta ? '⚠️ Temperatura fuera de rango' : 'Temperatura OK', `Registrada: ${t}°C`, r.alerta ? 'error' : '');
-    cargarComodatos();
+  const t = prompt('Temperatura actual (°C):', '4.5'); if (t === null) return;
+  try { const r = await api(`/comodatos/${id}/verificar`, { method: 'POST', body: JSON.stringify({ temperatura_actual: +t }) });
+    toast(r.alerta ? 'Temperatura fuera de rango' : 'Temperatura correcta', 'Registrada: ' + t + ' °C', r.alerta ? 'error' : ''); cargarComodatos();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== VRP =====
 function renderVRPChecks() {
-  const cont = document.getElementById('vrpChecks'); if (!cont) return;
-  cont.innerHTML = PDVS.map(p => `<label style="display:flex;align-items:center;gap:8px;padding:6px 0;font-size:.82rem;font-weight:400;color:var(--texto)"><input type="checkbox" value="${p.id}" style="width:auto"> <span>${p.codigo} - ${p.nombre}</span></label>`).join('');
+  $('vrpChecks').innerHTML = PDVS.map(p => `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:.86rem;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:500;margin:0"><input type="checkbox" value="${p.id}" style="width:auto"> ${esc(p.codigo)} - ${esc(p.nombre)}</label>`).join('');
 }
 async function calcularVRP() {
-  const checked = [...document.querySelectorAll('#vrpChecks input:checked')].map(c => +c.value);
-  if (checked.length === 0) return toast('Selecciona PDVs', '', 'warn');
+  const ids = [...document.querySelectorAll('#vrpChecks input:checked')].map(c => +c.value);
+  if (!ids.length) return toast('Seleccione PDV', '', 'warn');
   try {
-    const r = await api('/vrp', { method: 'POST', body: JSON.stringify({ pdv_ids: checked }) });
-    document.getElementById('vrpResult').innerHTML = `
-      <div style="background:#f0f8f4;padding:12px;border-radius:10px;margin-bottom:12px"><b>Distancia total:</b> ${r.total_km} km · <b>${r.ruta.length - 1} paradas</b></div>
-      <table class="table"><thead><tr><th>#</th><th>PDV</th><th>Distancia desde anterior</th></tr></thead><tbody>
-        ${r.ruta.map((x, i) => `<tr><td>${i === 0 ? '🏭' : i}</td><td>${x.nombre}</td><td>${i === 0 ? 'Origen' : (x.distancia_desde_anterior_m/1000).toFixed(2) + ' km (' + x.distancia_desde_anterior_m + 'm)'}</td></tr>`).join('')}
-      </tbody></table>`;
-    toast('Ruta calculada', `${r.total_km} km totales`);
+    const r = await api('/vrp', { method: 'POST', body: JSON.stringify({ pdv_ids: ids }) });
+    $('vrpResult').innerHTML = `<div class="note ok"><b>Distancia total ${r.total_km} km</b> · ${r.ruta.length - 1} paradas</div>
+      <table class="table"><thead><tr><th>Orden</th><th>Parada</th><th class="r">Desde la anterior</th></tr></thead><tbody>${r.ruta.map((x, i) => `<tr><td>${i === 0 ? 'Origen' : i}</td><td>${esc(x.nombre)}</td><td class="r num">${i === 0 ? '-' : (x.distancia_desde_anterior_m / 1000).toFixed(2) + ' km'}</td></tr>`).join('')}</tbody></table>`;
+    toast('Ruta calculada', r.total_km + ' km');
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== MERMAS =====
 async function registrarMerma() {
-  const pdv_id = +document.getElementById('merPDV').value || null;
-  const producto_id = +document.getElementById('merProd').value || null;
-  const cantidad = +document.getElementById('merCant').value;
-  const causa = document.getElementById('merCausa').value;
+  const pdv_id = +$('merPDV').value || null, producto_id = +$('merProd').value || null, cantidad = +$('merCant').value, causa = $('merCausa').value;
   if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
-  try {
-    await api('/mermas', { method: 'POST', body: JSON.stringify({ pdv_id, producto_id, cantidad, causa }) });
-    toast('Merma registrada', causa);
-    cargarMermas();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  try { await api('/mermas', { method: 'POST', body: JSON.stringify({ pdv_id, producto_id, cantidad, causa }) }); toast('Merma registrada', causa); cargarMermas(); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarMermas() {
   try {
-    const m = await api('/mermas');
-    const cont = document.getElementById('mermasList'); if (!cont) return;
-    if (!m.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin mermas registradas</p>'; return; }
-    cont.innerHTML = m.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde)"><b>${x.producto || 'N/A'}</b> x${x.cantidad}<br><small>${x.causa} · ${x.pdv_nombre || 'Sin PDV'} · ${new Date(x.fecha).toLocaleString()}</small></div>`).join('');
+    const m = await api('/mermas'), c = $('mermasList');
+    c.innerHTML = m.length ? m.map(x => `<div class="row-item"><b>${esc(x.producto || 'Sin producto')}</b> x${x.cantidad}<br><small>${esc(x.causa)} · ${esc(x.pdv_nombre || 'Sin PDV')} · ${new Date(x.fecha).toLocaleString('es-VE')}</small></div>`).join('') : '<div class="empty">Sin mermas registradas</div>';
   } catch (e) {}
 }
 
 // ===== LIQUIDACION =====
-async function cerrarTurno() {
-  const efectivo_entregado = +document.getElementById('liqEfectivo').value;
-  const transferencias = +document.getElementById('liqTrans').value;
+async function renderLiquidacion() {
   try {
-    const r = await api('/liquidaciones', { method: 'POST', body: JSON.stringify({ efectivo_entregado, transferencias }) });
-    const ok = Math.abs(r.diferencia) < 1;
-    document.getElementById('liqResult').innerHTML = `<div class="alert ${ok ? 'ok' : 'danger'}"><b>${ok ? '✓ Turno cerrado sin diferencia' : '⚠ Diferencia detectada'}</b><br>Efectivo esperado: Bs ${r.efectivo_esperado.toLocaleString()}<br>Diferencia: Bs ${r.diferencia.toLocaleString()}</div>`;
-    cargarLiquidaciones();
-    toast(ok ? 'Turno cerrado' : 'Diferencia en caja', `Bs ${r.diferencia.toLocaleString()}`, ok ? '' : 'error');
+    const [r, pedidos] = await Promise.all([api('/liquidaciones/resumen'), api('/pedidos')]);
+    $('liqTasa').textContent = 'Tasa ' + r.tasa;
+    $('liqResumen').innerHTML = r.filas.length ? `<div class="scroll"><table class="table"><thead><tr><th>Método</th><th class="r">Operaciones</th><th class="r">Monto</th><th class="r">Equiv. USD</th></tr></thead><tbody>${r.filas.map(f => `<tr><td>${esc(f.metodo)}</td><td class="r num">${f.n}</td><td class="r num">${fmtMonto(f.monto, f.moneda)}</td><td class="r num">${usd(f.monto_usd)}</td></tr>`).join('')}</tbody></table></div>
+      <div class="note info" style="margin-top:12px">Efectivo esperado: <b>${usd(r.esperado_usd)}</b> y <b>${bs(r.esperado_bs)}</b>. Los pagos digitales (${usd(r.digital_usd)}) se concilian contra el banco y el crédito otorgado (${usd(r.credito_usd)}) pasa a cuentas por cobrar.</div>` : '<div class="empty">Sin operaciones registradas hoy</div>';
+    $('tablaLiq').innerHTML = pedidos.length ? `<div style="margin-bottom:12px"><b>Total del día:</b> ${usd(pedidos.reduce((s, p) => s + p.total, 0))} · ${bs(pedidos.reduce((s, p) => s + p.total_bs, 0))} · ${pedidos.length} pedidos</div>
+      <div class="scroll"><table class="table"><thead><tr><th>N.°</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Productos</th><th>Pagos</th><th class="r">Total USD</th><th class="r">Total Bs</th></tr></thead><tbody>${pedidos.map(p => `<tr><td>${p.id}</td><td>${esc(p.pdv_nombre)}</td><td>${esc(p.vendedor)}</td><td>${new Date(p.fecha).toLocaleTimeString('es-VE')}</td>
+        <td style="font-size:.78rem">${p.items.map(i => `${esc(i.nombre)} x${i.cantidad}`).join('<br>')}</td>
+        <td style="font-size:.78rem">${p.pagos.map(g => `${esc(g.metodo)}: ${fmtMonto(g.monto, g.moneda)}${g.referencia ? ' (ref. ' + esc(g.referencia) + ')' : ''}`).join('<br>')}</td>
+        <td class="r num"><b>${usd(p.total)}</b></td><td class="r num">${bs(p.total_bs)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Sin pedidos registrados hoy</div>';
+  } catch (e) { toast('Error', e.message, 'error'); }
+}
+async function cerrarTurno() {
+  try {
+    const r = await api('/liquidaciones', { method: 'POST', body: JSON.stringify({ efectivo_usd: +$('liqUsd').value, efectivo_bs: +$('liqBs').value }) });
+    const ok = Math.abs(r.dif_equiv_usd) < 0.01;
+    $('liqResult').innerHTML = `<div class="note ${ok ? 'ok' : 'bad'}"><b>${ok ? 'Turno cerrado sin diferencias' : 'Diferencia detectada'}</b><br>USD: esperado ${usd(r.esperado_usd)}, diferencia ${usd(r.dif_usd)}<br>Bs: esperado ${bs(r.esperado_bs)}, diferencia ${bs(r.dif_bs)}<br><b>Diferencia total equivalente: ${usd(r.dif_equiv_usd)}</b></div>`;
+    toast(ok ? 'Turno cerrado' : 'Diferencia en caja', usd(r.dif_equiv_usd), ok ? '' : 'error'); cargarLiquidaciones();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarLiquidaciones() {
   try {
-    const l = await api('/liquidaciones');
-    const cont = document.getElementById('liqHist'); if (!cont) return;
-    if (!l.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin liquidaciones</p>'; return; }
-    cont.innerHTML = l.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde)"><b>${x.vendedor}</b> · ${new Date(x.fecha).toLocaleDateString()}<br><small>Esperado: Bs ${x.efectivo_esperado.toLocaleString()} · Entregado: Bs ${x.efectivo_entregado.toLocaleString()} · Diferencia: <b style="color:${Math.abs(x.diferencia)<1?'#2A9D8F':'#E63946'}">Bs ${x.diferencia.toLocaleString()}</b></small></div>`).join('');
+    const l = await api('/liquidaciones'), c = $('liqHist');
+    c.innerHTML = l.length ? l.map(x => `<div class="row-item"><b>${esc(x.vendedor)}</b> · ${new Date(x.fecha).toLocaleDateString('es-VE')}<br><small>USD ${usd(x.entregado_usd)} de ${usd(x.esperado_usd)} · Bs ${nf.format(x.entregado_bs)} de ${nf.format(x.esperado_bs)}</small><br><span class="pill ${Math.abs(x.diferencia_usd) < 0.01 ? 'ok' : 'bad'}">Diferencia ${usd(x.diferencia_usd)}</span></div>`).join('') : '<div class="empty">Sin liquidaciones</div>';
   } catch (e) {}
 }
-async function renderLiquidacion() {
-  try {
-    const pedidos = await api('/pedidos');
-    if (!pedidos.length) { document.getElementById('tablaLiq').innerHTML = '<p style="color:#8899aa;text-align:center;padding:30px">Sin pedidos registrados hoy.</p>'; return; }
-    const total = pedidos.reduce((s,p) => s+p.total, 0);
-    document.getElementById('tablaLiq').innerHTML = `
-      <div style="margin-bottom:15px"><b>Total del día:</b> Bs ${total.toLocaleString()} · <b>Pedidos:</b> ${pedidos.length}</div>
-      <table class="table">
-        <thead><tr><th>#</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Método</th><th>Productos</th><th>Total</th></tr></thead>
-        <tbody>${pedidos.map(p => `<tr>
-          <td>${p.id}</td><td>${p.pdv_nombre}</td><td>${p.vendedor}</td><td>${new Date(p.fecha).toLocaleTimeString()}</td>
-          <td>${p.metodo_pago}</td>
-          <td style="font-size:.72rem">${p.items.map(i => `${i.nombre} x${i.cantidad}`).join('<br>')}</td>
-          <td><b>Bs ${p.total.toLocaleString()}</b></td>
-        </tr>`).join('')}</tbody>
-        <tfoot><tr style="background:var(--gris);font-weight:700"><td colspan="6" style="text-align:right">TOTAL</td><td>Bs ${total.toLocaleString()}</td></tr></tfoot>
-      </table>`;
-  } catch (e) { toast('Error', e.message, 'error'); }
-}
 
-// AUTO-LOGIN
 if (TOKEN && USER) initApp();
 </script>
 </body>
