@@ -105,7 +105,7 @@ label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:bloc
       <h1>🏢 SIG FMCG</h1>
       <p>Sistema de Información Gerencial<br>Maracaibo · v4.0 Profesional</p>
       <div style="margin-top:25px">
-        <div class="feat"><div class="dot"></div>SQLite persistente + JWT</div>
+        <div class="feat"><div class="dot"></div>PostgreSQL persistente + JWT</div>
         <div class="feat"><div class="dot"></div>Geofencing GPS real</div>
         <div class="feat"><div class="dot"></div>Cadena de frío + IoT</div>
         <div class="feat"><div class="dot"></div>Smart Order + Retornables</div>
@@ -304,7 +304,7 @@ label{font-size:.75rem;font-weight:600;color:#666;margin-bottom:4px;display:bloc
         <div class="row g-3 mb-3">
           <div class="col-md-4"><div class="kpi"><div class="kpi-icon">🌡️</div><div class="kpi-val" id="fTemp">—</div><div class="kpi-lbl">Temperatura Actual</div></div></div>
           <div class="col-md-4"><div class="kpi"><div class="kpi-icon">📊</div><div class="kpi-val" id="fAdh">—</div><div class="kpi-lbl">Adherencia</div></div></div>
-          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="fAlert">0</div><div class="kpi-lbl">Alertas (últimas 50)</div></div></div>
+          <div class="col-md-4"><div class="kpi danger"><div class="kpi-icon">⚠️</div><div class="kpi-val" id="fAlert">0</div><div class="kpi-lbl">Alertas (últimas lecturas)</div></div></div>
         </div>
         <div class="card">
           <div class="section-title">Monitoreo en Tiempo Real <button class="btn warn" onclick="toggleSim()" id="btnSim">▶ Iniciar simulación</button></div>
@@ -451,8 +451,8 @@ async function doLogin() {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario, password })
     });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Error');
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error del servidor (' + res.status + ')');
     TOKEN = data.token; USER = data.user;
     sessionStorage.setItem('token', TOKEN);
     sessionStorage.setItem('user', JSON.stringify(USER));
@@ -461,18 +461,8 @@ async function doLogin() {
 }
 function logout() { sessionStorage.clear(); location.reload(); }
 
-// ===== INIT =====
-async function initApp() {
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-  document.getElementById('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
-  document.getElementById('avatar').textContent = USER.nombre[0];
-
-  [PDVS, ZONAS, PRODS, PROMOS] = await Promise.all([
-    api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones')
-  ]);
-
-  // Poblar selects
+// ===== SELECTS =====
+function poblarSelects() {
   const optsPDV = PDVS.map(p => `<option value="${p.id}">${p.codigo} - ${p.nombre}</option>`).join('');
   ['selPDV','selPDVCheckin','selPDVRed','selRetPDV','merPDV'].forEach(id => {
     const el = document.getElementById(id);
@@ -480,7 +470,25 @@ async function initApp() {
   });
   document.getElementById('merProd').innerHTML = '<option value="">— Sin producto —</option>' + PRODS.map(p => `<option value="${p.id}">${p.nombre}</option>`).join('');
   document.getElementById('pZona').innerHTML = ZONAS.map(z => `<option value="${z.id}">${z.nombre}</option>`).join('');
+}
 
+// ===== INIT =====
+async function initApp() {
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+  document.getElementById('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
+  document.getElementById('avatar').textContent = USER.nombre[0];
+
+  try {
+    [PDVS, ZONAS, PRODS, PROMOS] = await Promise.all([
+      api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones')
+    ]);
+  } catch (e) {
+    toast('Error cargando datos', e.message, 'error');
+    return;
+  }
+
+  poblarSelects();
   renderProductos();
   renderPDVs();
   renderPromos();
@@ -510,6 +518,7 @@ function showView(id, el) {
   if (id === 'comodato') cargarComodatos();
   if (id === 'mermas') cargarMermas();
   if (id === 'mapa') cargarVisitas();
+  if (id === 'dashboard') cargarKPIs();
 }
 
 // ===== DASHBOARD =====
@@ -531,8 +540,8 @@ async function cargarKPIs() {
     document.getElementById('kRetM').className = 'kpi-delta ' + (k.retornabilidad >= 98 ? 'up' : 'down');
     document.getElementById('kOTIFM').textContent = k.otif >= 92 ? '✓ Cumple meta' : '⚠ Bajo meta';
     document.getElementById('kOTIFM').className = 'kpi-delta ' + (k.otif >= 92 ? 'up' : 'down');
-    document.getElementById('kVentas').textContent = 'Bs ' + k.ventasHoy.toLocaleString();
-    document.getElementById('kTemp').textContent = k.tempActual.toFixed(1) + '°C';
+    document.getElementById('kVentas').textContent = 'Bs ' + Number(k.ventasHoy).toLocaleString();
+    document.getElementById('kTemp').textContent = Number(k.tempActual).toFixed(1) + '°C';
     document.getElementById('kTemp').style.color = (k.tempActual > 8 || k.tempActual < 2) ? '#E63946' : '#0B6E4F';
     document.getElementById('kBloq').textContent = k.bloqueados;
 
@@ -541,13 +550,13 @@ async function cargarKPIs() {
     if (chartZ) chartZ.destroy();
     chartZ = new Chart(ctx, {
       type: 'bar',
-      data: { labels: ventas.map(v => v.nombre), datasets: [{ label:'Ventas Bs', data: ventas.map(v => v.total), backgroundColor: ventas.map(v => v.color), borderRadius: 8 }] },
+      data: { labels: ventas.map(v => v.nombre), datasets: [{ label:'Ventas Bs', data: ventas.map(v => Number(v.total)), backgroundColor: ventas.map(v => v.color), borderRadius: 8 }] },
       options: { plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true } } }
     });
 
     const alertas = [];
     PDVS.forEach(p => { if (p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas) alertas.push({ t:'danger', i:'⚠️', m:p.nombre + ' bloqueado', s:`Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}` }); });
-    if (k.tempActual > 8 || k.tempActual < 2) alertas.push({ t:'danger', i:'🌡️', m:'Temperatura fuera de rango', s:k.tempActual.toFixed(1) + '°C' });
+    if (k.tempActual > 8 || k.tempActual < 2) alertas.push({ t:'danger', i:'🌡️', m:'Temperatura fuera de rango', s:Number(k.tempActual).toFixed(1) + '°C' });
     if (!alertas.length) alertas.push({ t:'ok', i:'✓', m:'Sin alertas', s:'Todo operativo' });
     document.getElementById('alertasList').innerHTML = alertas.slice(0, 8).map(a => `<div class="alert ${a.t}"><b>${a.i} ${a.m}</b><br>${a.s}</div>`).join('');
   } catch (e) { console.error(e); }
@@ -556,13 +565,13 @@ async function cargarKPIs() {
 // ===== PDVS =====
 function renderPDVs() {
   const q = (document.getElementById('searchPDV')?.value || '').toLowerCase();
-  const filtered = PDVS.filter(p => !q || (p.codigo+p.nombre+p.zona_nombre).toLowerCase().includes(q));
+  const filtered = PDVS.filter(p => !q || ((p.codigo||'')+(p.nombre||'')+(p.zona_nombre||'')).toLowerCase().includes(q));
   document.getElementById('tblPDVs').innerHTML = filtered.map(p => {
     const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
     return `<tr>
       <td><b>${p.codigo}</b></td>
       <td>${p.nombre}</td>
-      <td><span class="badge" style="background:${p.zona_color}20;color:${p.zona_color}">${p.zona_nombre}</span></td>
+      <td><span class="badge" style="background:${p.zona_color}20;color:${p.zona_color}">${p.zona_nombre || '—'}</span></td>
       <td>${p.saldo_cestas}/${p.limite_cestas}</td>
       <td>${p.saldo_botellas}/${p.limite_botellas}</td>
       <td>${p.canal}</td>
@@ -616,7 +625,7 @@ async function guardarPDV() {
     toast('PDV guardado', data.nombre);
     bootstrap.Modal.getInstance(document.getElementById('modalPDV')).hide();
     PDVS = await api('/pdvs');
-    renderPDVs(); cargarKPIs(); cargarVRPChecks();
+    poblarSelects(); renderPDVs(); cargarKPIs(); renderVRPChecks();
     if (map) refreshMarkers();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
@@ -625,7 +634,7 @@ async function eliminarPDV(id) {
   try {
     await api('/pdvs/' + id, { method: 'DELETE' });
     PDVS = await api('/pdvs');
-    renderPDVs(); cargarKPIs();
+    poblarSelects(); renderPDVs(); cargarKPIs(); renderVRPChecks();
     if (map) refreshMarkers();
     toast('PDV eliminado');
   } catch (e) { toast('Error', e.message, 'error'); }
@@ -641,10 +650,11 @@ function initMap() {
 function refreshMarkers() {
   map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
   PDVS.forEach(p => {
+    if (p.lat == null || p.lng == null) return;
     const bloq = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
     const icon = L.divIcon({ html: `<div style="background:${p.zona_color};width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className:'', iconSize:[22,22] });
     L.marker([p.lat, p.lng], { icon }).addTo(map)
-      .bindPopup(`<b>${p.nombre}</b><br>${p.codigo}<br>${p.zona_nombre}<br>Cestas: ${p.saldo_cestas}/${p.limite_cestas}<br>Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>${bloq ? '🚫 BLOQUEADO' : '✓ OK'}`);
+      .bindPopup(`<b>${p.nombre}</b><br>${p.codigo}<br>${p.zona_nombre || ''}<br>Cestas: ${p.saldo_cestas}/${p.limite_cestas}<br>Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>${bloq ? '🚫 BLOQUEADO' : '✓ OK'}`);
   });
 }
 function hav(lat1, lon1, lat2, lon2) {
@@ -656,6 +666,7 @@ function hav(lat1, lon1, lat2, lon2) {
 async function getLocation() {
   const id = +document.getElementById('selPDVCheckin').value;
   const pdv = PDVS.find(p => p.id === id);
+  if (!pdv) return toast('Selecciona un PDV', '', 'warn');
   if (!navigator.geolocation) return toast('GPS no disponible', '', 'error');
   document.getElementById('gpsStatus').textContent = 'GPS: obteniendo ubicación...';
   navigator.geolocation.getCurrentPosition(async pos => {
@@ -673,8 +684,9 @@ async function getLocation() {
 async function simularCheckin() {
   const id = +document.getElementById('selPDVCheckin').value;
   const pdv = PDVS.find(p => p.id === id);
-  document.getElementById('gpsStatus').textContent = 'GPS (simulado): 10.652, -71.630';
-  document.getElementById('distInfo').innerHTML = 'Distancia: <b>15m</b><br><span style="color:#8fe39a">✓ Check-in válido</span>';
+  if (!pdv) return toast('Selecciona un PDV', '', 'warn');
+  document.getElementById('gpsStatus').textContent = `GPS (simulado): ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`;
+  document.getElementById('distInfo').innerHTML = 'Distancia: <b>~15m</b><br><span style="color:#8fe39a">✓ Check-in válido</span>';
   try {
     await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) });
     toast('Check-in simulado', pdv.nombre);
@@ -687,7 +699,7 @@ async function cargarVisitas() {
     const cont = document.getElementById('visitasList');
     if (!cont) return;
     if (!v.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin visitas registradas</p>'; return; }
-    cont.innerHTML = v.slice(0, 15).map(x => `<div style="padding:8px;border-bottom:1px solid var(--borde)"><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha_checkin).toLocaleString()} · ${x.vendedor} · ${x.distancia_m ? x.distancia_m.toFixed(0)+'m' : ''} <span class="badge ${x.estado==='Efectiva'?'ok':'warn'}">${x.estado}</span></small></div>`).join('');
+    cont.innerHTML = v.slice(0, 15).map(x => `<div style="padding:8px;border-bottom:1px solid var(--borde)"><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha_checkin).toLocaleString()} · ${x.vendedor} · ${x.distancia_m != null ? Number(x.distancia_m).toFixed(0)+'m' : ''} <span class="badge ${x.estado==='Efectiva'?'ok':'warn'}">${x.estado}</span></small></div>`).join('');
   } catch (e) {}
 }
 
@@ -713,15 +725,15 @@ async function cargarPDV() {
   document.getElementById('infoPDV').innerHTML = `
     <div class="alert ${bloq ? 'danger' : 'ok'}">
       <b>${p.nombre}</b> · ${p.codigo}<br>
-      Zona: ${p.zona_nombre} · Canal: ${p.canal}<br>
+      Zona: ${p.zona_nombre || '—'} · Canal: ${p.canal}<br>
       Cestas: ${p.saldo_cestas}/${p.limite_cestas} · Botellas: ${p.saldo_botellas}/${p.limite_botellas}<br>
       ${bloq ? '<b>🚫 CLIENTE BLOQUEADO</b> — requiere autorización de supervisor' : '<b>✓ Habilitado</b>'}
     </div>`;
   try {
     const sugerencias = await api('/smart-order/' + id);
-    if (sugerencias.length) {
-      document.getElementById('smartOrder').innerHTML = `<div style="background:#e0f2fe;padding:12px;border-radius:10px;font-size:.8rem"><b>💡 Smart Order:</b><br>${sugerencias.slice(0,4).map(s => `• ${s.nombre} x${s.cantidad_sugerida}`).join('<br>')}</div>`;
-    }
+    document.getElementById('smartOrder').innerHTML = sugerencias.length
+      ? `<div style="background:#e0f2fe;padding:12px;border-radius:10px;font-size:.8rem"><b>💡 Smart Order:</b><br>${sugerencias.slice(0,4).map(s => `• ${s.nombre} x${s.cantidad_sugerida}`).join('<br>')}</div>`
+      : '';
   } catch (e) {}
 }
 function calcTotal() {
@@ -759,35 +771,38 @@ async function confirmarPedido() {
     toast('Pedido confirmado', `#${r.id} · Bs ${r.total.toLocaleString()}`);
     PDVS = await api('/pdvs');
     renderPDVs(); cargarPDV(); cargarKPIs();
+    if (map) refreshMarkers();
     PRODS.forEach(p => document.getElementById('prod_' + p.id).value = 0);
     calcTotal();
   } catch (e) {
-    document.getElementById('pedidoMsg').innerHTML = `<div class="alert danger"><b>🚫 ${e.message === 'BLOQUEADO' ? 'PEDIDO BLOQUEADO' : 'Error'}</b><br>${e.message}</div>`;
+    document.getElementById('pedidoMsg').innerHTML = `<div class="alert danger"><b>🚫 Pedido no realizado</b><br>${e.message}</div>`;
     toast('Pedido bloqueado', e.message, 'error');
   }
 }
 
 // ===== RETORNABLES =====
 async function renderRetornables() {
-  const r = await api('/retornables');
-  const totalC = r.reduce((s,p) => s+p.saldo_cestas,0);
-  const totalB = r.reduce((s,p) => s+p.saldo_botellas,0);
-  const bloq = r.filter(p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas).length;
-  document.getElementById('retStats').innerHTML = `
-    <div style="margin-bottom:12px"><b>Cestas adeudadas:</b> ${totalC}</div>
-    <div style="margin-bottom:12px"><b>Botellas adeudadas:</b> ${totalB}</div>
-    <div style="margin-bottom:12px"><b>Clientes bloqueados:</b> <span style="color:var(--rojo);font-weight:700">${bloq}</span></div>
-  `;
-  document.getElementById('tblRet').innerHTML = r.map(p => {
-    const b = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-    return `<tr>
-      <td><b>${p.nombre}</b><br><small>${p.codigo}</small></td>
-      <td>${p.saldo_cestas}/${p.limite_cestas}</td>
-      <td>${p.saldo_botellas}/${p.limite_botellas}</td>
-      <td>C:${p.limite_cestas} · B:${p.limite_botellas}</td>
-      <td>${b ? '<span class="badge danger">🚫 Bloqueado</span>' : '<span class="badge ok">✓ OK</span>'}</td>
-    </tr>`;
-  }).join('');
+  try {
+    const r = await api('/retornables');
+    const totalC = r.reduce((s,p) => s+p.saldo_cestas,0);
+    const totalB = r.reduce((s,p) => s+p.saldo_botellas,0);
+    const bloq = r.filter(p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas).length;
+    document.getElementById('retStats').innerHTML = `
+      <div style="margin-bottom:12px"><b>Cestas adeudadas:</b> ${totalC}</div>
+      <div style="margin-bottom:12px"><b>Botellas adeudadas:</b> ${totalB}</div>
+      <div style="margin-bottom:12px"><b>Clientes bloqueados:</b> <span style="color:var(--rojo);font-weight:700">${bloq}</span></div>
+    `;
+    document.getElementById('tblRet').innerHTML = r.map(p => {
+      const b = p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
+      return `<tr>
+        <td><b>${p.nombre}</b><br><small>${p.codigo}</small></td>
+        <td>${p.saldo_cestas}/${p.limite_cestas}</td>
+        <td>${p.saldo_botellas}/${p.limite_botellas}</td>
+        <td>C:${p.limite_cestas} · B:${p.limite_botellas}</td>
+        <td>${b ? '<span class="badge danger">🚫 Bloqueado</span>' : '<span class="badge ok">✓ OK</span>'}</td>
+      </tr>`;
+    }).join('');
+  } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function registrarDevolucion() {
   const pdv_id = +document.getElementById('selRetPDV').value;
@@ -799,6 +814,7 @@ async function registrarDevolucion() {
     toast('Devolución registrada', `Nuevo saldo: ${r.nuevo_saldo}`);
     PDVS = await api('/pdvs');
     renderRetornables(); renderPDVs(); cargarKPIs();
+    if (map) refreshMarkers();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 
@@ -819,7 +835,8 @@ async function analizarRED() {
   const pdv_id = +document.getElementById('selPDVRed').value;
   const cumplimiento = Math.round(70 + Math.random() * 30);
   try {
-    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, foto_base64: fotoBase64, cumplimiento_pct: cumplimiento, observaciones: 'Análisis automático' }) });
+    // La foto no se envía (límite de tamaño en Vercel); solo se guarda el resultado
+    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, cumplimiento_pct: cumplimiento }) });
     const color = cumplimiento >= 90 ? '#2A9D8F' : cumplimiento >= 75 ? '#F4A261' : '#E63946';
     document.getElementById('redRes').innerHTML = `<div class="alert ok"><div style="text-align:center"><div style="font-size:2.5rem;font-weight:800;color:${color}">${cumplimiento}%</div><div style="color:#8899aa;font-size:.8rem;margin-bottom:10px">Share of Shelf</div></div>
       <div style="margin-bottom:6px"><small>Marca propia ${cumplimiento}% · Competencia ${100-cumplimiento}%</small></div>
@@ -834,39 +851,43 @@ async function cargarRedHist() {
     const r = await api('/red');
     const cont = document.getElementById('redHist'); if (!cont) return;
     if (!r.length) { cont.innerHTML = '<p style="color:#8899aa;text-align:center;padding:20px">Sin auditorías</p>'; return; }
-    cont.innerHTML = r.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center"><div><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha).toLocaleString()}</small></div><span class="badge ${x.cumplimiento_pct>=90?'ok':x.cumplimiento_pct>=75?'warn':'danger'}">${x.cumplimiento_pct.toFixed(0)}%</span></div>`).join('');
+    cont.innerHTML = r.map(x => `<div style="padding:10px;border-bottom:1px solid var(--borde);display:flex;justify-content:space-between;align-items:center"><div><b>${x.pdv_nombre}</b><br><small>${new Date(x.fecha).toLocaleString()}</small></div><span class="badge ${x.cumplimiento_pct>=90?'ok':x.cumplimiento_pct>=75?'warn':'danger'}">${Number(x.cumplimiento_pct).toFixed(0)}%</span></div>`).join('');
   } catch (e) {}
 }
 
 // ===== FRIO =====
 async function renderChartFrio() {
-  const data = await api('/frio');
-  const ctx = document.getElementById('chartF');
-  if (chartF) chartF.destroy();
-  chartF = new Chart(ctx, {
-    type: 'line',
-    data: { labels: data.map((_,i) => i), datasets: [{ label:'°C', data: data.map(x=>x.temperatura), borderColor:'#0B6E4F', backgroundColor:'rgba(11,110,79,.1)', tension:.4, fill:true, pointRadius:2 }] },
-    options: { plugins: { legend: { display: false } }, scales: { y: { min:0, max:12 }, x: { display: false } }, responsive: true, maintainAspectRatio: false }
-  });
-  if (data.length) {
-    const ult = data[data.length-1].temperatura;
-    document.getElementById('fTemp').textContent = ult.toFixed(1) + '°C';
-    document.getElementById('fTemp').style.color = (ult>8||ult<2) ? '#E63946' : '#0B6E4F';
-    const alertas = data.filter(x => x.alerta).length;
-    document.getElementById('fAlert').textContent = alertas;
-    document.getElementById('fAdh').textContent = Math.round((1 - alertas/data.length)*100) + '%';
-  }
+  try {
+    const data = await api('/frio');
+    const ctx = document.getElementById('chartF');
+    if (chartF) chartF.destroy();
+    chartF = new Chart(ctx, {
+      type: 'line',
+      data: { labels: data.map((_,i) => i), datasets: [{ label:'°C', data: data.map(x=>x.temperatura), borderColor:'#0B6E4F', backgroundColor:'rgba(11,110,79,.1)', tension:.4, fill:true, pointRadius:2 }] },
+      options: { plugins: { legend: { display: false } }, scales: { y: { min:0, max:12 }, x: { display: false } }, responsive: true, maintainAspectRatio: false }
+    });
+    if (data.length) {
+      const ult = data[data.length-1].temperatura;
+      document.getElementById('fTemp').textContent = ult.toFixed(1) + '°C';
+      document.getElementById('fTemp').style.color = (ult>8||ult<2) ? '#E63946' : '#0B6E4F';
+      const alertas = data.filter(x => x.alerta).length;
+      document.getElementById('fAlert').textContent = alertas;
+      document.getElementById('fAdh').textContent = Math.round((1 - alertas/data.length)*100) + '%';
+    }
+  } catch (e) { toast('Error', e.message, 'error'); }
 }
 function toggleSim() {
   if (simInt) { clearInterval(simInt); simInt = null; document.getElementById('btnSim').textContent = '▶ Iniciar simulación'; return; }
   document.getElementById('btnSim').textContent = '⏸ Detener';
   simInt = setInterval(async () => {
-    const v = 2 + Math.random() * 8;
-    await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
-    const alert = document.getElementById('frioAlert');
-    if (v > 8 || v < 2) alert.innerHTML = `<div class="alert danger"><b>⚠️ ALERTA: ${v.toFixed(1)}°C — Fuera de rango</b> — Notificar supervisor</div>`;
-    else alert.innerHTML = `<div class="alert ok"><b>✓ Temperatura óptima</b> — ${v.toFixed(1)}°C</div>`;
-    await renderChartFrio();
+    try {
+      const v = 2 + Math.random() * 8;
+      await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
+      const alert = document.getElementById('frioAlert');
+      if (v > 8 || v < 2) alert.innerHTML = `<div class="alert danger"><b>⚠️ ALERTA: ${v.toFixed(1)}°C — Fuera de rango</b> — Notificar supervisor</div>`;
+      else alert.innerHTML = `<div class="alert ok"><b>✓ Temperatura óptima</b> — ${v.toFixed(1)}°C</div>`;
+      await renderChartFrio();
+    } catch (e) { console.error(e); }
   }, 2000);
 }
 
@@ -884,11 +905,11 @@ async function cargarComodatos() {
         <div style="font-size:.8rem;color:#666;margin-bottom:10px">
           📍 ${x.pdv_nombre}<br>
           Marca: ${x.marca}<br>
-          Instalado: ${x.fecha_instalacion}<br>
-          Mantenimiento: ${x.ultimo_mantenimiento}
+          Instalado: ${x.fecha_instalacion || '—'}<br>
+          Mantenimiento: ${x.ultimo_mantenimiento || '—'}
         </div>
         <div style="padding:10px;background:${x.temperatura_actual === null ? '#f8f9fa' : (x.temperatura_actual > x.temp_max || x.temperatura_actual < x.temp_min) ? '#f8d7da' : '#d4edda'};border-radius:8px;text-align:center;margin-bottom:10px">
-          🌡️ ${x.temperatura_actual !== null ? x.temperatura_actual.toFixed(1) + '°C' : 'Sin lectura'}<br>
+          🌡️ ${x.temperatura_actual !== null ? Number(x.temperatura_actual).toFixed(1) + '°C' : 'Sin lectura'}<br>
           <small>Rango: ${x.temp_min}–${x.temp_max}°C</small>
         </div>
         <button class="btn" style="width:100%;padding:6px" onclick="verificarComodato(${x.id})">✓ Verificar temperatura</button>
@@ -968,21 +989,23 @@ async function cargarLiquidaciones() {
   } catch (e) {}
 }
 async function renderLiquidacion() {
-  const pedidos = await api('/pedidos');
-  if (!pedidos.length) { document.getElementById('tablaLiq').innerHTML = '<p style="color:#8899aa;text-align:center;padding:30px">Sin pedidos registrados hoy.</p>'; return; }
-  const total = pedidos.reduce((s,p) => s+p.total, 0);
-  document.getElementById('tablaLiq').innerHTML = `
-    <div style="margin-bottom:15px"><b>Total del día:</b> Bs ${total.toLocaleString()} · <b>Pedidos:</b> ${pedidos.length}</div>
-    <table class="table">
-      <thead><tr><th>#</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Método</th><th>Productos</th><th>Total</th></tr></thead>
-      <tbody>${pedidos.map(p => `<tr>
-        <td>${p.id}</td><td>${p.pdv_nombre}</td><td>${p.vendedor}</td><td>${new Date(p.fecha).toLocaleTimeString()}</td>
-        <td>${p.metodo_pago}</td>
-        <td style="font-size:.72rem">${p.items.map(i => `${i.nombre} x${i.cantidad}`).join('<br>')}</td>
-        <td><b>Bs ${p.total.toLocaleString()}</b></td>
-      </tr>`).join('')}</tbody>
-      <tfoot><tr style="background:var(--gris);font-weight:700"><td colspan="6" style="text-align:right">TOTAL</td><td>Bs ${total.toLocaleString()}</td></tr></tfoot>
-    </table>`;
+  try {
+    const pedidos = await api('/pedidos');
+    if (!pedidos.length) { document.getElementById('tablaLiq').innerHTML = '<p style="color:#8899aa;text-align:center;padding:30px">Sin pedidos registrados hoy.</p>'; return; }
+    const total = pedidos.reduce((s,p) => s+p.total, 0);
+    document.getElementById('tablaLiq').innerHTML = `
+      <div style="margin-bottom:15px"><b>Total del día:</b> Bs ${total.toLocaleString()} · <b>Pedidos:</b> ${pedidos.length}</div>
+      <table class="table">
+        <thead><tr><th>#</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Método</th><th>Productos</th><th>Total</th></tr></thead>
+        <tbody>${pedidos.map(p => `<tr>
+          <td>${p.id}</td><td>${p.pdv_nombre}</td><td>${p.vendedor}</td><td>${new Date(p.fecha).toLocaleTimeString()}</td>
+          <td>${p.metodo_pago}</td>
+          <td style="font-size:.72rem">${p.items.map(i => `${i.nombre} x${i.cantidad}`).join('<br>')}</td>
+          <td><b>Bs ${p.total.toLocaleString()}</b></td>
+        </tr>`).join('')}</tbody>
+        <tfoot><tr style="background:var(--gris);font-weight:700"><td colspan="6" style="text-align:right">TOTAL</td><td>Bs ${total.toLocaleString()}</td></tr></tfoot>
+      </table>`;
+  } catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // AUTO-LOGIN
