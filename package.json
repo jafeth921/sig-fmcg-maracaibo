@@ -2,9 +2,6 @@
   "name": "sig-fmcg-maracaibo",
   "version": "1.0.0",
   "main": "api/index.js",
-  "scripts": {
-    "start": "node api/index.js"
-  },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.0",
     "bcryptjs": "^2.4.3",
