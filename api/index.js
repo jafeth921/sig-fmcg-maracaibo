@@ -1,6 +1,6 @@
 const express = require('express');
 const { neon } = require('@neondatabase/serverless');
-const sql = neon(process.env.POSTGRES_URL || process.env.POSTGRES2_URL || process.env.STORAGE_URL || process.env.DATABASE_URL);
+const sql = neon(process.env.POSTGRES_URL || process.env.DATABASE_URL || process.env.postgres_POSTGRES_URL);
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
