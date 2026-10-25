@@ -1,8 +1,12 @@
 {
   "name": "sig-fmcg-maracaibo",
   "version": "1.0.0",
+  "main": "api/index.js",
+  "scripts": {
+    "start": "node api/index.js"
+  },
   "dependencies": {
-    "pg": "^8.11.3",
+    "@neondatabase/serverless": "^0.9.0",
     "bcryptjs": "^2.4.3",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2"
