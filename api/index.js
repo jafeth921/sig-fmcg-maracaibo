@@ -1,57 +1,61 @@
 const express = require('express');
-const { Pool } = require('pg');
+const { neon } = require('@neondatabase/serverless');
+const sql = neon(process.env.POSTGRES_URL || process.env.POSTGRES2_URL || process.env.STORAGE_URL || process.env.DATABASE_URL);
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+
 const app = express();
 const JWT_SECRET = 'sig-fmcg-maracaibo-2026';
 
-const pool = new Pool({
-  connectionString: process.env.POSTGRES_URL || process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL,
-  ssl: { rejectUnauthorized: false }
-});
-
 app.use(express.json({ limit: '20mb' }));
 
-// ==================== CREACIÓN DE TABLAS Y DATOS ====================
+// ==================== INICIALIZAR BASE DE DATOS ====================
 async function initDB() {
   try {
-    await pool.query(`CREATE TABLE IF NOT EXISTS usuarios (id SERIAL PRIMARY KEY, nombre TEXT, cedula TEXT, usuario TEXT UNIQUE, password_hash TEXT, rol TEXT, zona_id INTEGER, activo INTEGER DEFAULT 1);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS zonas (id SERIAL PRIMARY KEY, nombre TEXT UNIQUE, color TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS pdvs (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, razon_social TEXT, nombre TEXT, direccion TEXT, zona_id INTEGER, lat NUMERIC, lng NUMERIC, geofence_radio_m INTEGER DEFAULT 50, saldo_cestas INTEGER DEFAULT 0, saldo_botellas INTEGER DEFAULT 0, limite_cestas INTEGER DEFAULT 10, limite_botellas INTEGER DEFAULT 20, canal TEXT DEFAULT 'Abasto');`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS productos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, nombre TEXT, precio NUMERIC, retornable INTEGER DEFAULT 0, tipo_envase TEXT, fecha_vencimiento TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS promociones (id SERIAL PRIMARY KEY, nombre TEXT, producto_id INTEGER, tipo TEXT, min_cantidad INTEGER, descuento_pct NUMERIC, activa INTEGER DEFAULT 1);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, subtotal NUMERIC DEFAULT 0, descuento NUMERIC DEFAULT 0, total NUMERIC, metodo_pago TEXT DEFAULT 'Efectivo');`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS pedido_items (id SERIAL PRIMARY KEY, pedido_id INTEGER, producto_id INTEGER, cantidad INTEGER, precio_unitario NUMERIC, descuento_pct NUMERIC DEFAULT 0, subtotal NUMERIC);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS visitas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha_checkin TEXT, lat NUMERIC, lng NUMERIC, distancia_m NUMERIC, estado TEXT DEFAULT 'Efectiva');`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS control_retornables (id SERIAL PRIMARY KEY, pdv_id INTEGER, pedido_id INTEGER, tipo TEXT, entregados INTEGER DEFAULT 0, recibidos INTEGER DEFAULT 0, fecha TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS activos_comodato (id SERIAL PRIMARY KEY, pdv_id INTEGER, codigo_qr TEXT UNIQUE, tipo TEXT, marca TEXT, temperatura_actual NUMERIC, temp_min NUMERIC DEFAULT 2, temp_max NUMERIC DEFAULT 8);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS cadena_frio (id SERIAL PRIMARY KEY, camion TEXT, temperatura NUMERIC, alerta INTEGER DEFAULT 0, fecha TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS red_auditorias (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, cumplimiento_pct NUMERIC, marca_propia_pct NUMERIC, competencia_pct NUMERIC, fecha TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS mermas (id SERIAL PRIMARY KEY, pdv_id INTEGER, producto_id INTEGER, cantidad INTEGER, causa TEXT, responsable TEXT, fecha TEXT);`);
-    await pool.query(`CREATE TABLE IF NOT EXISTS liquidaciones (id SERIAL PRIMARY KEY, usuario_id INTEGER, fecha TEXT, efectivo_esperado NUMERIC, efectivo_entregado NUMERIC, diferencia NUMERIC);`);
+    await sql`CREATE TABLE IF NOT EXISTS usuarios (id SERIAL PRIMARY KEY, nombre TEXT, cedula TEXT, usuario TEXT UNIQUE, password_hash TEXT, rol TEXT, zona_id INTEGER, activo INTEGER DEFAULT 1);`;
+    await sql`CREATE TABLE IF NOT EXISTS zonas (id SERIAL PRIMARY KEY, nombre TEXT UNIQUE, color TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS pdvs (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, razon_social TEXT, nombre TEXT, direccion TEXT, zona_id INTEGER, lat NUMERIC, lng NUMERIC, geofence_radio_m INTEGER DEFAULT 50, saldo_cestas INTEGER DEFAULT 0, saldo_botellas INTEGER DEFAULT 0, limite_cestas INTEGER DEFAULT 10, limite_botellas INTEGER DEFAULT 20, limite_credito NUMERIC DEFAULT 0, canal TEXT DEFAULT 'Abasto');`;
+    await sql`CREATE TABLE IF NOT EXISTS productos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, nombre TEXT, precio NUMERIC, costo NUMERIC, categoria TEXT, retornable INTEGER DEFAULT 0, tipo_envase TEXT, fecha_vencimiento TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS promociones (id SERIAL PRIMARY KEY, nombre TEXT, producto_id INTEGER, tipo TEXT, min_cantidad INTEGER, descuento_pct NUMERIC, activa INTEGER DEFAULT 1);`;
+    await sql`CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, subtotal NUMERIC DEFAULT 0, descuento NUMERIC DEFAULT 0, total NUMERIC, estado TEXT DEFAULT 'Confirmado', metodo_pago TEXT DEFAULT 'Efectivo');`;
+    await sql`CREATE TABLE IF NOT EXISTS pedido_items (id SERIAL PRIMARY KEY, pedido_id INTEGER, producto_id INTEGER, cantidad INTEGER, precio_unitario NUMERIC, descuento_pct NUMERIC DEFAULT 0, subtotal NUMERIC);`;
+    await sql`CREATE TABLE IF NOT EXISTS visitas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha_checkin TEXT, fecha_checkout TEXT, lat NUMERIC, lng NUMERIC, distancia_m NUMERIC, cumple_geofence INTEGER DEFAULT 0, estado TEXT DEFAULT 'Efectiva');`;
+    await sql`CREATE TABLE IF NOT EXISTS control_retornables (id SERIAL PRIMARY KEY, pdv_id INTEGER, pedido_id INTEGER, tipo TEXT, entregados INTEGER DEFAULT 0, recibidos INTEGER DEFAULT 0, fecha TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS activos_comodato (id SERIAL PRIMARY KEY, pdv_id INTEGER, codigo_qr TEXT UNIQUE, tipo TEXT, marca TEXT, fecha_instalacion TEXT, ultimo_mantenimiento TEXT, temperatura_actual NUMERIC, temp_min NUMERIC DEFAULT 2, temp_max NUMERIC DEFAULT 8, activo INTEGER DEFAULT 1);`;
+    await sql`CREATE TABLE IF NOT EXISTS cadena_frio (id SERIAL PRIMARY KEY, camion TEXT, temperatura NUMERIC, alerta INTEGER DEFAULT 0, lat NUMERIC, lng NUMERIC, fecha TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS red_auditorias (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, foto_base64 TEXT, cumplimiento_pct NUMERIC, marca_propia_pct NUMERIC, competencia_pct NUMERIC, observaciones TEXT, fecha TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS mermas (id SERIAL PRIMARY KEY, pdv_id INTEGER, producto_id INTEGER, cantidad INTEGER, causa TEXT, responsable TEXT, fecha TEXT);`;
+    await sql`CREATE TABLE IF NOT EXISTS liquidaciones (id SERIAL PRIMARY KEY, usuario_id INTEGER, fecha TEXT, efectivo_esperado NUMERIC, efectivo_entregado NUMERIC, transferencias NUMERIC, diferencia NUMERIC, mermas_total NUMERIC, estado TEXT DEFAULT 'Pendiente');`;
+    await sql`CREATE TABLE IF NOT EXISTS auditoria_login (id SERIAL PRIMARY KEY, usuario TEXT, exito INTEGER, ip TEXT, fecha TEXT);`;
 
-    const res = await pool.query('SELECT COUNT(*) FROM usuarios');
-    if (parseInt(res.rows[0].count) === 0) {
+    // Datos iniciales
+    const check = await sql`SELECT COUNT(*) as c FROM usuarios`;
+    if (parseInt(check[0].c) === 0) {
       const pass = bcrypt.hashSync('admin123', 10);
       const passP = bcrypt.hashSync('pedro123', 10);
-      
-      await pool.query(`INSERT INTO usuarios (nombre,cedula,usuario,password_hash,rol,zona_id) VALUES ('Gerente General','V-111','admin',$1,'Gerente',null)`, [pass]);
-      await pool.query(`INSERT INTO usuarios (nombre,cedula,usuario,password_hash,rol,zona_id) VALUES ('Pedro Preventista','V-333','pedro',$1,'Preventista',1)`, [passP]);
-      
-      await pool.query(`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0B6E4F'),('Bella Vista','#F4A261'),('Las Pulgas','#E63946')`);
-      
-      await pool.query(`INSERT INTO pdvs (codigo,razon_social,nombre,direccion,zona_id,lat,lng,saldo_cestas,saldo_botellas) VALUES ('PDV-001','Bodega Esperanza','Bodega Esperanza','Calle 77',1,10.6427,-71.6125,2,0),('PDV-002','Panadería Trigal','Panadería Trigal','Av. Bella Vista',1,10.6450,-71.6150,0,0),('PDV-007','Mayorista Pulgas','Mayorista Pulgas','Pasillo 3',3,10.6472,-71.6565,15,25)`);
-      
-      await pool.query(`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,fecha_vencimiento) VALUES ('REF-2L','Refresco 2L',35,1,'Botella',null),('AGU-C12','Agua Cesta',120,1,'Cesta',null),('YOG-1L','Yogurt 1L',60,0,null,'2026-11-05')`);
-      
-      await pool.query(`INSERT INTO promociones (nombre,producto_id,tipo,min_cantidad,descuento_pct) VALUES ('Volumen Refresco',1,'Volumen',10,10)`);
-      await pool.query(`INSERT INTO activos_comodato (pdv_id,codigo_qr,tipo,marca,temperatura_actual) VALUES (1,'QR-001','Nevera','Propia',4.5)`);
+      await sql`INSERT INTO usuarios (nombre,cedula,usuario,password_hash,rol,zona_id) VALUES ('Gerente General','V-111','admin',${pass},'Gerente',null)`;
+      await sql`INSERT INTO usuarios (nombre,cedula,usuario,password_hash,rol,zona_id) VALUES ('Pedro Preventista','V-333','pedro',${passP},'Preventista',1)`;
+
+      await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0B6E4F'),('Bella Vista','#F4A261'),('Las Pulgas','#E63946')`;
+
+      await sql`INSERT INTO pdvs (codigo,razon_social,nombre,direccion,zona_id,lat,lng,saldo_cestas,saldo_botellas) VALUES 
+        ('PDV-001','Bodega La Esperanza','Bodega La Esperanza','Calle 77',1,10.6427,-71.6125,2,0),
+        ('PDV-002','Panadería El Trigal','Panadería El Trigal','Av. Bella Vista',1,10.6450,-71.6150,0,0),
+        ('PDV-007','Mayorista Las Pulgas A','Mayorista Las Pulgas A','Pasillo 3',3,10.6472,-71.6565,15,25)`;
+
+      await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,fecha_vencimiento) VALUES 
+        ('REF-2L','Refresco Cola 2L',35,1,'Botella',null),
+        ('AGU-C12','Agua 600ml cesta x12',120,1,'Cesta',null),
+        ('YOG-1L','Yogurt 1L',60,0,null,'2026-11-05')`;
+
+      await sql`INSERT INTO promociones (nombre,producto_id,tipo,min_cantidad,descuento_pct,activa) VALUES ('Volumen Refresco',1,'Volumen',10,10,1)`;
+      await sql`INSERT INTO activos_comodato (pdv_id,codigo_qr,tipo,marca,fecha_instalacion,temperatura_actual) VALUES (1,'QR-001','Nevera','Propia','2024-01-01',4.5)`;
     }
   } catch (e) { console.error("Error initDB:", e); }
 }
 initDB();
 
-// ==================== MIDDLEWARES ====================
+// ==================== MIDDLEWARES Y UTILS ====================
 function auth(req, res, next) {
   const t = (req.headers.authorization || '').replace('Bearer ', '');
   if (!t) return res.status(401).json({ error: 'No autorizado' });
@@ -66,105 +70,145 @@ function hav(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
 }
 
-// ==================== RUTAS ====================
+// ==================== RUTAS: AUTH ====================
 app.post('/api/login', async (req, res) => {
   const { usuario, password } = req.body;
   try {
-    const result = await pool.query('SELECT * FROM usuarios WHERE usuario = $1 AND activo = 1', [usuario]);
-    const u = result.rows[0];
-    if (!u || !bcrypt.compareSync(password, u.password_hash)) return res.status(401).json({ error: 'Credenciales incorrectas' });
+    const result = await sql`SELECT * FROM usuarios WHERE usuario = ${usuario} AND activo = 1`;
+    const u = result[0];
+    if (!u || !bcrypt.compareSync(password, u.password_hash)) {
+      await sql`INSERT INTO auditoria_login (usuario,exito,ip,fecha) VALUES (${usuario},0,'vercel',${new Date().toISOString()})`;
+      return res.status(401).json({ error: 'Credenciales incorrectas' });
+    }
     const token = jwt.sign({ id: u.id, nombre: u.nombre, rol: u.rol, zona_id: u.zona_id }, JWT_SECRET, { expiresIn: '8h' });
     res.json({ token, user: { id: u.id, nombre: u.nombre, rol: u.rol, zona_id: u.zona_id } });
   } catch (e) { res.status(500).json({ error: e.message }); }
 });
 
-app.get('/api/zonas', auth, async (req, res) => res.json((await pool.query('SELECT * FROM zonas')).rows));
-app.get('/api/productos', auth, async (req, res) => res.json((await pool.query('SELECT * FROM productos')).rows));
-app.get('/api/promociones', auth, async (req, res) => res.json((await pool.query('SELECT pr.*, p.nombre as producto FROM promociones pr JOIN productos p ON pr.producto_id=p.id WHERE pr.activa=1')).rows));
+// ==================== RUTAS: MAESTROS ====================
+app.get('/api/zonas', auth, async (req, res) => {
+  const rows = await sql`SELECT * FROM zonas`;
+  res.json(rows);
+});
 
+app.get('/api/productos', auth, async (req, res) => {
+  const rows = await sql`SELECT * FROM productos`;
+  res.json(rows);
+});
+
+app.get('/api/promociones', auth, async (req, res) => {
+  const rows = await sql`SELECT pr.*, p.nombre as producto FROM promociones pr JOIN productos p ON pr.producto_id=p.id WHERE pr.activa=1`;
+  res.json(rows);
+});
+
+// ==================== RUTAS: PDVS ====================
 app.get('/api/pdvs', auth, async (req, res) => {
-  const result = await pool.query('SELECT p.*, z.nombre as zona_nombre, z.color as zona_color FROM pdvs p JOIN zonas z ON p.zona_id = z.id');
-  res.json(result.rows);
+  const rows = await sql`SELECT p.*, z.nombre as zona_nombre, z.color as zona_color FROM pdvs p JOIN zonas z ON p.zona_id = z.id`;
+  res.json(rows);
 });
 
 app.post('/api/pdvs', auth, async (req, res) => {
   const d = req.body;
   try {
-    const r = await pool.query(`INSERT INTO pdvs (codigo,razon_social,nombre,direccion,zona_id,lat,lng,geofence_radio_m,saldo_cestas,saldo_botellas,limite_cestas,limite_botellas,canal) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING id`, [d.codigo,d.razon_social,d.nombre,d.direccion,d.zona_id,d.lat,d.lng,d.geofence_radio_m||50,d.saldo_cestas||0,d.saldo_botellas||0,d.limite_cestas||10,d.limite_botellas||20,d.canal||'Abasto']);
-    res.json({ id: r.rows[0].id });
+    const result = await sql`INSERT INTO pdvs (codigo,razon_social,nombre,direccion,zona_id,lat,lng,geofence_radio_m,saldo_cestas,saldo_botellas,limite_cestas,limite_botellas,canal) VALUES (${d.codigo},${d.razon_social},${d.nombre},${d.direccion},${d.zona_id},${d.lat},${d.lng},${d.geofence_radio_m||50},${d.saldo_cestas||0},${d.saldo_botellas||0},${d.limite_cestas||10},${d.limite_botellas||20},${d.canal||'Abasto'}) RETURNING id`;
+    res.json({ id: result[0].id });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.put('/api/pdvs/:id', auth, async (req, res) => {
   const d = req.body;
   try {
-    await pool.query(`UPDATE pdvs SET codigo=$1,razon_social=$2,nombre=$3,direccion=$4,zona_id=$5,lat=$6,lng=$7,geofence_radio_m=$8,saldo_cestas=$9,saldo_botellas=$10,limite_cestas=$11,limite_botellas=$12,canal=$13 WHERE id=$14`, [d.codigo,d.razon_social,d.nombre,d.direccion,d.zona_id,d.lat,d.lng,d.geofence_radio_m||50,d.saldo_cestas||0,d.saldo_botellas||0,d.limite_cestas||10,d.limite_botellas||20,d.canal||'Abasto', req.params.id]);
+    await sql`UPDATE pdvs SET codigo=${d.codigo},razon_social=${d.razon_social},nombre=${d.nombre},direccion=${d.direccion},zona_id=${d.zona_id},lat=${d.lat},lng=${d.lng},geofence_radio_m=${d.geofence_radio_m||50},saldo_cestas=${d.saldo_cestas||0},saldo_botellas=${d.saldo_botellas||0},limite_cestas=${d.limite_cestas||10},limite_botellas=${d.limite_botellas||20},canal=${d.canal||'Abasto'} WHERE id=${req.params.id}`;
     res.json({ ok: true });
   } catch (e) { res.status(400).json({ error: e.message }); }
 });
 
 app.delete('/api/pdvs/:id', auth, async (req, res) => {
-  await pool.query('DELETE FROM pdvs WHERE id = $1', [req.params.id]);
+  await sql`DELETE FROM pdvs WHERE id = ${req.params.id}`;
   res.json({ ok: true });
 });
 
+// ==================== RUTAS: VISITAS & GEOFENCING ====================
 app.post('/api/visitas/checkin', auth, async (req, res) => {
   const { pdv_id, lat, lng } = req.body;
-  const pdv = (await pool.query('SELECT * FROM pdvs WHERE id = $1', [pdv_id])).rows[0];
+  const pResult = await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`;
+  const pdv = pResult[0];
   if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
+  
   const dist = hav(lat, lng, pdv.lat, pdv.lng);
-  if (dist > pdv.geofence_radio_m) return res.status(400).json({ error: 'FUERA DE GEOFENCE', mensaje: `Estás a ${Math.round(dist)}m.` });
-  const r = await pool.query('INSERT INTO visitas (pdv_id,usuario_id,fecha_checkin,lat,lng,distancia_m) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pdv_id, req.user.id, new Date().toISOString(), lat, lng, dist]);
-  res.json({ id: r.rows[0].id, distancia_m: Math.round(dist) });
+  const cumple = dist <= pdv.geofence_radio_m;
+  if (!cumple) return res.status(400).json({ error: 'FUERA DE GEOFENCE', mensaje: `Estás a ${Math.round(dist)}m. Límite: ${pdv.geofence_radio_m}m.` });
+  
+  const r = await sql`INSERT INTO visitas (pdv_id,usuario_id,fecha_checkin,lat,lng,distancia_m,cumple_geofence,estado) VALUES (${pdv_id},${req.user.id},${new Date().toISOString()},${lat},${lng},${dist},1,'Efectiva') RETURNING id`;
+  res.json({ id: r[0].id, distancia_m: Math.round(dist) });
 });
 
 app.get('/api/visitas', auth, async (req, res) => {
-  res.json((await pool.query('SELECT v.*, p.nombre as pdv_nombre FROM visitas v JOIN pdvs p ON v.pdv_id=p.id ORDER BY v.id DESC LIMIT 50')).rows);
+  const rows = await sql`SELECT v.*, p.nombre as pdv_nombre, u.nombre as vendedor FROM visitas v JOIN pdvs p ON v.pdv_id=p.id JOIN usuarios u ON v.usuario_id=u.id ORDER BY v.id DESC LIMIT 100`;
+  res.json(rows);
 });
 
+// ==================== RUTAS: PEDIDOS & SMART ORDER ====================
 app.post('/api/pedidos', auth, async (req, res) => {
   const { pdv_id, items, metodo_pago } = req.body;
-  const pdv = (await pool.query('SELECT * FROM pdvs WHERE id = $1', [pdv_id])).rows[0];
-  if (pdv.saldo_cestas > pdv.limite_cestas || pdv.saldo_botellas > pdv.limite_botellas) return res.status(400).json({ error: 'BLOQUEADO', mensaje: 'Cliente excede límite de retornables.' });
+  const pResult = await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`;
+  const pdv = pResult[0];
+  if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
+  if (pdv.saldo_cestas > pdv.limite_cestas || pdv.saldo_botellas > pdv.limite_botellas) {
+    return res.status(400).json({ error: 'BLOQUEADO', mensaje: `Cliente excede límite de retornables.` });
+  }
+  if (!items || !items.length) return res.status(400).json({ error: 'Sin productos' });
+
+  const prods = await sql`SELECT * FROM productos`;
+  const promos = await sql`SELECT * FROM promociones WHERE activa=1`;
   
-  let subtotal = 0;
+  let subtotal = 0, descuentoTotal = 0;
   const itemsCalculados = [];
   for (const it of items) {
-    const p = (await pool.query('SELECT * FROM productos WHERE id = $1', [it.producto_id])).rows[0];
+    const p = prods.find(x => x.id == it.producto_id);
+    if (!p) continue;
+    let descPct = 0;
+    const promoVol = promos.find(pr => pr.producto_id == p.id && pr.tipo === 'Volumen' && it.cantidad >= pr.min_cantidad);
+    if (promoVol) descPct = Math.max(descPct, promoVol.descuento_pct);
+    
     const sub = p.precio * it.cantidad;
-    subtotal += sub;
-    itemsCalculados.push({ ...it, precio_unitario: p.precio, subtotal: sub, retornable: p.retornable, tipo_envase: p.tipo_envase });
+    const desc = sub * (descPct / 100);
+    subtotal += sub; descuentoTotal += desc;
+    itemsCalculados.push({ ...it, precio_unitario: p.precio, descuento_pct: descPct, subtotal: sub - desc, retornable: p.retornable, tipo_envase: p.tipo_envase });
   }
+  const total = subtotal - descuentoTotal;
 
-  const pid = (await pool.query('INSERT INTO pedidos (pdv_id,usuario_id,fecha,subtotal,total,metodo_pago) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pdv_id, req.user.id, new Date().toISOString(), subtotal, subtotal, metodo_pago||'Efectivo'])).rows[0].id;
+  const orderResult = await sql`INSERT INTO pedidos (pdv_id,usuario_id,fecha,subtotal,descuento,total,metodo_pago) VALUES (${pdv_id},${req.user.id},${new Date().toISOString()},${subtotal},${descuentoTotal},${total},${metodo_pago||'Efectivo'}) RETURNING id`;
+  const pid = orderResult[0].id;
   
   let cestas = 0, botellas = 0;
   for (const i of itemsCalculados) {
-    await pool.query('INSERT INTO pedido_items (pedido_id,producto_id,cantidad,precio_unitario,subtotal) VALUES ($1,$2,$3,$4,$5)', [pid, i.producto_id, i.cantidad, i.precio_unitario, i.subtotal]);
+    await sql`INSERT INTO pedido_items (pedido_id,producto_id,cantidad,precio_unitario,descuento_pct,subtotal) VALUES (${pid},${i.producto_id},${i.cantidad},${i.precio_unitario},${i.descuento_pct},${i.subtotal})`;
     if (i.retornable) {
       if (i.tipo_envase === 'Cesta') cestas += i.cantidad;
       if (i.tipo_envase === 'Botella') botellas += i.cantidad;
     }
   }
   
-  if (cestas > 0) await pool.query('UPDATE pdvs SET saldo_cestas = saldo_cestas + $1 WHERE id = $2', [cestas, pdv_id]);
-  if (botellas > 0) await pool.query('UPDATE pdvs SET saldo_botellas = saldo_botellas + $1 WHERE id = $2', [botellas, pdv_id]);
-  if (cestas > 0 || botellas > 0) await pool.query('INSERT INTO control_retornables (pdv_id,pedido_id,tipo,entregados,recibidos,fecha) VALUES ($1,$2,$3,$4,$5,$6)', [pdv_id, pid, 'Mixto', cestas+botellas, 0, new Date().toISOString()]);
+  if (cestas > 0) await sql`UPDATE pdvs SET saldo_cestas = saldo_cestas + ${cestas} WHERE id = ${pdv_id}`;
+  if (botellas > 0) await sql`UPDATE pdvs SET saldo_botellas = saldo_botellas + ${botellas} WHERE id = ${pdv_id}`;
+  if (cestas > 0 || botellas > 0) await sql`INSERT INTO control_retornables (pdv_id,pedido_id,tipo,entregados,recibidos,fecha) VALUES (${pdv_id},${pid},'Mixto',${cestas+botellas},0,${new Date().toISOString()})`;
 
-  res.json({ id: pid, subtotal, total: subtotal });
+  res.json({ id: pid, subtotal, descuento: descuentoTotal, total });
 });
 
 app.get('/api/pedidos', auth, async (req, res) => {
-  const pedidos = (await pool.query('SELECT pe.*, p.nombre as pdv_nombre FROM pedidos pe JOIN pdvs p ON pe.pdv_id=p.id ORDER BY pe.id DESC LIMIT 100')).rows;
+  const pedidos = await sql`SELECT pe.*, p.nombre as pdv_nombre, p.codigo as pdv_codigo, u.nombre as vendedor FROM pedidos pe JOIN pdvs p ON pe.pdv_id=p.id JOIN usuarios u ON pe.usuario_id=u.id ORDER BY pe.id DESC LIMIT 100`;
   for (let pe of pedidos) {
-    pe.items = (await pool.query('SELECT pi.*, pr.nombre FROM pedido_items pi JOIN productos pr ON pi.producto_id=pr.id WHERE pi.pedido_id=$1', [pe.id])).rows;
+    pe.items = await sql`SELECT pi.*, pr.nombre FROM pedido_items pi JOIN productos pr ON pi.producto_id=pr.id WHERE pi.pedido_id=${pe.id}`;
   }
   res.json(pedidos);
 });
 
 app.get('/api/smart-order/:pdv_id', auth, async (req, res) => {
-  const hist = (await pool.query('SELECT pi.producto_id, pi.cantidad FROM pedido_items pi JOIN pedidos pe ON pi.pedido_id=pe.id WHERE pe.pdv_id=$1 ORDER BY pe.id DESC LIMIT 30', [req.params.pdv_id])).rows;
-  const prods = (await pool.query('SELECT * FROM productos')).rows;
+  const pdv_id = req.params.pdv_id;
+  const hist = await sql`SELECT pi.producto_id, pi.cantidad FROM pedido_items pi JOIN pedidos pe ON pi.pedido_id=pe.id WHERE pe.pdv_id=${pdv_id} ORDER BY pe.id DESC LIMIT 30`;
+  const prods = await sql`SELECT * FROM productos`;
   const sugerencias = [];
   
   if (hist.length > 0) {
@@ -185,59 +229,73 @@ app.get('/api/smart-order/:pdv_id', auth, async (req, res) => {
   res.json(sugerencias);
 });
 
+// ==================== RUTAS: RETORNABLES ====================
 app.post('/api/retornables/devolucion', auth, async (req, res) => {
   const { pdv_id, tipo, cantidad } = req.body;
+  const pResult = await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`;
+  const pdv = pResult[0];
+  if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
   const campo = tipo === 'Cesta' ? 'saldo_cestas' : 'saldo_botellas';
-  const pdv = (await pool.query('SELECT * FROM pdvs WHERE id = $1', [pdv_id])).rows[0];
   const nuevo = Math.max(0, pdv[campo] - cantidad);
-  await pool.query(`UPDATE pdvs SET ${campo} = $1 WHERE id = $2`, [nuevo, pdv_id]);
-  await pool.query('INSERT INTO control_retornables (pdv_id,tipo,entregados,recibidos,fecha) VALUES ($1,$2,$3,$4,$5)', [pdv_id, tipo, 0, cantidad, new Date().toISOString()]);
+  await sql.unsafe(`UPDATE pdvs SET ${campo} = ${nuevo} WHERE id = ${pdv_id}`);
+  await sql`INSERT INTO control_retornables (pdv_id,tipo,entregados,recibidos,fecha) VALUES (${pdv_id},${tipo},0,${cantidad},${new Date().toISOString()})`;
   res.json({ ok: true, nuevo_saldo: nuevo });
 });
 
 app.get('/api/retornables', auth, async (req, res) => {
-  res.json((await pool.query('SELECT id, codigo, nombre, saldo_cestas, saldo_botellas, limite_cestas, limite_botellas FROM pdvs')).rows);
+  const rows = await sql`SELECT id, codigo, nombre, saldo_cestas, saldo_botellas, limite_cestas, limite_botellas FROM pdvs`;
+  res.json(rows);
 });
 
+// ==================== RUTAS: CADENA DE FRIO ====================
 app.post('/api/frio', auth, async (req, res) => {
-  const { camion, temperatura } = req.body;
+  const { camion, temperatura, lat, lng } = req.body;
   const alerta = (temperatura > 8 || temperatura < 2) ? 1 : 0;
-  await pool.query('INSERT INTO cadena_frio (camion,temperatura,alerta,fecha) VALUES ($1,$2,$3,$4)', [camion||'MC-001', temperatura, alerta, new Date().toISOString()]);
+  await sql`INSERT INTO cadena_frio (camion,temperatura,alerta,lat,lng,fecha) VALUES (${camion||'MC-001'},${temperatura},${alerta},${lat||null},${lng||null},${new Date().toISOString()})`;
   res.json({ alerta: !!alerta });
 });
 
 app.get('/api/frio', auth, async (req, res) => {
-  res.json((await pool.query('SELECT * FROM cadena_frio ORDER BY id DESC LIMIT 50')).rows.reverse());
+  const rows = await sql`SELECT * FROM cadena_frio ORDER BY id DESC LIMIT 50`;
+  res.json(rows.reverse());
 });
 
+// ==================== RUTAS: RED ====================
 app.post('/api/red', auth, async (req, res) => {
-  const { pdv_id, cumplimiento_pct } = req.body;
-  const r = await pool.query('INSERT INTO red_auditorias (pdv_id,usuario_id,cumplimiento_pct,marca_propia_pct,competencia_pct,fecha) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pdv_id, req.user.id, cumplimiento_pct, cumplimiento_pct, 100-cumplimiento_pct, new Date().toISOString()]);
-  res.json({ id: r.rows[0].id });
+  const { pdv_id, foto_base64, cumplimiento_pct, observaciones } = req.body;
+  const marca = cumplimiento_pct;
+  const comp = 100 - cumplimiento_pct;
+  const r = await sql`INSERT INTO red_auditorias (pdv_id,usuario_id,foto_base64,cumplimiento_pct,marca_propia_pct,competencia_pct,observaciones,fecha) VALUES (${pdv_id},${req.user.id},${foto_base64||null},${cumplimiento_pct},${marca},${comp},${observaciones||null},${new Date().toISOString()}) RETURNING id`;
+  res.json({ id: r[0].id });
 });
 
 app.get('/api/red', auth, async (req, res) => {
-  res.json((await pool.query('SELECT r.*, p.nombre as pdv_nombre FROM red_auditorias r JOIN pdvs p ON r.pdv_id=p.id ORDER BY r.id DESC LIMIT 50')).rows);
+  const rows = await sql`SELECT r.*, p.nombre as pdv_nombre FROM red_auditorias r JOIN pdvs p ON r.pdv_id=p.id ORDER BY r.id DESC LIMIT 50`;
+  res.json(rows);
 });
 
+// ==================== RUTAS: COMODATO ====================
 app.get('/api/comodatos', auth, async (req, res) => {
-  res.json((await pool.query('SELECT a.*, p.nombre as pdv_nombre FROM activos_comodato a JOIN pdvs p ON a.pdv_id=p.id')).rows);
+  const rows = await sql`SELECT a.*, p.nombre as pdv_nombre FROM activos_comodato a JOIN pdvs p ON a.pdv_id=p.id WHERE a.activo=1`;
+  res.json(rows);
 });
 
 app.post('/api/comodatos/:id/verificar', auth, async (req, res) => {
   const { temperatura_actual } = req.body;
-  const a = (await pool.query('SELECT * FROM activos_comodato WHERE id = $1', [req.params.id])).rows[0];
+  const aResult = await sql`SELECT * FROM activos_comodato WHERE id = ${req.params.id}`;
+  const a = aResult[0];
   if (!a) return res.status(404).json({ error: 'No encontrado' });
-  await pool.query('UPDATE activos_comodato SET temperatura_actual=$1 WHERE id=$2', [temperatura_actual, req.params.id]);
-  const alerta = temperatura_actual > a.temp_max || temperatura_actual < a.temp_min;
+  await sql`UPDATE activos_comodato SET temperatura_actual=${temperatura_actual}, ultimo_mantenimiento=${new Date().toISOString().split('T')[0]} WHERE id=${req.params.id}`;
+  const alerta = temperatura_actual !== null && (temperatura_actual > a.temp_max || temperatura_actual < a.temp_min);
   res.json({ ok: true, alerta });
 });
 
+// ==================== RUTAS: VRP ====================
 app.post('/api/vrp', auth, async (req, res) => {
   const { pdv_ids, origen } = req.body;
-  if (!pdv_ids.length) return res.json({ ruta: [], total_km: 0 });
+  if (!pdv_ids || !pdv_ids.length) return res.json({ ruta: [], total_km: 0 });
   
-  const pdvs = (await pool.query('SELECT * FROM pdvs WHERE id = ANY($1)', [pdv_ids])).rows;
+  const pdvs = await sql`SELECT * FROM pdvs WHERE id = ANY(${pdv_ids})`;
   const almacen = origen || { lat: 10.6500, lng: -71.6400, nombre: 'Almacén Central Maracaibo' };
   const pendientes = [...pdvs];
   const ruta = [almacen];
@@ -257,60 +315,76 @@ app.post('/api/vrp', auth, async (req, res) => {
   res.json({ ruta, total_km: +total_km.toFixed(2) });
 });
 
+// ==================== RUTAS: MERMAS & LIQUIDACIONES ====================
 app.post('/api/mermas', auth, async (req, res) => {
   const { pdv_id, producto_id, cantidad, causa } = req.body;
-  const r = await pool.query('INSERT INTO mermas (pdv_id,producto_id,cantidad,causa,responsable,fecha) VALUES ($1,$2,$3,$4,$5,$6) RETURNING id', [pdv_id||null, producto_id||null, cantidad, causa, req.user.nombre, new Date().toISOString()]);
-  res.json({ id: r.rows[0].id });
+  const r = await sql`INSERT INTO mermas (pdv_id,producto_id,cantidad,causa,responsable,fecha) VALUES (${pdv_id||null},${producto_id||null},${cantidad},${causa},${req.user.nombre},${new Date().toISOString()}) RETURNING id`;
+  res.json({ id: r[0].id });
 });
 
 app.get('/api/mermas', auth, async (req, res) => {
-  res.json((await pool.query('SELECT m.*, p.nombre as pdv_nombre, pr.nombre as producto FROM mermas m LEFT JOIN pdvs p ON m.pdv_id=p.id LEFT JOIN productos pr ON m.producto_id=pr.id ORDER BY m.id DESC LIMIT 100')).rows);
+  const rows = await sql`SELECT m.*, p.nombre as pdv_nombre, pr.nombre as producto FROM mermas m LEFT JOIN pdvs p ON m.pdv_id=p.id LEFT JOIN productos pr ON m.producto_id=pr.id ORDER BY m.id DESC LIMIT 100`;
+  res.json(rows);
 });
 
 app.post('/api/liquidaciones', auth, async (req, res) => {
   const { efectivo_entregado, transferencias } = req.body;
   const hoy = new Date().toISOString().split('T')[0];
-  const pedidos = (await pool.query('SELECT * FROM pedidos WHERE usuario_id=$1 AND fecha LIKE $2', [req.user.id, hoy + '%'])).rows;
+  const pedidos = await sql`SELECT * FROM pedidos WHERE usuario_id=${req.user.id} AND fecha LIKE ${hoy + '%'}`;
   const efectivoEsperado = pedidos.filter(p => p.metodo_pago === 'Efectivo').reduce((s, p) => s + parseFloat(p.total), 0);
-  const mermasHoy = (await pool.query('SELECT COALESCE(SUM(cantidad),0) as c FROM mermas WHERE fecha LIKE $1', [hoy + '%'])).rows[0].c;
+  const mermasRes = await sql`SELECT COALESCE(SUM(cantidad),0) as c FROM mermas WHERE fecha LIKE ${hoy + '%'}`;
+  const mermasHoy = mermasRes[0].c;
   const diferencia = efectivo_entregado - efectivoEsperado;
-  
-  const r = await pool.query('INSERT INTO liquidaciones (usuario_id,fecha,efectivo_esperado,efectivo_entregado,diferencia) VALUES ($1,$2,$3,$4,$5) RETURNING id', [req.user.id, new Date().toISOString(), efectivoEsperado, efectivo_entregado, diferencia]);
-  res.json({ id: r.rows[0].id, efectivo_esperado: efectivoEsperado, diferencia });
+  const r = await sql`INSERT INTO liquidaciones (usuario_id,fecha,efectivo_esperado,efectivo_entregado,transferencias,diferencia,mermas_total,estado) VALUES (${req.user.id},${new Date().toISOString()},${efectivoEsperado},${efectivo_entregado},${transferencias||0},${diferencia},${mermasHoy},${Math.abs(diferencia) < 1 ? 'Cerrada' : 'Con diferencia'}) RETURNING id`;
+  res.json({ id: r[0].id, efectivo_esperado: efectivoEsperado, diferencia });
 });
 
 app.get('/api/liquidaciones', auth, async (req, res) => {
-  res.json((await pool.query('SELECT l.*, u.nombre as vendedor FROM liquidaciones l JOIN usuarios u ON l.usuario_id=u.id ORDER BY l.id DESC LIMIT 50')).rows);
+  const rows = await sql`SELECT l.*, u.nombre as vendedor FROM liquidaciones l JOIN usuarios u ON l.usuario_id=u.id ORDER BY l.id DESC LIMIT 50`;
+  res.json(rows);
 });
 
+// ==================== RUTAS: KPIS & VENTAS ====================
 app.get('/api/kpis', auth, async (req, res) => {
   const hoy = new Date().toISOString().split('T')[0];
-  const totalVisitas = parseInt((await pool.query('SELECT COUNT(*) as c FROM visitas WHERE fecha_checkin LIKE $1', [hoy + '%'])).rows[0].c);
-  const pedidosHoy = parseInt((await pool.query('SELECT COUNT(*) as c FROM pedidos WHERE fecha LIKE $1', [hoy + '%'])).rows[0].c);
+  const vRes = await sql`SELECT COUNT(*) as c FROM visitas WHERE fecha_checkin LIKE ${hoy + '%'}`;
+  const totalVisitas = parseInt(vRes[0].c);
+  
+  const pRes = await sql`SELECT COUNT(*) as c FROM pedidos WHERE fecha LIKE ${hoy + '%'}`;
+  const pedidosHoy = parseInt(pRes[0].c);
   const dropRate = totalVisitas > 0 ? Math.round((pedidosHoy / totalVisitas) * 100) : 0;
 
-  const cumplimientoRED = Math.round(parseFloat((await pool.query('SELECT COALESCE(AVG(cumplimiento_pct),0) as a FROM red_auditorias')).rows[0].a));
+  const redRes = await sql`SELECT COALESCE(AVG(cumplimiento_pct),0) as a FROM red_auditorias`;
+  const cumplimientoRED = Math.round(parseFloat(redRes[0].a));
 
-  const frio = (await pool.query('SELECT COUNT(*) as total, SUM(alerta) as alertas FROM cadena_frio')).rows[0];
-  const fTotal = parseInt(frio.total);
-  const fAlertas = parseInt(frio.alertas || 0);
+  const frioRes = await sql`SELECT COUNT(*) as total, SUM(alerta) as alertas FROM cadena_frio`;
+  const fTotal = parseInt(frioRes[0].total);
+  const fAlertas = parseInt(frioRes[0].alertas || 0);
   const adherenciaTermica = fTotal > 0 ? Math.round(((fTotal - fAlertas) / fTotal) * 100) : 100;
 
-  const ret = (await pool.query('SELECT COALESCE(SUM(entregados),0) as e, COALESCE(SUM(recibidos),0) as r FROM control_retornables')).rows[0];
-  const retornabilidad = parseFloat(ret.e) > 0 ? Math.round((parseFloat(ret.r) / parseFloat(ret.e)) * 100) : 98;
+  const retRes = await sql`SELECT COALESCE(SUM(entregados),0) as e, COALESCE(SUM(recibidos),0) as r FROM control_retornables`;
+  const rE = parseFloat(retRes[0].e);
+  const rR = parseFloat(retRes[0].r);
+  const retornabilidad = rE > 0 ? Math.round((rR / rE) * 100) : 98;
 
-  const pedidosAll = (await pool.query('SELECT * FROM pedidos WHERE fecha LIKE $1', [hoy + '%'])).rows;
-  const otif = pedidosAll.length > 0 ? Math.round((pedidosAll.length / pedidosAll.length) * 100) : 92;
+  const pedidosAll = await sql`SELECT * FROM pedidos WHERE fecha LIKE ${hoy + '%'}`;
+  const otif = pedidosAll.length > 0 ? Math.round((pedidosAll.filter(p => p.estado === 'Confirmado').length / pedidosAll.length) * 100) : 92;
 
-  const ventasHoy = parseFloat((await pool.query('SELECT COALESCE(SUM(total),0) as t FROM pedidos WHERE fecha LIKE $1', [hoy + '%'])).rows[0].t);
-  const tempActual = (await pool.query('SELECT temperatura FROM cadena_frio ORDER BY id DESC LIMIT 1')).rows[0]?.temperatura || 4.0;
-  const bloqueados = parseInt((await pool.query('SELECT COUNT(*) as c FROM pdvs WHERE saldo_cestas > limite_cestas OR saldo_botellas > limite_botellas')).rows[0].c);
+  const ventasRes = await sql`SELECT COALESCE(SUM(total),0) as t FROM pedidos WHERE fecha LIKE ${hoy + '%'}`;
+  const ventasHoy = parseFloat(ventasRes[0].t);
+  
+  const tempRes = await sql`SELECT temperatura FROM cadena_frio ORDER BY id DESC LIMIT 1`;
+  const tempActual = tempRes.length ? parseFloat(tempRes[0].temperatura) : 4.0;
+
+  const bloqRes = await sql`SELECT COUNT(*) as c FROM pdvs WHERE saldo_cestas > limite_cestas OR saldo_botellas > limite_botellas`;
+  const bloqueados = parseInt(bloqRes[0].c);
   
   res.json({ dropRate, cumplimientoRED, adherenciaTermica, retornabilidad, otif, ventasHoy, tempActual, bloqueados, totalVisitas, pedidosHoy });
 });
 
 app.get('/api/ventas-zona', auth, async (req, res) => {
-  res.json((await pool.query('SELECT z.nombre, z.color, COALESCE(SUM(pe.total),0) as total FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id LEFT JOIN pedidos pe ON pe.pdv_id=p.id GROUP BY z.id, z.nombre, z.color')).rows);
+  const rows = await sql`SELECT z.nombre, z.color, COALESCE(SUM(pe.total),0) as total FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id LEFT JOIN pedidos pe ON pe.pdv_id=p.id GROUP BY z.id, z.nombre, z.color`;
+  res.json(rows);
 });
 
 module.exports = app;
