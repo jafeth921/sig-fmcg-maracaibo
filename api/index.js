@@ -1,12 +1,16 @@
 const express = require('express');
+const crypto = require('crypto');
 const { sql } = require('@vercel/postgres');
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
 const JWT_SECRET = process.env.JWT_SECRET || 'sig-fmcg-maracaibo-2026';
+const IOT_KEY = process.env.IOT_API_KEY || '';
 const ALMACEN = { nombre: 'Almacén Central', lat: 10.6540, lng: -71.6300 };
 const BCV_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
+const VEL_KMH = 25, SERVICIO_MIN = 10, FACTOR_VIA = 1.3;   // estimaciones de ruteo
+const SCHEMA_V = '7';
 
 // Métodos de pago: moneda en la que se registra el monto y si exige referencia
 const METODOS = [
@@ -19,20 +23,44 @@ const METODOS = [
   { nombre: 'Crédito',          moneda: 'USD', ref: false }
 ];
 const MET = Object.fromEntries(METODOS.map(m => [m.nombre, m]));
+const ROLES = ['Gerente', 'Supervisor', 'Preventista'];
+const CANALES = ['Abasto/Bodega', 'Supermercado', 'Panadería', 'Mayorista'];
+const CAUSAS = ['Rotura', 'Vencimiento', 'Falla de empaque', 'Daño en transporte'];
+const CLAVE_OK = /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/;
+const CLAVE_MSG = 'La contraseña debe tener entre 8 y 72 caracteres, con letras y números';
 
+app.disable('x-powered-by');
+app.use((req, res, next) => {
+  res.set({ 'X-Content-Type-Options': 'nosniff', 'X-Frame-Options': 'DENY', 'Referrer-Policy': 'same-origin', 'Cache-Control': 'no-store' });
+  next();
+});
 app.use(express.json({ limit: '2mb' }));
 
 // ---------- Utilidades ----------
+const fail = (status, msg) => Object.assign(new Error(msg), { status });
 const h = fn => (req, res) =>
   Promise.resolve(fn(req, res)).catch(e => {
-    console.error(e);
-    res.status(500).json({ error: e.message });
+    if (!e.status) console.error(e);
+    res.status(e.status || 500).json({ error: e.message });
   });
 const r2 = x => Math.round((+x || 0) * 100) / 100;
-// Fecha comercial en hora de Venezuela (UTC-4), formato AAAA-MM-DD
-const hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Caracas' });
+const diaDe = d => d.toLocaleDateString('en-CA', { timeZone: 'America/Caracas' });   // AAAA-MM-DD en hora de Venezuela
+const hoy = () => diaDe(new Date());
+const addDias = (d, n) => { const t = new Date(d + 'T12:00:00Z'); t.setUTCDate(t.getUTCDate() + n); return t.toISOString().slice(0, 10); };
+const esFecha = s => /^\d{4}-\d{2}-\d{2}$/.test(String(s)) && !isNaN(new Date(s + 'T12:00:00Z'));
+const isInt = (v, min, max) => v != null && String(v).trim() !== '' && Number.isInteger(+v) && +v >= min && +v <= max;
+const isNum = (v, min, max) => v != null && String(v).trim() !== '' && Number.isFinite(+v) && +v >= min && +v <= max;
 const rol = (...r) => (req, res, next) => r.includes(req.user.rol) ? next() : res.status(403).json({ error: 'Permiso insuficiente' });
-
+// Fecha del cliente (operaciones registradas sin conexión): se acepta si es de los últimos 3 días
+function fechaCliente(v) {
+  const t = v ? new Date(v) : null, now = Date.now();
+  return (t && !isNaN(t) && t.getTime() <= now + 5 * 60000 && t.getTime() >= now - 3 * 86400000) ? t : new Date();
+}
+// Tasa usada en una operación: la del cliente solo si vino de la cola sin conexión y difiere menos de 10%
+function tasaOp(body, t) {
+  const c = parseFloat(body.tasa_cliente);
+  return (body.offline === true && c > 0 && t > 0 && Math.abs(c - t) / t <= 0.10) ? c : t;
+}
 function hav(lat1, lon1, lat2, lon2) {
   const R = 6371000, r = x => x * Math.PI / 180;
   const dLat = r(lat2 - lat1), dLon = r(lon2 - lon1);
@@ -40,24 +68,46 @@ function hav(lat1, lon1, lat2, lon2) {
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+function validarPDV(d) {
+  if (!/^[A-Za-z0-9._-]{2,20}$/.test(String(d.codigo || '').trim())) return 'Código inválido (2 a 20 caracteres: letras, números, punto o guion)';
+  const n = String(d.nombre || '').trim();
+  if (n.length < 2 || n.length > 120) return 'El nombre debe tener entre 2 y 120 caracteres';
+  if (!isInt(d.zona_id, 1, 1e9)) return 'Seleccione una zona';
+  if (!CANALES.includes(d.canal)) return 'Canal no válido';
+  if (!isNum(d.lat, -90, 90)) return 'Latitud inválida (entre -90 y 90)';
+  if (!isNum(d.lng, -180, 180)) return 'Longitud inválida (entre -180 y 180)';
+  if (!isInt(d.geofence_radio_m, 10, 1000)) return 'El radio de geofence debe estar entre 10 y 1000 m';
+  for (const [k, t] of [['saldo_cestas', 'Saldo de cestas'], ['limite_cestas', 'Límite de cestas'], ['saldo_botellas', 'Saldo de botellas'], ['limite_botellas', 'Límite de botellas']])
+    if (!isInt(d[k], 0, 100000)) return t + ' inválido (entero entre 0 y 100000)';
+  if (!isNum(d.limite_credito == null ? 0 : d.limite_credito, 0, 1e7)) return 'Límite de crédito inválido';
+  return null;
+}
+
+// ---------- Bitácora ----------
+async function log(user, accion, detalle = '') {
+  try {
+    await sql`INSERT INTO bitacora (fecha,usuario_id,usuario,accion,detalle) VALUES (${new Date().toISOString()},${(user && user.id) || null},${(user && user.nombre) || '-'},${accion},${String(detalle).slice(0, 300)})`;
+  } catch (e) { console.warn('bitacora:', e.message); }
+}
+
+// ---------- Límite de intentos de login (memoria de la instancia) ----------
+const intentos = new Map();
+const lockKey = (req, u) => (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '') + '|' + String(u || '').toLowerCase();
+const estaBloqueado = k => { const e = intentos.get(k); return !!(e && e.hasta > Date.now()); };
+function registrarFallo(k) {
+  const e = intentos.get(k) || { n: 0, hasta: 0 };
+  e.n++; if (e.n >= 5) { e.hasta = Date.now() + 10 * 60 * 1000; e.n = 0; }
+  intentos.set(k, e);
+}
+
 // ---------- Tasa BCV ----------
-async function getConfig(k) {
-  const r = (await sql`SELECT valor FROM config WHERE clave=${k}`).rows[0];
-  return r ? r.valor : null;
-}
-async function setConfig(k, v) {
-  await sql`INSERT INTO config (clave,valor) VALUES (${k},${String(v)}) ON CONFLICT (clave) DO UPDATE SET valor=EXCLUDED.valor`;
-}
+async function getConfig(k) { const r = (await sql`SELECT valor FROM config WHERE clave=${k}`).rows[0]; return r ? r.valor : null; }
+async function setConfig(k, v) { await sql`INSERT INTO config (clave,valor) VALUES (${k},${String(v)}) ON CONFLICT (clave) DO UPDATE SET valor=EXCLUDED.valor`; }
 async function leerTasa() {
-  return {
-    tasa: parseFloat(await getConfig('tasa_bcv')) || 0,
-    fecha: await getConfig('tasa_fecha'),
-    fuente: (await getConfig('tasa_fuente')) || 'Pendiente'
-  };
+  return { tasa: parseFloat(await getConfig('tasa_bcv')) || 0, fecha: await getConfig('tasa_fecha'), fuente: (await getConfig('tasa_fuente')) || 'Pendiente' };
 }
 async function traerTasaBCV() {
-  const ctl = new AbortController();
-  const to = setTimeout(() => ctl.abort(), 6000);
+  const ctl = new AbortController(), to = setTimeout(() => ctl.abort(), 6000);
   try {
     const r = await fetch(BCV_URL, { signal: ctl.signal });
     if (!r.ok) throw new Error('El servicio de tasa respondió HTTP ' + r.status);
@@ -70,18 +120,14 @@ async function traerTasaBCV() {
 async function actualizarTasa() {
   await setConfig('tasa_chequeo', new Date().toISOString());
   const r = await traerTasaBCV();
-  await setConfig('tasa_bcv', r.tasa);
-  await setConfig('tasa_fecha', r.fecha);
-  await setConfig('tasa_fuente', 'BCV');
+  await setConfig('tasa_bcv', r.tasa); await setConfig('tasa_fecha', r.fecha); await setConfig('tasa_fuente', 'BCV');
   return leerTasa();
 }
-// Devuelve la tasa y la refresca sola si pasaron 3 horas (salvo que esté fijada manualmente)
 async function tasaVigente() {
   let t = await leerTasa();
   if (t.fuente === 'Manual') return t;
   const chk = await getConfig('tasa_chequeo');
-  const vencida = !chk || (Date.now() - new Date(chk).getTime()) > 3 * 3600 * 1000;
-  if (vencida || !(t.tasa > 0)) {
+  if (!chk || (Date.now() - new Date(chk).getTime()) > 3 * 3600 * 1000 || !(t.tasa > 0)) {
     try { t = await actualizarTasa(); } catch (e) { console.warn('BCV:', e.message); }
   }
   return t;
@@ -93,43 +139,74 @@ async function initDB() {
   await sql`CREATE TABLE IF NOT EXISTS usuarios (id SERIAL PRIMARY KEY, nombre TEXT, cedula TEXT, usuario TEXT UNIQUE, password_hash TEXT, rol TEXT, zona_id INTEGER, activo INTEGER DEFAULT 1)`;
   await sql`CREATE TABLE IF NOT EXISTS zonas (id SERIAL PRIMARY KEY, nombre TEXT UNIQUE, color TEXT)`;
   await sql`CREATE TABLE IF NOT EXISTS pdvs (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, razon_social TEXT, nombre TEXT, direccion TEXT, zona_id INTEGER, lat DOUBLE PRECISION, lng DOUBLE PRECISION, geofence_radio_m INTEGER DEFAULT 50, saldo_cestas INTEGER DEFAULT 0, saldo_botellas INTEGER DEFAULT 0, limite_cestas INTEGER DEFAULT 10, limite_botellas INTEGER DEFAULT 20, limite_credito DOUBLE PRECISION DEFAULT 0, canal TEXT DEFAULT 'Abasto/Bodega')`;
-  await sql`CREATE TABLE IF NOT EXISTS productos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, nombre TEXT, precio DOUBLE PRECISION, retornable INTEGER DEFAULT 0, tipo_envase TEXT, fecha_vencimiento TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS productos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, nombre TEXT, precio DOUBLE PRECISION, retornable INTEGER DEFAULT 0, tipo_envase TEXT, fecha_vencimiento TEXT, peso_kg DOUBLE PRECISION DEFAULT 1, stock_minimo INTEGER DEFAULT 0, activo INTEGER DEFAULT 1)`;
   await sql`CREATE TABLE IF NOT EXISTS promociones (id SERIAL PRIMARY KEY, nombre TEXT, producto_id INTEGER, tipo TEXT, min_cantidad INTEGER, descuento_pct DOUBLE PRECISION, activa INTEGER DEFAULT 1)`;
-  await sql`CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, dia TEXT, subtotal DOUBLE PRECISION DEFAULT 0, descuento DOUBLE PRECISION DEFAULT 0, total DOUBLE PRECISION, total_bs DOUBLE PRECISION, tasa DOUBLE PRECISION, estado TEXT DEFAULT 'Confirmado', metodo_pago TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS pedido_items (id SERIAL PRIMARY KEY, pedido_id INTEGER, producto_id INTEGER, cantidad INTEGER, precio_unitario DOUBLE PRECISION, descuento_pct DOUBLE PRECISION DEFAULT 0, subtotal DOUBLE PRECISION)`;
+  await sql`CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, dia TEXT, subtotal DOUBLE PRECISION DEFAULT 0, descuento DOUBLE PRECISION DEFAULT 0, total DOUBLE PRECISION, total_bs DOUBLE PRECISION, tasa DOUBLE PRECISION, estado TEXT DEFAULT 'Confirmado', metodo_pago TEXT, fecha_prometida TEXT, fecha_entrega TEXT, a_tiempo INTEGER, completo INTEGER, faltante_usd DOUBLE PRECISION DEFAULT 0, idem TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS pedido_items (id SERIAL PRIMARY KEY, pedido_id INTEGER, producto_id INTEGER, cantidad INTEGER, precio_unitario DOUBLE PRECISION, descuento_pct DOUBLE PRECISION DEFAULT 0, subtotal DOUBLE PRECISION, cantidad_entregada INTEGER)`;
   await sql`CREATE TABLE IF NOT EXISTS pedido_pagos (id SERIAL PRIMARY KEY, pedido_id INTEGER, metodo TEXT, moneda TEXT, monto DOUBLE PRECISION, monto_usd DOUBLE PRECISION, referencia TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS cobranzas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, dia TEXT, metodo TEXT, moneda TEXT, monto DOUBLE PRECISION, monto_usd DOUBLE PRECISION, tasa DOUBLE PRECISION, referencia TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS visitas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha_checkin TEXT, dia TEXT, lat DOUBLE PRECISION, lng DOUBLE PRECISION, distancia_m DOUBLE PRECISION, estado TEXT DEFAULT 'Efectiva')`;
+  await sql`CREATE TABLE IF NOT EXISTS cobranzas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, dia TEXT, metodo TEXT, moneda TEXT, monto DOUBLE PRECISION, monto_usd DOUBLE PRECISION, tasa DOUBLE PRECISION, referencia TEXT, idem TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS visitas (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha_checkin TEXT, dia TEXT, lat DOUBLE PRECISION, lng DOUBLE PRECISION, distancia_m DOUBLE PRECISION, estado TEXT DEFAULT 'Efectiva', idem TEXT)`;
   await sql`CREATE TABLE IF NOT EXISTS activos_comodato (id SERIAL PRIMARY KEY, pdv_id INTEGER, codigo_qr TEXT UNIQUE, tipo TEXT, marca TEXT, temperatura_actual DOUBLE PRECISION, temp_min DOUBLE PRECISION DEFAULT 2, temp_max DOUBLE PRECISION DEFAULT 8, fecha_instalacion TEXT, ultimo_mantenimiento TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS cadena_frio (id SERIAL PRIMARY KEY, camion TEXT, temperatura DOUBLE PRECISION, alerta INTEGER DEFAULT 0, fecha TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS red_auditorias (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, cumplimiento_pct DOUBLE PRECISION, marca_propia_pct DOUBLE PRECISION, competencia_pct DOUBLE PRECISION, fecha TEXT)`;
-  await sql`CREATE TABLE IF NOT EXISTS mermas (id SERIAL PRIMARY KEY, pdv_id INTEGER, producto_id INTEGER, cantidad INTEGER, causa TEXT, responsable TEXT, fecha TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS cadena_frio (id SERIAL PRIMARY KEY, camion TEXT, temperatura DOUBLE PRECISION, alerta INTEGER DEFAULT 0, fecha TEXT, fuente TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS red_auditorias (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, cumplimiento_pct DOUBLE PRECISION, marca_propia_pct DOUBLE PRECISION, competencia_pct DOUBLE PRECISION, fecha TEXT, asignados INTEGER, propios INTEGER, competencia INTEGER, share_pct DOUBLE PRECISION, foto TEXT, observaciones TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS mermas (id SERIAL PRIMARY KEY, pdv_id INTEGER, producto_id INTEGER, cantidad INTEGER, causa TEXT, responsable TEXT, fecha TEXT, dia TEXT, descontar_stock INTEGER DEFAULT 0, idem TEXT)`;
   await sql`CREATE TABLE IF NOT EXISTS liquidaciones (id SERIAL PRIMARY KEY, usuario_id INTEGER, fecha TEXT, dia TEXT, tasa DOUBLE PRECISION, esperado_usd DOUBLE PRECISION, entregado_usd DOUBLE PRECISION, esperado_bs DOUBLE PRECISION, entregado_bs DOUBLE PRECISION, digital_usd DOUBLE PRECISION, credito_usd DOUBLE PRECISION, diferencia_usd DOUBLE PRECISION)`;
+  await sql`CREATE TABLE IF NOT EXISTS bitacora (id SERIAL PRIMARY KEY, fecha TEXT, usuario_id INTEGER, usuario TEXT, accion TEXT, detalle TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS lotes (id SERIAL PRIMARY KEY, producto_id INTEGER, codigo_lote TEXT, fecha_vencimiento TEXT, cantidad_inicial INTEGER, cantidad_actual INTEGER, fecha_ingreso TEXT, usuario_id INTEGER)`;
+  await sql`CREATE TABLE IF NOT EXISTS movimientos_stock (id SERIAL PRIMARY KEY, producto_id INTEGER, lote_id INTEGER, tipo TEXT, cantidad INTEGER, referencia TEXT, usuario_id INTEGER, fecha TEXT)`;
+  await sql`CREATE TABLE IF NOT EXISTS control_retornables (id SERIAL PRIMARY KEY, pdv_id INTEGER, pedido_id INTEGER, tipo TEXT, entregados INTEGER DEFAULT 0, recibidos INTEGER DEFAULT 0, fecha TEXT, dia TEXT, usuario_id INTEGER, idem TEXT)`;
+
+  // Actualización de bases creadas con versiones anteriores (sin perder datos)
+  if ((await getConfig('schema_v')) !== SCHEMA_V) {
+    const alters = [
+      sql`ALTER TABLE productos ADD COLUMN IF NOT EXISTS peso_kg DOUBLE PRECISION DEFAULT 1`, sql`ALTER TABLE productos ADD COLUMN IF NOT EXISTS stock_minimo INTEGER DEFAULT 0`, sql`ALTER TABLE productos ADD COLUMN IF NOT EXISTS activo INTEGER DEFAULT 1`,
+      sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS fecha_prometida TEXT`, sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS fecha_entrega TEXT`, sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS a_tiempo INTEGER`,
+      sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS completo INTEGER`, sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS faltante_usd DOUBLE PRECISION DEFAULT 0`, sql`ALTER TABLE pedidos ADD COLUMN IF NOT EXISTS idem TEXT`,
+      sql`ALTER TABLE pedido_items ADD COLUMN IF NOT EXISTS cantidad_entregada INTEGER`,
+      sql`ALTER TABLE cobranzas ADD COLUMN IF NOT EXISTS idem TEXT`, sql`ALTER TABLE visitas ADD COLUMN IF NOT EXISTS idem TEXT`,
+      sql`ALTER TABLE mermas ADD COLUMN IF NOT EXISTS idem TEXT`, sql`ALTER TABLE mermas ADD COLUMN IF NOT EXISTS dia TEXT`, sql`ALTER TABLE mermas ADD COLUMN IF NOT EXISTS descontar_stock INTEGER DEFAULT 0`,
+      sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS asignados INTEGER`, sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS propios INTEGER`, sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS competencia INTEGER`,
+      sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS share_pct DOUBLE PRECISION`, sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS foto TEXT`, sql`ALTER TABLE red_auditorias ADD COLUMN IF NOT EXISTS observaciones TEXT`,
+      sql`ALTER TABLE cadena_frio ADD COLUMN IF NOT EXISTS fuente TEXT`,
+      sql`ALTER TABLE control_retornables ADD COLUMN IF NOT EXISTS dia TEXT`, sql`ALTER TABLE control_retornables ADD COLUMN IF NOT EXISTS usuario_id INTEGER`, sql`ALTER TABLE control_retornables ADD COLUMN IF NOT EXISTS idem TEXT`
+    ];
+    for (const a of alters) await a;
+    await setConfig('schema_v', SCHEMA_V);
+  }
 
   const check = await sql`SELECT COUNT(*) AS c FROM usuarios`;
   if (parseInt(check.rows[0].c) === 0) {
-    const a = bcrypt.hashSync('admin123', 10);
-    const m = bcrypt.hashSync('maria123', 10);
-    const p = bcrypt.hashSync('pedro123', 10);
+    const a = bcrypt.hashSync('admin123', 10), m = bcrypt.hashSync('maria123', 10), p = bcrypt.hashSync('pedro123', 10);
     await sql`INSERT INTO usuarios (nombre,usuario,password_hash,rol) VALUES ('Gerente','admin',${a},'Gerente'),('María','maria',${m},'Supervisor'),('Pedro','pedro',${p},'Preventista')`;
     await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0F766E'),('Bella Vista','#B45309'),('Las Pulgas','#B91C1C')`;
     await sql`INSERT INTO pdvs (codigo,nombre,zona_id,lat,lng,saldo_cestas,saldo_botellas,limite_credito,canal) VALUES
       ('PDV-001','Bodega Esperanza',1,10.6427,-71.6125,2,0,150,'Abasto/Bodega'),
       ('PDV-002','Panadería Trigal',1,10.6450,-71.6150,0,0,100,'Panadería'),
       ('PDV-007','Mayorista Pulgas',3,10.6472,-71.6565,15,25,500,'Mayorista')`;
-    // Precios en USD
-    await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase) VALUES
-      ('REF-2L','Refresco 2L',1.80,1,'Botella'),
-      ('AGU-C12','Agua Cesta x12',6.50,1,'Cesta'),
-      ('JUG-1L','Jugo 1L',1.50,0,NULL)`;
-    await sql`INSERT INTO promociones (nombre,producto_id,tipo,min_cantidad,descuento_pct) VALUES ('Agua: 5 o más cestas, 10% de descuento',2,'Volumen',5,10)`;
+    await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,peso_kg,stock_minimo) VALUES
+      ('REF-2L','Refresco 2L',1.80,1,'Botella',2.2,100),
+      ('AGU-C12','Agua Cesta x12',6.50,1,'Cesta',14,50),
+      ('JUG-1L','Jugo 1L',1.50,0,NULL,1.1,80)`;
+    await sql`INSERT INTO promociones (nombre,producto_id,tipo,min_cantidad,descuento_pct) VALUES
+      ('Agua: 5 o más cestas, 10% de descuento',2,'Volumen',5,10),
+      ('Refresco por vencer, 15% de descuento',1,'ShortDate',0,15)`;
     await sql`INSERT INTO activos_comodato (pdv_id,codigo_qr,tipo,marca,temperatura_actual,fecha_instalacion,ultimo_mantenimiento) VALUES
       (1,'QR-NEV-001','Nevera','Frigilux',4.5,'2025-03-10','2026-08-15'),
       (2,'QR-EXH-002','Exhibidor','Imbera',NULL,'2025-06-22','2026-07-01')`;
     try { await actualizarTasa(); }
-    catch (e) {
-      console.warn('No se pudo obtener la tasa BCV inicial:', e.message);
-      await setConfig('tasa_bcv', 0); await setConfig('tasa_fuente', 'Pendiente');
+    catch (e) { console.warn('No se pudo obtener la tasa BCV inicial:', e.message); await setConfig('tasa_bcv', 0); await setConfig('tasa_fuente', 'Pendiente'); }
+  }
+  // Inventario de demostración si aún no hay lotes
+  if (parseInt((await sql`SELECT COUNT(*) AS c FROM lotes`).rows[0].c) === 0) {
+    const d = hoy(), now = new Date().toISOString();
+    const prods = (await sql`SELECT id, codigo FROM productos ORDER BY id`).rows;
+    for (const p of prods) {
+      const def = p.codigo === 'REF-2L' ? [['L-REF-01', addDias(d, 20), 200], ['L-REF-02', addDias(d, 120), 400]]
+        : p.codigo === 'AGU-C12' ? [['L-AGU-01', addDias(d, 90), 150]] : [['L-JUG-01', addDias(d, 60), 300]];
+      for (const [cod, venc, q] of def) {
+        const l = (await sql`INSERT INTO lotes (producto_id,codigo_lote,fecha_vencimiento,cantidad_inicial,cantidad_actual,fecha_ingreso) VALUES (${p.id},${cod},${venc},${q},${q},${now}) RETURNING id`).rows[0];
+        await sql`INSERT INTO movimientos_stock (producto_id,lote_id,tipo,cantidad,referencia,fecha) VALUES (${p.id},${l.id},'Entrada',${q},'Inventario inicial',${now})`;
+      }
     }
   }
 }
@@ -138,8 +215,7 @@ let ready = null;
 app.use('/api', (req, res, next) => {
   if (!ready) ready = initDB();
   ready.then(() => next()).catch(e => {
-    ready = null;
-    console.error('initDB:', e);
+    ready = null; console.error('initDB:', e);
     res.status(500).json({ error: 'Error de base de datos: ' + e.message + ' (¿conectaste Postgres en Vercel, Storage?)' });
   });
 });
@@ -154,91 +230,229 @@ function auth(req, res, next) {
 
 app.post('/api/login', h(async (req, res) => {
   const { usuario, password } = req.body || {};
-  const { rows } = await sql`SELECT * FROM usuarios WHERE usuario = ${usuario} AND activo = 1`;
-  const u = rows[0];
-  if (!u || !bcrypt.compareSync(password || '', u.password_hash))
-    return res.status(401).json({ error: 'Credenciales incorrectas' });
+  if (!usuario || !password || typeof usuario !== 'string' || typeof password !== 'string') throw fail(400, 'Ingrese usuario y contraseña');
+  const k = lockKey(req, usuario);
+  if (estaBloqueado(k)) throw fail(429, 'Demasiados intentos fallidos. Intente de nuevo en 10 minutos.');
+  const u = (await sql`SELECT * FROM usuarios WHERE usuario = ${usuario.trim()} AND activo = 1`).rows[0];
+  if (!u || !bcrypt.compareSync(password, u.password_hash)) {
+    registrarFallo(k); await log({ id: u && u.id, nombre: usuario.trim() }, 'Inicio de sesión fallido');
+    throw fail(401, 'Credenciales incorrectas');
+  }
+  intentos.delete(k);
   const token = jwt.sign({ id: u.id, nombre: u.nombre, rol: u.rol }, JWT_SECRET, { expiresIn: '8h' });
+  await log(u, 'Inicio de sesión');
   res.json({ token, user: { id: u.id, nombre: u.nombre, rol: u.rol } });
 }));
 
+// ---------- Sensores IoT (sin sesión, con clave de dispositivo) ----------
+app.post('/api/iot/lectura', h(async (req, res) => {
+  if (!IOT_KEY) throw fail(503, 'La integración de sensores no está habilitada (falta IOT_API_KEY)');
+  const k = String(req.headers['x-api-key'] || ''), a = Buffer.from(k), b = Buffer.from(IOT_KEY);
+  if (a.length !== b.length || !crypto.timingSafeEqual(a, b)) throw fail(401, 'Clave de dispositivo inválida');
+  const { camion, temperatura } = req.body || {}, t = parseFloat(temperatura);
+  if (!/^[A-Za-z0-9._-]{2,20}$/.test(String(camion || ''))) throw fail(400, 'Identificador de camión inválido');
+  if (!isNum(t, -50, 60)) throw fail(400, 'Temperatura inválida');
+  const alerta = (t > 8 || t < 2) ? 1 : 0;
+  await sql`INSERT INTO cadena_frio (camion,temperatura,alerta,fecha,fuente) VALUES (${camion},${t},${alerta},${new Date().toISOString()},'Sensor')`;
+  if (alerta) await log({ nombre: 'Sensor ' + camion }, 'Alerta de temperatura', `${camion}: ${t} °C`);
+  res.json({ ok: true, alerta });
+}));
+
 // ---------- Configuración y tasa ----------
-app.get('/api/config', auth, h(async (req, res) => res.json({ metodos: METODOS, tasa: await tasaVigente() })));
+app.get('/api/config', auth, h(async (req, res) => res.json({ metodos: METODOS, tasa: await tasaVigente(), iot: !!IOT_KEY })));
 app.get('/api/tasa', auth, h(async (req, res) => res.json(await tasaVigente())));
 app.post('/api/tasa/actualizar', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
-  try { res.json(await actualizarTasa()); }
-  catch (e) { res.status(502).json({ error: 'No se pudo consultar la tasa BCV: ' + e.message + '. Puede fijarla manualmente.' }); }
+  try { const t = await actualizarTasa(); await log(req.user, 'Tasa BCV actualizada', t.tasa); res.json(t); }
+  catch (e) { throw fail(502, 'No se pudo consultar la tasa BCV: ' + e.message + '. Puede fijarla manualmente.'); }
 }));
 app.put('/api/tasa', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
   const t = parseFloat(req.body.tasa);
-  if (!(t > 0)) return res.status(400).json({ error: 'Tasa inválida' });
-  await setConfig('tasa_bcv', t);
-  await setConfig('tasa_fecha', new Date().toISOString());
-  await setConfig('tasa_fuente', 'Manual');
+  if (!(t > 0 && t < 1e7)) throw fail(400, 'Tasa inválida (debe ser mayor que 0)');
+  await setConfig('tasa_bcv', t); await setConfig('tasa_fecha', new Date().toISOString()); await setConfig('tasa_fuente', 'Manual');
+  await log(req.user, 'Tasa fijada manualmente', t);
   res.json(await leerTasa());
 }));
 
-// ---------- Catálogos ----------
+// ---------- Zonas, productos y promociones ----------
 app.get('/api/zonas', auth, h(async (req, res) => res.json((await sql`SELECT * FROM zonas ORDER BY id`).rows)));
-app.get('/api/productos', auth, h(async (req, res) => res.json((await sql`SELECT * FROM productos ORDER BY id`).rows)));
-app.get('/api/promociones', auth, h(async (req, res) =>
-  res.json((await sql`SELECT pr.*, p.nombre AS producto FROM promociones pr JOIN productos p ON pr.producto_id=p.id WHERE pr.activa=1`).rows)));
+
+async function listarProductos(todos) {
+  const d = hoy(), lim = addDias(d, 30);
+  return (await sql`SELECT p.*, COALESCE(s.stock,0)::int AS stock, COALESCE(s.corto,0)::int AS qty_corto, COALESCE(s.vencido,0)::int AS vencido, s.prox_venc
+    FROM productos p LEFT JOIN (
+      SELECT producto_id,
+        SUM(CASE WHEN fecha_vencimiento IS NULL OR fecha_vencimiento >= ${d} THEN cantidad_actual ELSE 0 END) AS stock,
+        SUM(CASE WHEN fecha_vencimiento IS NOT NULL AND fecha_vencimiento >= ${d} AND fecha_vencimiento <= ${lim} THEN cantidad_actual ELSE 0 END) AS corto,
+        SUM(CASE WHEN fecha_vencimiento IS NOT NULL AND fecha_vencimiento < ${d} THEN cantidad_actual ELSE 0 END) AS vencido,
+        MIN(CASE WHEN cantidad_actual > 0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento >= ${d}) THEN fecha_vencimiento END) AS prox_venc
+      FROM lotes GROUP BY producto_id) s ON s.producto_id = p.id
+    WHERE (${todos} OR p.activo = 1) ORDER BY p.id`).rows;
+}
+app.get('/api/productos', auth, h(async (req, res) => res.json(await listarProductos(req.query.todos === '1' && ['Gerente', 'Supervisor'].includes(req.user.rol)))));
+
+function validarProducto(d) {
+  if (!/^[A-Za-z0-9._-]{2,20}$/.test(String(d.codigo || '').trim())) return 'Código inválido (2 a 20 caracteres: letras, números, punto o guion)';
+  const n = String(d.nombre || '').trim(); if (n.length < 2 || n.length > 120) return 'El nombre debe tener entre 2 y 120 caracteres';
+  if (!isNum(d.precio, 0.01, 1e6)) return 'El precio en USD debe ser mayor que 0';
+  if (d.retornable && !['Cesta', 'Botella'].includes(d.tipo_envase)) return 'Indique el tipo de envase retornable (Cesta o Botella)';
+  if (!isNum(d.peso_kg, 0.01, 10000)) return 'Peso inválido (kg)';
+  if (!isInt(d.stock_minimo == null ? 0 : d.stock_minimo, 0, 1e6)) return 'Stock mínimo inválido';
+  return null;
+}
+app.post('/api/productos', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const d = req.body || {}, err = validarProducto(d); if (err) throw fail(400, err);
+  try {
+    const r = await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,peso_kg,stock_minimo) VALUES (${String(d.codigo).trim().toUpperCase()},${String(d.nombre).trim()},${+d.precio},${d.retornable ? 1 : 0},${d.retornable ? d.tipo_envase : null},${+d.peso_kg},${+d.stock_minimo || 0}) RETURNING id`;
+    await log(req.user, 'Producto creado', d.codigo + ' ' + d.nombre); res.json({ id: r.rows[0].id });
+  } catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe un producto con ese código'); throw e; }
+}));
+app.put('/api/productos/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const d = req.body || {}, id = +req.params.id, err = validarProducto(d); if (err) throw fail(400, err);
+  if (!(await sql`SELECT 1 FROM productos WHERE id=${id}`).rows.length) throw fail(404, 'Producto no encontrado');
+  try {
+    await sql`UPDATE productos SET codigo=${String(d.codigo).trim().toUpperCase()}, nombre=${String(d.nombre).trim()}, precio=${+d.precio}, retornable=${d.retornable ? 1 : 0}, tipo_envase=${d.retornable ? d.tipo_envase : null}, peso_kg=${+d.peso_kg}, stock_minimo=${+d.stock_minimo || 0}, activo=${d.activo === false || d.activo === 0 ? 0 : 1} WHERE id=${id}`;
+  } catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe otro producto con ese código'); throw e; }
+  await log(req.user, 'Producto modificado', d.codigo + ' ' + d.nombre + ' ' + d.precio + ' USD'); res.json({ ok: true });
+}));
+
+app.get('/api/promociones', auth, h(async (req, res) => {
+  const todas = req.query.todas === '1' && ['Gerente', 'Supervisor'].includes(req.user.rol);
+  res.json((await sql`SELECT pr.*, p.nombre AS producto FROM promociones pr JOIN productos p ON pr.producto_id=p.id WHERE (${todas} OR pr.activa=1) ORDER BY pr.id`).rows);
+}));
+function validarPromo(d) {
+  const n = String(d.nombre || '').trim(); if (n.length < 3 || n.length > 120) return 'El nombre debe tener entre 3 y 120 caracteres';
+  if (!isInt(d.producto_id, 1, 1e9)) return 'Seleccione un producto';
+  if (!['Volumen', 'ShortDate'].includes(d.tipo)) return 'Tipo de promoción no válido';
+  if (d.tipo === 'Volumen' && !isInt(d.min_cantidad, 1, 9999)) return 'La cantidad mínima debe estar entre 1 y 9999';
+  if (!isNum(d.descuento_pct, 1, 90)) return 'El descuento debe estar entre 1% y 90%';
+  return null;
+}
+app.post('/api/promociones', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const d = req.body || {}, err = validarPromo(d); if (err) throw fail(400, err);
+  const r = await sql`INSERT INTO promociones (nombre,producto_id,tipo,min_cantidad,descuento_pct,activa) VALUES (${String(d.nombre).trim()},${+d.producto_id},${d.tipo},${d.tipo === 'Volumen' ? +d.min_cantidad : 0},${+d.descuento_pct},${d.activa === false ? 0 : 1}) RETURNING id`;
+  await log(req.user, 'Promoción creada', d.nombre); res.json({ id: r.rows[0].id });
+}));
+app.put('/api/promociones/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const d = req.body || {}, id = +req.params.id, err = validarPromo(d); if (err) throw fail(400, err);
+  await sql`UPDATE promociones SET nombre=${String(d.nombre).trim()}, producto_id=${+d.producto_id}, tipo=${d.tipo}, min_cantidad=${d.tipo === 'Volumen' ? +d.min_cantidad : 0}, descuento_pct=${+d.descuento_pct}, activa=${d.activa === false ? 0 : 1} WHERE id=${id}`;
+  await log(req.user, 'Promoción modificada', d.nombre); res.json({ ok: true });
+}));
+app.delete('/api/promociones/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  await sql`DELETE FROM promociones WHERE id=${+req.params.id}`; await log(req.user, 'Promoción eliminada', 'id ' + req.params.id); res.json({ ok: true });
+}));
 
 // ---------- PDVs ----------
 app.get('/api/pdvs', auth, h(async (req, res) => {
-  const { rows } = await sql`SELECT p.*, z.nombre AS zona_nombre, COALESCE(z.color,'#64748B') AS zona_color
-    FROM pdvs p LEFT JOIN zonas z ON p.zona_id = z.id ORDER BY p.id`;
-  res.json(rows);
+  res.json((await sql`SELECT p.*, z.nombre AS zona_nombre, COALESCE(z.color,'#64748B') AS zona_color FROM pdvs p LEFT JOIN zonas z ON p.zona_id = z.id ORDER BY p.id`).rows);
 }));
-
 app.post('/api/pdvs', auth, h(async (req, res) => {
-  const d = req.body;
-  if (!d.codigo || !d.nombre) return res.status(400).json({ error: 'Código y nombre son obligatorios' });
+  const d = req.body || {}, err = validarPDV(d); if (err) throw fail(400, err);
+  d.codigo = String(d.codigo).trim().toUpperCase(); d.nombre = String(d.nombre).trim();
   try {
     const r = await sql`INSERT INTO pdvs (codigo,razon_social,nombre,direccion,zona_id,lat,lng,geofence_radio_m,saldo_cestas,saldo_botellas,limite_cestas,limite_botellas,limite_credito,canal)
-      VALUES (${d.codigo},${d.razon_social},${d.nombre},${d.direccion},${d.zona_id},${d.lat},${d.lng},${d.geofence_radio_m},${d.saldo_cestas},${d.saldo_botellas},${d.limite_cestas},${d.limite_botellas},${d.limite_credito || 0},${d.canal}) RETURNING id`;
-    res.json({ id: r.rows[0].id });
-  } catch (e) {
-    if (String(e.message).includes('duplicate')) return res.status(400).json({ error: 'Ya existe un PDV con ese código' });
-    throw e;
-  }
+      VALUES (${d.codigo},${d.razon_social || null},${d.nombre},${d.direccion || null},${+d.zona_id},${+d.lat},${+d.lng},${+d.geofence_radio_m},${+d.saldo_cestas},${+d.saldo_botellas},${+d.limite_cestas},${+d.limite_botellas},${+d.limite_credito || 0},${d.canal}) RETURNING id`;
+    await log(req.user, 'PDV creado', d.codigo + ' ' + d.nombre); res.json({ id: r.rows[0].id });
+  } catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe un PDV con ese código'); throw e; }
 }));
-
 app.put('/api/pdvs/:id', auth, h(async (req, res) => {
-  const d = req.body, id = +req.params.id;
-  await sql`UPDATE pdvs SET codigo=${d.codigo}, razon_social=${d.razon_social}, nombre=${d.nombre}, direccion=${d.direccion}, zona_id=${d.zona_id},
-    lat=${d.lat}, lng=${d.lng}, geofence_radio_m=${d.geofence_radio_m}, saldo_cestas=${d.saldo_cestas}, saldo_botellas=${d.saldo_botellas},
-    limite_cestas=${d.limite_cestas}, limite_botellas=${d.limite_botellas}, limite_credito=${d.limite_credito || 0}, canal=${d.canal} WHERE id=${id}`;
-  res.json({ ok: true });
+  const d = req.body || {}, id = +req.params.id, err = validarPDV(d); if (err) throw fail(400, err);
+  if (!(await sql`SELECT 1 FROM pdvs WHERE id=${id}`).rows.length) throw fail(404, 'PDV no encontrado');
+  d.codigo = String(d.codigo).trim().toUpperCase(); d.nombre = String(d.nombre).trim();
+  try {
+    await sql`UPDATE pdvs SET codigo=${d.codigo}, razon_social=${d.razon_social || null}, nombre=${d.nombre}, direccion=${d.direccion || null}, zona_id=${+d.zona_id},
+      lat=${+d.lat}, lng=${+d.lng}, geofence_radio_m=${+d.geofence_radio_m}, saldo_cestas=${+d.saldo_cestas}, saldo_botellas=${+d.saldo_botellas},
+      limite_cestas=${+d.limite_cestas}, limite_botellas=${+d.limite_botellas}, limite_credito=${+d.limite_credito || 0}, canal=${d.canal} WHERE id=${id}`;
+  } catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe otro PDV con ese código'); throw e; }
+  await log(req.user, 'PDV modificado', d.codigo + ' ' + d.nombre); res.json({ ok: true });
 }));
-
 app.delete('/api/pdvs/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
-  await sql`DELETE FROM pdvs WHERE id=${+req.params.id}`;
-  res.json({ ok: true });
+  const id = +req.params.id;
+  const u = (await sql`SELECT (SELECT COUNT(*) FROM pedidos WHERE pdv_id=${id}) AS p, (SELECT COUNT(*) FROM visitas WHERE pdv_id=${id}) AS v, (SELECT COUNT(*) FROM cobranzas WHERE pdv_id=${id}) AS c`).rows[0];
+  if (+u.p || +u.v || +u.c) throw fail(409, 'El PDV tiene historial (pedidos, visitas o cobranzas) y no puede eliminarse');
+  await sql`DELETE FROM activos_comodato WHERE pdv_id=${id}`; await sql`DELETE FROM pdvs WHERE id=${id}`;
+  await log(req.user, 'PDV eliminado', 'id ' + id); res.json({ ok: true });
 }));
 
 // ---------- Visitas / Geofencing ----------
 app.post('/api/visitas/checkin', auth, h(async (req, res) => {
-  const { pdv_id, lat, lng } = req.body;
+  const { pdv_id, lat, lng, idem } = req.body || {};
+  if (idem) { const ex = (await sql`SELECT id, distancia_m FROM visitas WHERE idem=${String(idem)}`).rows[0]; if (ex) return res.json({ id: ex.id, distancia_m: Math.round(ex.distancia_m), duplicado: true }); }
   const pdv = (await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`).rows[0];
-  if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
+  if (!pdv) throw fail(404, 'PDV no encontrado');
+  if (!isNum(lat, -90, 90) || !isNum(lng, -180, 180)) throw fail(400, 'Coordenadas inválidas');
   const dist = hav(lat, lng, pdv.lat, pdv.lng);
-  if (dist > pdv.geofence_radio_m)
-    return res.status(400).json({ error: 'FUERA DE GEOFENCE', mensaje: `Está a ${Math.round(dist)} m (máximo ${pdv.geofence_radio_m} m).` });
-  const r = await sql`INSERT INTO visitas (pdv_id,usuario_id,fecha_checkin,dia,lat,lng,distancia_m) VALUES (${pdv_id},${req.user.id},${new Date().toISOString()},${hoy()},${lat},${lng},${dist}) RETURNING id`;
+  if (dist > pdv.geofence_radio_m) throw fail(400, `Está a ${Math.round(dist)} m (máximo ${pdv.geofence_radio_m} m).`);
+  const f = fechaCliente(req.body.fecha_cliente);
+  const r = await sql`INSERT INTO visitas (pdv_id,usuario_id,fecha_checkin,dia,lat,lng,distancia_m,idem) VALUES (${pdv_id},${req.user.id},${f.toISOString()},${diaDe(f)},${lat},${lng},${dist},${idem ? String(idem) : null}) RETURNING id`;
   res.json({ id: r.rows[0].id, distancia_m: Math.round(dist) });
 }));
-
 app.get('/api/visitas', auth, h(async (req, res) =>
-  res.json((await sql`SELECT v.*, p.nombre AS pdv_nombre, COALESCE(u.nombre,'-') AS vendedor
-    FROM visitas v JOIN pdvs p ON v.pdv_id=p.id LEFT JOIN usuarios u ON v.usuario_id=u.id ORDER BY v.id DESC LIMIT 50`).rows)));
+  res.json((await sql`SELECT v.*, p.nombre AS pdv_nombre, COALESCE(u.nombre,'-') AS vendedor FROM visitas v JOIN pdvs p ON v.pdv_id=p.id LEFT JOIN usuarios u ON v.usuario_id=u.id ORDER BY v.id DESC LIMIT 50`).rows)));
 
-// ---------- Smart Order ----------
+// ---------- Inventario: lotes, FIFO y vencimientos ----------
+// Descuenta del stock por FIFO (primero lo que vence antes). Si no alcanza, revierte y falla.
+async function consumirFIFO(prodId, cant, d, incluirVencidos) {
+  const lotes = (incluirVencidos
+    ? await sql`SELECT id, cantidad_actual, fecha_vencimiento FROM lotes WHERE producto_id=${prodId} AND cantidad_actual>0 ORDER BY fecha_vencimiento ASC NULLS LAST, id`
+    : await sql`SELECT id, cantidad_actual, fecha_vencimiento FROM lotes WHERE producto_id=${prodId} AND cantidad_actual>0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=${d}) ORDER BY fecha_vencimiento ASC NULLS LAST, id`).rows;
+  let falta = cant; const usados = [];
+  for (const l of lotes) {
+    if (falta <= 0) break;
+    const q = Math.min(l.cantidad_actual, falta);
+    const r = await sql`UPDATE lotes SET cantidad_actual = cantidad_actual - ${q} WHERE id=${l.id} AND cantidad_actual >= ${q} RETURNING id`;
+    if (!r.rows.length) continue;           // otro proceso tomó ese lote: se intenta con el siguiente
+    usados.push({ lote_id: l.id, cantidad: q }); falta -= q;
+  }
+  if (falta > 0) { await devolverLotes(usados); throw fail(409, 'Stock insuficiente'); }
+  return usados;
+}
+const devolverLotes = async us => { for (const u of us) await sql`UPDATE lotes SET cantidad_actual = cantidad_actual + ${u.cantidad} WHERE id=${u.lote_id}`; };
+const movStock = (prodId, loteId, tipo, cant, ref, uid) =>
+  sql`INSERT INTO movimientos_stock (producto_id,lote_id,tipo,cantidad,referencia,usuario_id,fecha) VALUES (${prodId},${loteId},${tipo},${cant},${String(ref || '').slice(0, 120)},${uid || null},${new Date().toISOString()})`;
+
+app.get('/api/inventario', auth, h(async (req, res) => {
+  const productos = await listarProductos(true);
+  const lotes = (await sql`SELECT l.*, p.nombre AS producto FROM lotes l JOIN productos p ON p.id=l.producto_id WHERE l.cantidad_actual>0 ORDER BY l.fecha_vencimiento ASC NULLS LAST, l.id LIMIT 300`).rows;
+  res.json({ productos, lotes, hoy: hoy(), limite: addDias(hoy(), 30) });
+}));
+app.get('/api/inventario/movimientos', auth, rol('Gerente', 'Supervisor'), h(async (req, res) =>
+  res.json((await sql`SELECT m.*, p.nombre AS producto, l.codigo_lote, COALESCE(u.nombre,'-') AS usuario FROM movimientos_stock m JOIN productos p ON p.id=m.producto_id LEFT JOIN lotes l ON l.id=m.lote_id LEFT JOIN usuarios u ON u.id=m.usuario_id ORDER BY m.id DESC LIMIT 100`).rows)));
+app.post('/api/inventario/entrada', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const { producto_id, codigo_lote, fecha_vencimiento, cantidad } = req.body || {};
+  if (!isInt(producto_id, 1, 1e9)) throw fail(400, 'Seleccione un producto');
+  if (!isInt(cantidad, 1, 1e6)) throw fail(400, 'Cantidad inválida (entero entre 1 y 1.000.000)');
+  const cod = String(codigo_lote || '').trim(); if (cod.length < 1 || cod.length > 30) throw fail(400, 'Código de lote obligatorio (máximo 30 caracteres)');
+  let venc = null;
+  if (fecha_vencimiento) { if (!esFecha(fecha_vencimiento)) throw fail(400, 'Fecha de vencimiento inválida'); if (fecha_vencimiento < hoy()) throw fail(400, 'La fecha de vencimiento ya pasó'); venc = fecha_vencimiento; }
+  const p = (await sql`SELECT nombre FROM productos WHERE id=${+producto_id}`).rows[0]; if (!p) throw fail(404, 'Producto no encontrado');
+  const l = (await sql`INSERT INTO lotes (producto_id,codigo_lote,fecha_vencimiento,cantidad_inicial,cantidad_actual,fecha_ingreso,usuario_id) VALUES (${+producto_id},${cod},${venc},${+cantidad},${+cantidad},${new Date().toISOString()},${req.user.id}) RETURNING id`).rows[0];
+  await movStock(+producto_id, l.id, 'Entrada', +cantidad, 'Lote ' + cod, req.user.id);
+  await log(req.user, 'Entrada de inventario', `${p.nombre} lote ${cod} x${cantidad}`); res.json({ id: l.id });
+}));
+app.post('/api/inventario/ajuste', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const { lote_id, cantidad_nueva, motivo } = req.body || {};
+  if (!isInt(lote_id, 1, 1e9) || !isInt(cantidad_nueva, 0, 1e6)) throw fail(400, 'Datos de ajuste inválidos');
+  if (String(motivo || '').trim().length < 3) throw fail(400, 'Indique el motivo del ajuste');
+  const l = (await sql`SELECT * FROM lotes WHERE id=${+lote_id}`).rows[0]; if (!l) throw fail(404, 'Lote no encontrado');
+  const delta = +cantidad_nueva - l.cantidad_actual; if (delta === 0) throw fail(400, 'La cantidad no cambia');
+  await sql`UPDATE lotes SET cantidad_actual=${+cantidad_nueva} WHERE id=${l.id}`;
+  await movStock(l.producto_id, l.id, 'Ajuste', delta, String(motivo).trim(), req.user.id);
+  await log(req.user, 'Ajuste de inventario', `lote ${l.codigo_lote}: ${l.cantidad_actual} a ${cantidad_nueva} (${String(motivo).trim()})`); res.json({ ok: true });
+}));
+
+// ---------- Venta sugerida ----------
 app.get('/api/smart-order/:id', auth, h(async (req, res) => {
-  const { rows } = await sql`SELECT pr.nombre, ROUND(AVG(pi.cantidad))::int AS cantidad_sugerida, COUNT(*) AS veces
-    FROM pedido_items pi JOIN pedidos pe ON pi.pedido_id=pe.id JOIN productos pr ON pi.producto_id=pr.id
-    WHERE pe.pdv_id=${+req.params.id} GROUP BY pr.nombre ORDER BY veces DESC LIMIT 5`;
-  res.json(rows);
+  const id = +req.params.id, prods = await listarProductos(false), byId = Object.fromEntries(prods.map(p => [p.id, p]));
+  const hist = (await sql`SELECT pi.producto_id, pi.cantidad, pe.id AS pedido FROM pedido_items pi JOIN pedidos pe ON pe.id=pi.pedido_id WHERE pe.pdv_id=${id} ORDER BY pe.id DESC LIMIT 80`).rows;
+  const orden = [...new Set(hist.map(x => x.pedido))], acc = {};
+  for (const x of hist) { const w = 1 / (1 + orden.indexOf(x.pedido)); const a = acc[x.producto_id] || (acc[x.producto_id] = { sw: 0, sq: 0, n: 0 }); a.sw += w; a.sq += w * x.cantidad; a.n++; }
+  const out = [];
+  for (const [pid, a] of Object.entries(acc)) { const p = byId[pid]; if (p && p.stock > 0) out.push({ producto_id: +pid, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, Math.round(a.sq / a.sw))), origen: 'historial', frecuencia: a.n, por_vencer: p.qty_corto > 0, stock: p.stock }); }
+  const canal = (await sql`SELECT pi.producto_id, ROUND(AVG(pi.cantidad))::int AS q, COUNT(*)::int AS n FROM pedido_items pi JOIN pedidos pe ON pe.id=pi.pedido_id JOIN pdvs pd ON pd.id=pe.pdv_id
+    WHERE pd.canal=(SELECT canal FROM pdvs WHERE id=${id}) AND pe.pdv_id<>${id} GROUP BY pi.producto_id ORDER BY n DESC LIMIT 5`).rows;
+  for (const c of canal) { const p = byId[c.producto_id]; if (p && p.stock > 0 && !acc[c.producto_id]) out.push({ producto_id: c.producto_id, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, c.q)), origen: 'canal', frecuencia: c.n, por_vencer: p.qty_corto > 0, stock: p.stock }); }
+  out.sort((a, b) => (b.por_vencer - a.por_vencer) || (b.frecuencia - a.frecuencia));
+  res.json(out.slice(0, 6));
 }));
 
 // ---------- Cuentas por cobrar ----------
@@ -248,102 +462,147 @@ async function saldoCxC(pdvId) {
     - COALESCE((SELECT SUM(c.monto_usd) FROM cobranzas c WHERE c.pdv_id=${pdvId}),0) AS s`;
   return parseFloat(r.rows[0].s) || 0;
 }
-
-// Valida y normaliza una lista de pagos. Devuelve [{metodo,moneda,monto,monto_usd,referencia}]
 function normalizarPagos(pagos, tasa) {
-  if (!Array.isArray(pagos) || !pagos.length) throw new Error('Debe registrar al menos un pago');
+  if (!Array.isArray(pagos) || !pagos.length) throw fail(400, 'Debe registrar al menos un pago');
   return pagos.map(p => {
-    const m = MET[p.metodo];
-    if (!m) throw new Error('Método de pago no válido: ' + p.metodo);
-    const monto = parseFloat(p.monto);
-    if (!(monto > 0)) throw new Error('Monto inválido en ' + p.metodo);
-    const ref = String(p.referencia || '').trim();
-    if (m.ref && !ref) throw new Error('El método ' + p.metodo + ' requiere número de referencia');
+    const m = MET[p.metodo]; if (!m) throw fail(400, 'Método de pago no válido: ' + p.metodo);
+    const monto = parseFloat(p.monto); if (!(monto > 0)) throw fail(400, 'Monto inválido en ' + p.metodo);
+    const ref = String(p.referencia || '').trim().slice(0, 30);
+    if (m.ref && ref.length < 4) throw fail(400, 'El método ' + p.metodo + ' requiere referencia (mínimo 4 caracteres)');
     return { metodo: m.nombre, moneda: m.moneda, monto, monto_usd: m.moneda === 'USD' ? monto : monto / tasa, referencia: ref || null };
   });
 }
 
 // ---------- Pedidos ----------
 app.post('/api/pedidos', auth, h(async (req, res) => {
-  const { pdv_id, items, pagos } = req.body;
-  if (!Array.isArray(items) || !items.length) return res.status(400).json({ error: 'Pedido vacío' });
-  const { tasa } = await tasaVigente();
-  if (!(tasa > 0)) return res.status(400).json({ error: 'No hay tasa BCV configurada. Actualícela o fíjela manualmente.' });
-
-  const pdv = (await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`).rows[0];
-  if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
-  if (pdv.saldo_cestas > pdv.limite_cestas || pdv.saldo_botellas > pdv.limite_botellas)
-    return res.status(400).json({ error: 'BLOQUEADO', mensaje: 'Cliente bloqueado: excede el límite de envases retornables' });
-
-  const promos = (await sql`SELECT * FROM promociones WHERE activa=1`).rows;
-  let subtotal = 0, descuento = 0;
-  const lineas = [];
-  for (const it of items) {
-    const p = (await sql`SELECT * FROM productos WHERE id = ${it.producto_id}`).rows[0];
-    if (!p) continue;
-    const cant = parseInt(it.cantidad) || 0;
-    if (cant <= 0) continue;
-    const sub = p.precio * cant;
-    let pct = 0;
-    const pv = promos.find(x => x.producto_id === p.id && x.tipo === 'Volumen' && cant >= x.min_cantidad);
-    if (pv) pct += pv.descuento_pct;
-    if (p.fecha_vencimiento) {
-      const dias = Math.ceil((new Date(p.fecha_vencimiento) - new Date()) / 86400000);
-      if (dias >= 0 && dias <= 30) {
-        const ps = promos.find(x => x.producto_id === p.id && x.tipo === 'ShortDate');
-        if (ps) pct += ps.descuento_pct;
-      }
-    }
-    subtotal += sub; descuento += sub * pct / 100;
-    lineas.push({ p, cant, pct, sub });
+  const body = req.body || {}, { pdv_id, items, pagos, idem } = body;
+  if (idem) {
+    const ex = (await sql`SELECT id, subtotal, descuento, total, total_bs, tasa FROM pedidos WHERE idem=${String(idem)}`).rows[0];
+    if (ex) return res.json({ ...ex, pagos: [], duplicado: true });
   }
-  if (!lineas.length) return res.status(400).json({ error: 'Sin productos válidos' });
+  if (!Array.isArray(items) || !items.length) throw fail(400, 'Pedido vacío');
+  const agg = new Map();
+  for (const it of items) {
+    if (!isInt(it.producto_id, 1, 1e9) || !isInt(it.cantidad, 1, 9999)) throw fail(400, 'Cantidad inválida (entero entre 1 y 9999)');
+    agg.set(+it.producto_id, (agg.get(+it.producto_id) || 0) + +it.cantidad);
+  }
+  for (const q of agg.values()) if (q > 9999) throw fail(400, 'La cantidad total por producto no puede superar 9999');
+  const tServ = (await tasaVigente()).tasa;
+  if (!(tServ > 0)) throw fail(400, 'No hay tasa BCV configurada. Actualícela o fíjela manualmente.');
+  const tasa = tasaOp(body, tServ);
+  const pdv = (await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`).rows[0];
+  if (!pdv) throw fail(404, 'PDV no encontrado');
+  if (pdv.saldo_cestas > pdv.limite_cestas || pdv.saldo_botellas > pdv.limite_botellas) throw fail(400, 'Cliente bloqueado: excede el límite de envases retornables');
 
+  const fcli = fechaCliente(body.fecha_cliente), dia = diaDe(fcli), hoyD = hoy(), lim = addDias(hoyD, 30);
+  const promos = (await sql`SELECT * FROM promociones WHERE activa=1`).rows;
+  let subtotal = 0, descuento = 0; const lineas = [];
+  for (const [pid, cant] of agg) {
+    const p = (await sql`SELECT * FROM productos WHERE id=${pid} AND activo=1`).rows[0]; if (!p) throw fail(400, 'Producto no disponible');
+    const st = (await sql`SELECT COALESCE(SUM(cantidad_actual),0)::int AS stock,
+      COALESCE(SUM(CASE WHEN fecha_vencimiento IS NOT NULL AND fecha_vencimiento<=${lim} THEN cantidad_actual ELSE 0 END),0)::int AS corto
+      FROM lotes WHERE producto_id=${pid} AND cantidad_actual>0 AND (fecha_vencimiento IS NULL OR fecha_vencimiento>=${hoyD})`).rows[0];
+    if (cant > st.stock) throw fail(409, `Stock insuficiente de ${p.nombre}: disponible ${st.stock}, solicitado ${cant}`);
+    const sub = p.precio * cant;
+    const pv = promos.find(x => x.producto_id === p.id && x.tipo === 'Volumen' && cant >= x.min_cantidad);
+    const ps = promos.find(x => x.producto_id === p.id && x.tipo === 'ShortDate');
+    const desc = Math.min(sub, sub * (pv ? pv.descuento_pct : 0) / 100 + (ps ? Math.min(cant, st.corto) * p.precio * ps.descuento_pct / 100 : 0));
+    lineas.push({ p, cant, sub, desc, pct: sub ? desc / sub * 100 : 0 });
+    subtotal += sub; descuento += desc;
+  }
   subtotal = r2(subtotal); descuento = r2(descuento);
-  const total = r2(subtotal - descuento);
-  const totalBs = r2(total * tasa);
+  const total = r2(subtotal - descuento), totalBs = r2(total * tasa);
 
-  let lista;
-  try { lista = normalizarPagos(pagos, tasa); } catch (e) { return res.status(400).json({ error: e.message }); }
+  const lista = normalizarPagos(pagos, tasa);
   const pagado = lista.reduce((s, x) => s + x.monto_usd, 0);
-  if (Math.abs(pagado - total) > 0.02)
-    return res.status(400).json({ error: `Los pagos (${r2(pagado)} USD) no coinciden con el total del pedido (${total} USD)` });
-
+  if (Math.abs(pagado - total) > 0.02) throw fail(400, `Los pagos (${r2(pagado)} USD) no coinciden con el total del pedido (${total} USD)`);
   const credito = lista.filter(x => x.metodo === 'Crédito').reduce((s, x) => s + x.monto_usd, 0);
   if (credito > 0) {
-    const saldo = await saldoCxC(pdv_id);
-    const disp = r2((pdv.limite_credito || 0) - saldo);
-    if (credito > disp + 0.001)
-      return res.status(400).json({ error: 'LÍMITE DE CRÉDITO', mensaje: `Crédito solicitado ${r2(credito)} USD; disponible ${Math.max(0, disp)} USD (saldo pendiente ${r2(saldo)} USD, límite ${pdv.limite_credito || 0} USD)` });
+    const saldo = await saldoCxC(pdv_id), disp = r2((pdv.limite_credito || 0) - saldo);
+    if (credito > disp + 0.001) throw fail(400, `Crédito solicitado ${r2(credito)} USD; disponible ${Math.max(0, disp)} USD (saldo pendiente ${r2(saldo)} USD, límite ${pdv.limite_credito || 0} USD)`);
   }
 
   const resumen = [...new Set(lista.map(x => x.metodo))].join(' + ');
-  const pid = (await sql`INSERT INTO pedidos (pdv_id,usuario_id,fecha,dia,subtotal,descuento,total,total_bs,tasa,metodo_pago)
-    VALUES (${pdv_id},${req.user.id},${new Date().toISOString()},${hoy()},${subtotal},${descuento},${total},${totalBs},${tasa},${resumen}) RETURNING id`).rows[0].id;
+  const pid = (await sql`INSERT INTO pedidos (pdv_id,usuario_id,fecha,dia,subtotal,descuento,total,total_bs,tasa,metodo_pago,fecha_prometida,idem)
+    VALUES (${pdv_id},${req.user.id},${fcli.toISOString()},${dia},${subtotal},${descuento},${total},${totalBs},${tasa},${resumen},${addDias(dia, 1)},${idem ? String(idem) : null}) RETURNING id`).rows[0].id;
 
-  for (const l of lineas) {
-    await sql`INSERT INTO pedido_items (pedido_id,producto_id,cantidad,precio_unitario,descuento_pct,subtotal)
-      VALUES (${pid},${l.p.id},${l.cant},${l.p.precio},${l.pct},${r2(l.sub * (1 - l.pct / 100))})`;
-    if (l.p.retornable && l.p.tipo_envase === 'Cesta')
-      await sql`UPDATE pdvs SET saldo_cestas = saldo_cestas + ${l.cant} WHERE id = ${pdv_id}`;
-    if (l.p.retornable && l.p.tipo_envase === 'Botella')
-      await sql`UPDATE pdvs SET saldo_botellas = saldo_botellas + ${l.cant} WHERE id = ${pdv_id}`;
+  // Reserva de stock (FIFO). Si falla un producto, se revierte todo lo reservado y el pedido.
+  const asign = [];
+  try { for (const l of lineas) asign.push({ l, us: await consumirFIFO(l.p.id, l.cant, hoyD, false) }); }
+  catch (e) {
+    for (const a of asign) await devolverLotes(a.us);
+    await sql`DELETE FROM pedidos WHERE id=${pid}`;
+    throw fail(409, 'No se pudo reservar el stock (otro pedido lo tomó). Intente de nuevo.');
   }
-  for (const g of lista)
-    await sql`INSERT INTO pedido_pagos (pedido_id,metodo,moneda,monto,monto_usd,referencia) VALUES (${pid},${g.metodo},${g.moneda},${g.monto},${r2(g.monto_usd)},${g.referencia})`;
-
+  for (const { l, us } of asign) {
+    await sql`INSERT INTO pedido_items (pedido_id,producto_id,cantidad,precio_unitario,descuento_pct,subtotal) VALUES (${pid},${l.p.id},${l.cant},${l.p.precio},${r2(l.pct)},${r2(l.sub - l.desc)})`;
+    for (const u of us) await movStock(l.p.id, u.lote_id, 'Venta', -u.cantidad, 'Pedido ' + pid, req.user.id);
+    if (l.p.retornable && ['Cesta', 'Botella'].includes(l.p.tipo_envase)) {
+      if (l.p.tipo_envase === 'Cesta') await sql`UPDATE pdvs SET saldo_cestas = saldo_cestas + ${l.cant} WHERE id = ${pdv_id}`;
+      else await sql`UPDATE pdvs SET saldo_botellas = saldo_botellas + ${l.cant} WHERE id = ${pdv_id}`;
+      await sql`INSERT INTO control_retornables (pdv_id,pedido_id,tipo,entregados,recibidos,fecha,dia,usuario_id) VALUES (${pdv_id},${pid},${l.p.tipo_envase},${l.cant},0,${fcli.toISOString()},${dia},${req.user.id})`;
+    }
+  }
+  for (const g of lista) await sql`INSERT INTO pedido_pagos (pedido_id,metodo,moneda,monto,monto_usd,referencia) VALUES (${pid},${g.metodo},${g.moneda},${g.monto},${r2(g.monto_usd)},${g.referencia})`;
+  await log(req.user, 'Pedido registrado', `#${pid} ${pdv.nombre} ${total} USD (${resumen})`);
   res.json({ id: pid, subtotal, descuento, total, total_bs: totalBs, tasa, pagos: lista });
 }));
 
 app.get('/api/pedidos', auth, h(async (req, res) => {
-  const pedidos = (await sql`SELECT pe.*, p.nombre AS pdv_nombre, COALESCE(u.nombre,'-') AS vendedor
-    FROM pedidos pe JOIN pdvs p ON pe.pdv_id=p.id LEFT JOIN usuarios u ON pe.usuario_id=u.id
-    WHERE pe.dia = ${hoy()} ORDER BY pe.id DESC LIMIT 100`).rows;
+  const solo = req.user.rol === 'Preventista' ? req.user.id : null;
+  const pedidos = (await sql`SELECT pe.*, p.nombre AS pdv_nombre, COALESCE(u.nombre,'-') AS vendedor FROM pedidos pe JOIN pdvs p ON pe.pdv_id=p.id LEFT JOIN usuarios u ON pe.usuario_id=u.id
+    WHERE pe.dia = ${hoy()} AND (${solo}::int IS NULL OR pe.usuario_id=${solo}::int) ORDER BY pe.id DESC LIMIT 100`).rows;
   for (const pe of pedidos) {
     pe.items = (await sql`SELECT pi.*, pr.nombre FROM pedido_items pi JOIN productos pr ON pi.producto_id=pr.id WHERE pi.pedido_id=${pe.id}`).rows;
     pe.pagos = (await sql`SELECT metodo, moneda, monto, monto_usd, referencia FROM pedido_pagos WHERE pedido_id=${pe.id}`).rows;
   }
   res.json(pedidos);
+}));
+
+// ---------- Entregas y OTIF ----------
+app.get('/api/entregas', auth, h(async (req, res) => {
+  const cols = async rows => { for (const pe of rows) pe.items = (await sql`SELECT pi.*, pr.nombre, pr.peso_kg FROM pedido_items pi JOIN productos pr ON pi.producto_id=pr.id WHERE pi.pedido_id=${pe.id} ORDER BY pi.id`).rows; return rows; };
+  const pendientes = await cols((await sql`SELECT pe.id, pe.pdv_id, pe.fecha, pe.dia, pe.total, pe.estado, pe.fecha_prometida, p.nombre AS pdv_nombre, p.codigo FROM pedidos pe JOIN pdvs p ON p.id=pe.pdv_id WHERE pe.estado IN ('Confirmado','En ruta') ORDER BY pe.fecha_prometida, pe.id LIMIT 100`).rows);
+  const recientes = (await sql`SELECT pe.id, pe.total, pe.estado, pe.fecha_entrega, pe.a_tiempo, pe.completo, pe.faltante_usd, p.nombre AS pdv_nombre FROM pedidos pe JOIN pdvs p ON p.id=pe.pdv_id WHERE pe.estado IN ('Entregado','Entregado parcial','Rechazado') ORDER BY pe.fecha_entrega DESC LIMIT 25`).rows;
+  res.json({ pendientes, recientes, hoy: hoy() });
+}));
+
+app.post('/api/pedidos/:id/entrega', auth, h(async (req, res) => {
+  const id = +req.params.id, body = req.body || {};
+  const pe = (await sql`SELECT * FROM pedidos WHERE id=${id}`).rows[0];
+  if (!pe) throw fail(404, 'Pedido no encontrado');
+  if (!['Confirmado', 'En ruta'].includes(pe.estado)) throw fail(409, 'El pedido ya fue entregado o cerrado');
+  const items = (await sql`SELECT pi.*, pr.retornable, pr.tipo_envase FROM pedido_items pi JOIN productos pr ON pr.id=pi.producto_id WHERE pi.pedido_id=${id}`).rows;
+  const recibidos = new Map((Array.isArray(body.items) ? body.items : []).map(x => [+x.id, x.cantidad_entregada]));
+  const f = fechaCliente(body.fecha_cliente), diaE = diaDe(f);
+  let faltanteUsd = 0, entregadoTotal = 0, pedidoTotal = 0;
+  for (const it of items) {
+    const q = recibidos.has(it.id) ? recibidos.get(it.id) : it.cantidad;
+    if (!isInt(q, 0, it.cantidad)) throw fail(400, `Cantidad entregada inválida para ${it.id} (0 a ${it.cantidad})`);
+    it._q = +q; entregadoTotal += +q; pedidoTotal += it.cantidad;
+  }
+  for (const it of items) {
+    const falta = it.cantidad - it._q;
+    await sql`UPDATE pedido_items SET cantidad_entregada=${it._q} WHERE id=${it.id}`;
+    if (falta <= 0) continue;
+    faltanteUsd += falta * it.precio_unitario * (1 - (it.descuento_pct || 0) / 100);
+    // El faltante vuelve al stock, a los mismos lotes de los que salió
+    let resta = falta;
+    const movs = (await sql`SELECT lote_id, -cantidad AS q FROM movimientos_stock WHERE tipo='Venta' AND referencia=${'Pedido ' + id} AND producto_id=${it.producto_id} ORDER BY id`).rows;
+    for (const m of movs) { if (resta <= 0) break; const q = Math.min(m.q, resta); await sql`UPDATE lotes SET cantidad_actual=cantidad_actual+${q} WHERE id=${m.lote_id}`; await movStock(it.producto_id, m.lote_id, 'Devolución', q, 'Faltante pedido ' + id, req.user.id); resta -= q; }
+    // Los envases que no se entregaron dejan de ser deuda del cliente
+    if (it.retornable && ['Cesta', 'Botella'].includes(it.tipo_envase)) {
+      const campo = it.tipo_envase === 'Cesta' ? 'saldo_cestas' : 'saldo_botellas';
+      if (campo === 'saldo_cestas') await sql`UPDATE pdvs SET saldo_cestas = GREATEST(0, saldo_cestas - ${falta}) WHERE id=${pe.pdv_id}`;
+      else await sql`UPDATE pdvs SET saldo_botellas = GREATEST(0, saldo_botellas - ${falta}) WHERE id=${pe.pdv_id}`;
+      await sql`INSERT INTO control_retornables (pdv_id,pedido_id,tipo,entregados,recibidos,fecha,dia,usuario_id) VALUES (${pe.pdv_id},${id},${it.tipo_envase},${-falta},0,${f.toISOString()},${diaE},${req.user.id})`;
+    }
+  }
+  const estado = entregadoTotal === 0 ? 'Rechazado' : entregadoTotal === pedidoTotal ? 'Entregado' : 'Entregado parcial';
+  const aTiempo = diaE <= (pe.fecha_prometida || diaE) ? 1 : 0;
+  await sql`UPDATE pedidos SET estado=${estado}, fecha_entrega=${f.toISOString()}, a_tiempo=${aTiempo}, completo=${estado === 'Entregado' ? 1 : 0}, faltante_usd=${r2(faltanteUsd)} WHERE id=${id}`;
+  await log(req.user, 'Entrega registrada', `#${id} ${estado}${aTiempo ? '' : ' (tarde)'}${faltanteUsd > 0 ? ' faltante ' + r2(faltanteUsd) + ' USD' : ''}`);
+  res.json({ ok: true, estado, a_tiempo: !!aTiempo, faltante_usd: r2(faltanteUsd) });
 }));
 
 // ---------- Cobranza ----------
@@ -354,130 +613,187 @@ app.get('/api/cobranza', auth, h(async (req, res) =>
     FROM pdvs p ORDER BY p.id`).rows)));
 
 app.post('/api/cobranza', auth, h(async (req, res) => {
-  const { pdv_id, metodo, monto, referencia } = req.body;
-  if (metodo === 'Crédito') return res.status(400).json({ error: 'Seleccione un método de cobro válido' });
-  const { tasa } = await tasaVigente();
-  if (!(tasa > 0)) return res.status(400).json({ error: 'No hay tasa BCV configurada' });
-  let g;
-  try { g = normalizarPagos([{ metodo, monto, referencia }], tasa)[0]; } catch (e) { return res.status(400).json({ error: e.message }); }
+  const body = req.body || {}, { pdv_id, metodo, monto, referencia, idem } = body;
+  if (idem) { const ex = (await sql`SELECT id FROM cobranzas WHERE idem=${String(idem)}`).rows[0]; if (ex) return res.json({ ok: true, duplicado: true }); }
+  if (!isInt(pdv_id, 1, 1e9)) throw fail(400, 'Seleccione un cliente');
+  if (metodo === 'Crédito') throw fail(400, 'Seleccione un método de cobro válido');
+  const tServ = (await tasaVigente()).tasa; if (!(tServ > 0)) throw fail(400, 'No hay tasa BCV configurada');
+  const tasa = tasaOp(body, tServ), g = normalizarPagos([{ metodo, monto, referencia }], tasa)[0];
   const saldo = await saldoCxC(pdv_id);
-  if (g.monto_usd > saldo + 0.02) return res.status(400).json({ error: `El abono (${r2(g.monto_usd)} USD) excede el saldo pendiente (${r2(saldo)} USD)` });
-  await sql`INSERT INTO cobranzas (pdv_id,usuario_id,fecha,dia,metodo,moneda,monto,monto_usd,tasa,referencia)
-    VALUES (${pdv_id},${req.user.id},${new Date().toISOString()},${hoy()},${g.metodo},${g.moneda},${g.monto},${r2(g.monto_usd)},${tasa},${g.referencia})`;
+  if (g.monto_usd > saldo + 0.02) throw fail(400, `El abono (${r2(g.monto_usd)} USD) excede el saldo pendiente (${r2(saldo)} USD)`);
+  const f = fechaCliente(body.fecha_cliente);
+  await sql`INSERT INTO cobranzas (pdv_id,usuario_id,fecha,dia,metodo,moneda,monto,monto_usd,tasa,referencia,idem) VALUES (${pdv_id},${req.user.id},${f.toISOString()},${diaDe(f)},${g.metodo},${g.moneda},${g.monto},${r2(g.monto_usd)},${tasa},${g.referencia},${idem ? String(idem) : null})`;
+  await log(req.user, 'Abono registrado', `PDV ${pdv_id} ${r2(g.monto_usd)} USD (${g.metodo})`);
   res.json({ ok: true, saldo: r2(saldo - g.monto_usd) });
 }));
 
 // ---------- KPIs ----------
 app.get('/api/kpis', auth, h(async (req, res) => {
-  const d = hoy();
+  const d = hoy(), d30 = addDias(d, -30), lim = addDias(d, 30);
   const v = (await sql`SELECT COALESCE(SUM(total),0) AS usd, COALESCE(SUM(total_bs),0) AS bs FROM pedidos WHERE dia=${d}`).rows[0];
-  const bloq = (await sql`SELECT COUNT(*) AS c FROM pdvs WHERE saldo_cestas>limite_cestas OR saldo_botellas>limite_botellas`).rows[0].c;
+  const bloq = (await sql`SELECT COUNT(*)::int AS c FROM pdvs WHERE saldo_cestas>limite_cestas OR saldo_botellas>limite_botellas`).rows[0].c;
   const frio = (await sql`SELECT temperatura, alerta FROM cadena_frio ORDER BY id DESC LIMIT 50`).rows;
   const red = (await sql`SELECT AVG(cumplimiento_pct) AS a FROM red_auditorias`).rows[0].a;
-  const dr = (await sql`SELECT COUNT(DISTINCT v.pdv_id) AS vis, COUNT(DISTINCT pe.pdv_id) AS ped
-    FROM visitas v LEFT JOIN pedidos pe ON pe.pdv_id=v.pdv_id AND pe.dia=${d} WHERE v.dia=${d}`).rows[0];
-  const cxc = (await sql`SELECT
-    COALESCE((SELECT SUM(monto_usd) FROM pedido_pagos WHERE metodo='Crédito'),0) - COALESCE((SELECT SUM(monto_usd) FROM cobranzas),0) AS s`).rows[0].s;
-  const vis = parseInt(dr.vis);
+  const dr = (await sql`SELECT COUNT(DISTINCT v.pdv_id)::int AS vis, COUNT(DISTINCT pe.pdv_id)::int AS ped FROM visitas v LEFT JOIN pedidos pe ON pe.pdv_id=v.pdv_id AND pe.dia=${d} WHERE v.dia=${d}`).rows[0];
+  const cxc = (await sql`SELECT COALESCE((SELECT SUM(monto_usd) FROM pedido_pagos WHERE metodo='Crédito'),0) - COALESCE((SELECT SUM(monto_usd) FROM cobranzas),0) AS s`).rows[0].s;
+  const ret = (await sql`SELECT COALESCE(SUM(entregados),0)::int AS e, COALESCE(SUM(recibidos),0)::int AS r FROM control_retornables WHERE dia >= ${d30}`).rows[0];
+  const ot = (await sql`SELECT COUNT(*)::int AS n, COUNT(*) FILTER (WHERE a_tiempo=1 AND completo=1)::int AS ok FROM pedidos WHERE estado IN ('Entregado','Entregado parcial','Rechazado') AND LEFT(fecha_entrega,10) >= ${d30}`).rows[0];
+  const pend = (await sql`SELECT COUNT(*)::int AS c FROM pedidos WHERE estado IN ('Confirmado','En ruta')`).rows[0].c;
+  const bajo = (await sql`SELECT COUNT(*)::int AS c FROM productos p WHERE p.activo=1 AND p.stock_minimo>0 AND COALESCE((SELECT SUM(cantidad_actual) FROM lotes l WHERE l.producto_id=p.id AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento>=${d})),0) < p.stock_minimo`).rows[0].c;
+  const pv = (await sql`SELECT COALESCE(SUM(cantidad_actual),0)::int AS u FROM lotes WHERE cantidad_actual>0 AND fecha_vencimiento IS NOT NULL AND fecha_vencimiento>=${d} AND fecha_vencimiento<=${lim}`).rows[0].u;
+  const venc = (await sql`SELECT COALESCE(SUM(cantidad_actual),0)::int AS u FROM lotes WHERE cantidad_actual>0 AND fecha_vencimiento IS NOT NULL AND fecha_vencimiento<${d}`).rows[0].u;
   res.json({
-    dropRate: vis ? Math.round(parseInt(dr.ped) / vis * 100) : null,
+    dropRate: dr.vis ? Math.round(dr.ped / dr.vis * 100) : null,
     cumplimientoRED: red == null ? null : Math.round(red),
     adherenciaTermica: frio.length ? Math.round((1 - frio.filter(x => x.alerta).length / frio.length) * 100) : null,
-    retornabilidad: null,   // requiere registrar entregas y recepciones de envases
-    otif: null,             // requiere registrar entregas
-    ventasUsd: parseFloat(v.usd), ventasBs: parseFloat(v.bs),
-    cxcUsd: parseFloat(cxc) || 0,
-    tempActual: frio.length ? frio[0].temperatura : null,
-    bloqueados: parseInt(bloq)
+    retornabilidad: ret.e > 0 ? Math.min(100, Math.round(ret.r / ret.e * 100)) : null,
+    otif: ot.n > 0 ? Math.round(ot.ok / ot.n * 100) : null,
+    ventasUsd: parseFloat(v.usd), ventasBs: parseFloat(v.bs), cxcUsd: parseFloat(cxc) || 0,
+    tempActual: frio.length ? frio[0].temperatura : null, bloqueados: bloq,
+    pendientesEntrega: pend, stockBajo: bajo, porVencer: pv, vencidos: venc
   });
 }));
 
 app.get('/api/ventas-zona', auth, h(async (req, res) =>
-  res.json((await sql`SELECT z.nombre, z.color, COALESCE(SUM(pe.total),0) AS total
-    FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id LEFT JOIN pedidos pe ON pe.pdv_id=p.id
-    GROUP BY z.id, z.nombre, z.color ORDER BY z.id`).rows)));
+  res.json((await sql`SELECT z.nombre, z.color, COALESCE(SUM(pe.total),0) AS total FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id LEFT JOIN pedidos pe ON pe.pdv_id=p.id GROUP BY z.id, z.nombre, z.color ORDER BY z.id`).rows)));
+
+// ---------- Reportes ----------
+app.get('/api/reportes', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const dias = [7, 14, 30, 90].includes(+req.query.dias) ? +req.query.dias : 14, desde = addDias(hoy(), -(dias - 1));
+  const porDia = (await sql`SELECT dia, SUM(total)::float AS usd, SUM(total_bs)::float AS bs, COUNT(*)::int AS pedidos FROM pedidos WHERE dia>=${desde} GROUP BY dia ORDER BY dia`).rows;
+  const porProducto = (await sql`SELECT pr.nombre, SUM(pi.cantidad)::int AS unidades, SUM(pi.subtotal)::float AS usd FROM pedido_items pi JOIN pedidos pe ON pe.id=pi.pedido_id JOIN productos pr ON pr.id=pi.producto_id WHERE pe.dia>=${desde} GROUP BY pr.nombre ORDER BY usd DESC LIMIT 15`).rows;
+  const porVendedor = (await sql`SELECT COALESCE(u.nombre,'-') AS nombre, COUNT(*)::int AS pedidos, SUM(pe.total)::float AS usd FROM pedidos pe LEFT JOIN usuarios u ON u.id=pe.usuario_id WHERE pe.dia>=${desde} GROUP BY u.nombre ORDER BY usd DESC`).rows;
+  const porMetodo = (await sql`SELECT pg.metodo, COUNT(*)::int AS operaciones, SUM(pg.monto_usd)::float AS usd FROM pedido_pagos pg JOIN pedidos pe ON pe.id=pg.pedido_id WHERE pe.dia>=${desde} GROUP BY pg.metodo ORDER BY usd DESC`).rows;
+  const porZona = (await sql`SELECT COALESCE(z.nombre,'Sin zona') AS nombre, SUM(pe.total)::float AS usd FROM pedidos pe JOIN pdvs p ON p.id=pe.pdv_id LEFT JOIN zonas z ON z.id=p.zona_id WHERE pe.dia>=${desde} GROUP BY z.nombre ORDER BY usd DESC`).rows;
+  res.json({ dias, desde, porDia, porProducto, porVendedor, porMetodo, porZona });
+}));
 
 // ---------- Retornables ----------
 app.get('/api/retornables', auth, h(async (req, res) =>
   res.json((await sql`SELECT id, codigo, nombre, saldo_cestas, saldo_botellas, limite_cestas, limite_botellas FROM pdvs ORDER BY id`).rows)));
 
 app.post('/api/retornables/devolucion', auth, h(async (req, res) => {
-  const { pdv_id, tipo, cantidad } = req.body;
+  const { pdv_id, tipo, cantidad, idem } = req.body || {};
+  if (idem) { const ex = (await sql`SELECT id FROM control_retornables WHERE idem=${String(idem)}`).rows[0]; if (ex) return res.json({ ok: true, duplicado: true }); }
+  if (!['Cesta', 'Botella'].includes(tipo)) throw fail(400, 'Tipo de envase inválido');
+  if (!isInt(cantidad, 1, 100000)) throw fail(400, 'Cantidad inválida');
   const pdv = (await sql`SELECT * FROM pdvs WHERE id = ${pdv_id}`).rows[0];
-  if (!pdv) return res.status(404).json({ error: 'PDV no encontrado' });
-  let nuevo;
-  if (tipo === 'Cesta') {
-    nuevo = Math.max(0, pdv.saldo_cestas - cantidad);
-    await sql`UPDATE pdvs SET saldo_cestas = ${nuevo} WHERE id = ${pdv_id}`;
-  } else {
-    nuevo = Math.max(0, pdv.saldo_botellas - cantidad);
-    await sql`UPDATE pdvs SET saldo_botellas = ${nuevo} WHERE id = ${pdv_id}`;
-  }
+  if (!pdv) throw fail(404, 'PDV no encontrado');
+  const actual = tipo === 'Cesta' ? pdv.saldo_cestas : pdv.saldo_botellas, nuevo = Math.max(0, actual - +cantidad), recibidos = actual - nuevo;
+  if (tipo === 'Cesta') await sql`UPDATE pdvs SET saldo_cestas = ${nuevo} WHERE id = ${pdv_id}`;
+  else await sql`UPDATE pdvs SET saldo_botellas = ${nuevo} WHERE id = ${pdv_id}`;
+  const f = fechaCliente(req.body.fecha_cliente);
+  await sql`INSERT INTO control_retornables (pdv_id,pedido_id,tipo,entregados,recibidos,fecha,dia,usuario_id,idem) VALUES (${pdv_id},NULL,${tipo},0,${recibidos},${f.toISOString()},${diaDe(f)},${req.user.id},${idem ? String(idem) : null})`;
+  await log(req.user, 'Devolución de envases', `${pdv.nombre}: ${recibidos} ${tipo.toLowerCase()}(s)`);
   res.json({ ok: true, nuevo_saldo: nuevo });
 }));
 
-// ---------- Auditoría RED ----------
+// ---------- Auditoría RED (conteo de frentes + fotografía) ----------
 app.post('/api/red', auth, h(async (req, res) => {
-  const { pdv_id, cumplimiento_pct } = req.body;
-  await sql`INSERT INTO red_auditorias (pdv_id,usuario_id,cumplimiento_pct,marca_propia_pct,competencia_pct,fecha)
-    VALUES (${pdv_id},${req.user.id},${cumplimiento_pct},${cumplimiento_pct},${100 - cumplimiento_pct},${new Date().toISOString()})`;
-  res.json({ ok: true });
+  const { pdv_id, asignados, propios, competencia, foto, observaciones } = req.body || {};
+  if (!isInt(pdv_id, 1, 1e9)) throw fail(400, 'Seleccione un PDV');
+  if (!isInt(asignados, 1, 10000) || !isInt(propios, 0, 10000) || !isInt(competencia, 0, 10000)) throw fail(400, 'Los frentes deben ser enteros (asignados al menos 1)');
+  if (foto && (!/^data:image\/(jpeg|png|webp);base64,/.test(foto) || foto.length > 450000)) throw fail(400, 'La fotografía no es válida o es demasiado pesada');
+  const cumpl = Math.min(100, r2(+propios / +asignados * 100)), tot = +propios + +competencia, share = tot ? r2(+propios / tot * 100) : 0;
+  const r = await sql`INSERT INTO red_auditorias (pdv_id,usuario_id,cumplimiento_pct,marca_propia_pct,competencia_pct,fecha,asignados,propios,competencia,share_pct,foto,observaciones)
+    VALUES (${pdv_id},${req.user.id},${cumpl},${share},${r2(100 - share)},${new Date().toISOString()},${+asignados},${+propios},${+competencia},${share},${foto || null},${String(observaciones || '').trim().slice(0, 300) || null}) RETURNING id`;
+  await log(req.user, 'Auditoría RED', `PDV ${pdv_id}: cumplimiento ${cumpl}%, share ${share}%`);
+  res.json({ id: r.rows[0].id, cumplimiento_pct: cumpl, share_pct: share });
 }));
 app.get('/api/red', auth, h(async (req, res) =>
-  res.json((await sql`SELECT r.*, p.nombre AS pdv_nombre FROM red_auditorias r JOIN pdvs p ON r.pdv_id=p.id ORDER BY r.id DESC LIMIT 50`).rows)));
+  res.json((await sql`SELECT r.id, r.pdv_id, r.cumplimiento_pct, r.share_pct, r.asignados, r.propios, r.competencia, r.fecha, r.observaciones, (r.foto IS NOT NULL) AS tiene_foto, p.nombre AS pdv_nombre FROM red_auditorias r JOIN pdvs p ON r.pdv_id=p.id ORDER BY r.id DESC LIMIT 50`).rows)));
+app.get('/api/red/:id/foto', auth, h(async (req, res) => {
+  const r = (await sql`SELECT foto FROM red_auditorias WHERE id=${+req.params.id}`).rows[0];
+  if (!r || !r.foto) throw fail(404, 'Sin fotografía'); res.json({ foto: r.foto });
+}));
 
 // ---------- Cadena de frío ----------
 app.post('/api/frio', auth, h(async (req, res) => {
-  const t = parseFloat(req.body.temperatura);
+  const t = parseFloat(req.body.temperatura), camion = String(req.body.camion || 'MC-001').trim();
+  const fuente = ['Manual', 'Simulación'].includes(req.body.fuente) ? req.body.fuente : 'Manual';
+  if (!isNum(t, -50, 60)) throw fail(400, 'Temperatura inválida (entre -50 y 60 °C)');
+  if (!/^[A-Za-z0-9._-]{2,20}$/.test(camion)) throw fail(400, 'Identificador de camión inválido');
   const alerta = (t > 8 || t < 2) ? 1 : 0;
-  await sql`INSERT INTO cadena_frio (camion,temperatura,alerta,fecha) VALUES (${req.body.camion || 'MC-001'},${t},${alerta},${new Date().toISOString()})`;
+  await sql`INSERT INTO cadena_frio (camion,temperatura,alerta,fecha,fuente) VALUES (${camion},${t},${alerta},${new Date().toISOString()},${fuente})`;
+  if (alerta && fuente === 'Manual') await log(req.user, 'Alerta de temperatura', `${camion}: ${t} °C`);
   res.json({ ok: true, alerta });
 }));
-app.get('/api/frio', auth, h(async (req, res) =>
-  res.json((await sql`SELECT * FROM cadena_frio ORDER BY id DESC LIMIT 30`).rows.reverse())));
+app.get('/api/frio', auth, h(async (req, res) => {
+  const camion = String(req.query.camion || 'MC-001');
+  res.json((await sql`SELECT * FROM cadena_frio WHERE camion=${camion} ORDER BY id DESC LIMIT 30`).rows.reverse());
+}));
+app.get('/api/frio/camiones', auth, h(async (req, res) => res.json((await sql`SELECT camion, MAX(fecha) AS ultima FROM cadena_frio GROUP BY camion ORDER BY camion`).rows)));
 
 // ---------- Comodatos ----------
 app.get('/api/comodatos', auth, h(async (req, res) =>
   res.json((await sql`SELECT a.*, p.nombre AS pdv_nombre FROM activos_comodato a JOIN pdvs p ON a.pdv_id=p.id ORDER BY a.id`).rows)));
-
 app.post('/api/comodatos/:id/verificar', auth, h(async (req, res) => {
   const t = parseFloat(req.body.temperatura_actual);
-  if (isNaN(t)) return res.status(400).json({ error: 'Temperatura inválida' });
-  const a = (await sql`SELECT * FROM activos_comodato WHERE id=${+req.params.id}`).rows[0];
-  if (!a) return res.status(404).json({ error: 'Activo no encontrado' });
+  if (!isNum(t, -50, 60)) throw fail(400, 'Temperatura inválida (entre -50 y 60 °C)');
+  const a = (await sql`SELECT * FROM activos_comodato WHERE id=${+req.params.id}`).rows[0]; if (!a) throw fail(404, 'Activo no encontrado');
   await sql`UPDATE activos_comodato SET temperatura_actual=${t} WHERE id=${a.id}`;
   res.json({ ok: true, alerta: t > a.temp_max || t < a.temp_min });
 }));
 
-// ---------- VRP ----------
-app.post('/api/vrp', auth, h(async (req, res) => {
-  const ids = (req.body.pdv_ids || []).map(Number);
-  const todos = (await sql`SELECT id, nombre, lat, lng FROM pdvs`).rows;
-  let pendientes = todos.filter(p => ids.includes(p.id));
-  if (!pendientes.length) return res.status(400).json({ error: 'Sin PDVs seleccionados' });
-  const ruta = [{ nombre: ALMACEN.nombre, distancia_desde_anterior_m: 0 }];
-  let actual = ALMACEN, totalM = 0;
-  while (pendientes.length) {
-    let mejor = 0, mejorD = Infinity;
-    pendientes.forEach((p, i) => { const d = hav(actual.lat, actual.lng, p.lat, p.lng); if (d < mejorD) { mejorD = d; mejor = i; } });
-    const sig = pendientes.splice(mejor, 1)[0];
-    totalM += mejorD;
-    ruta.push({ nombre: sig.nombre, distancia_desde_anterior_m: Math.round(mejorD) });
-    actual = sig;
+// ---------- Ruteo (vecino más cercano + mejora 2-opt, capacidad y tiempos) ----------
+function dosOpt(path, dist) {
+  let mejora = true, guard = 0;
+  while (mejora && guard++ < 200) {
+    mejora = false;
+    for (let i = 1; i < path.length - 2; i++) for (let j = i + 1; j < path.length - 1; j++) {
+      const antes = dist(path[i - 1], path[i]) + dist(path[j], path[j + 1]), desp = dist(path[i - 1], path[j]) + dist(path[i], path[j + 1]);
+      if (desp + 1e-6 < antes) { path = [...path.slice(0, i), ...path.slice(i, j + 1).reverse(), ...path.slice(j + 1)]; mejora = true; }
+    }
   }
-  res.json({ ruta, total_km: +(totalM / 1000).toFixed(2) });
+  return path;
+}
+app.post('/api/vrp', auth, h(async (req, res) => {
+  const ids = [...new Set((req.body.pdv_ids || []).map(Number))].filter(n => Number.isInteger(n));
+  const cap = isNum(req.body.capacidad_kg, 1, 100000) ? +req.body.capacidad_kg : 1500;
+  const todos = (await sql`SELECT id, nombre, lat, lng FROM pdvs`).rows, sel = todos.filter(p => ids.includes(p.id));
+  if (!sel.length) throw fail(400, 'Sin PDVs seleccionados');
+  const kg = Object.fromEntries((await sql`SELECT pe.pdv_id, SUM(pi.cantidad * COALESCE(pr.peso_kg,1))::float AS kg, COUNT(DISTINCT pe.id)::int AS pedidos
+    FROM pedidos pe JOIN pedido_items pi ON pi.pedido_id=pe.id JOIN productos pr ON pr.id=pi.producto_id WHERE pe.estado IN ('Confirmado','En ruta') GROUP BY pe.pdv_id`).rows.map(r => [r.pdv_id, r]));
+  const dist = (a, b) => hav(a.lat, a.lng, b.lat, b.lng) * FACTOR_VIA;
+  let pend = [...sel], actual = ALMACEN, path = [ALMACEN];
+  while (pend.length) { let mj = 0, md = Infinity; pend.forEach((p, i) => { const d = dist(actual, p); if (d < md) { md = d; mj = i; } }); actual = pend.splice(mj, 1)[0]; path.push(actual); }
+  path.push(ALMACEN);
+  const nn = path.reduce((s, p, i) => i ? s + dist(path[i - 1], p) : 0, 0);
+  path = dosOpt(path, dist);
+  const ruta = [{ nombre: ALMACEN.nombre, distancia_desde_anterior_m: 0, eta_min: 0, kg: 0, pedidos: 0, tipo: 'Salida' }];
+  let acum = 0, minutos = 0, total = 0;
+  for (let i = 1; i < path.length; i++) {
+    const d = dist(path[i - 1], path[i]); total += d; minutos += d / 1000 / VEL_KMH * 60;
+    const esFin = i === path.length - 1;
+    if (!esFin) { minutos += SERVICIO_MIN; acum += (kg[path[i].id] || {}).kg || 0; }
+    ruta.push({ nombre: esFin ? ALMACEN.nombre + ' (regreso)' : path[i].nombre, distancia_desde_anterior_m: Math.round(d), eta_min: Math.round(minutos - (esFin ? 0 : SERVICIO_MIN)), kg: r2((kg[path[i].id] || {}).kg || 0), pedidos: (kg[path[i].id] || {}).pedidos || 0, tipo: esFin ? 'Regreso' : 'Parada' });
+  }
+  res.json({ ruta, total_km: r2(total / 1000), mejora_km: r2((nn - total) / 1000), total_kg: r2(acum), capacidad_kg: cap, excede: acum > cap, duracion_min: Math.round(minutos), supuestos: { velocidad_kmh: VEL_KMH, servicio_min: SERVICIO_MIN, factor_via: FACTOR_VIA } });
+}));
+app.post('/api/despachos', auth, h(async (req, res) => {
+  const ids = [...new Set((req.body.pdv_ids || []).map(Number))].filter(n => Number.isInteger(n)); let n = 0;
+  for (const id of ids) n += (await sql`UPDATE pedidos SET estado='En ruta' WHERE pdv_id=${id} AND estado='Confirmado' RETURNING id`).rows.length;
+  if (!n) throw fail(400, 'No hay pedidos confirmados pendientes de despacho en esos PDV');
+  await log(req.user, 'Ruta despachada', n + ' pedido(s) en ruta'); res.json({ ok: true, pedidos: n });
 }));
 
 // ---------- Mermas ----------
 app.post('/api/mermas', auth, h(async (req, res) => {
-  const { pdv_id, producto_id, cantidad, causa } = req.body;
-  await sql`INSERT INTO mermas (pdv_id,producto_id,cantidad,causa,responsable,fecha)
-    VALUES (${pdv_id},${producto_id},${cantidad},${causa},${req.user.nombre},${new Date().toISOString()})`;
-  res.json({ ok: true });
+  const { pdv_id, producto_id, cantidad, causa, idem } = req.body || {};
+  if (idem) { const ex = (await sql`SELECT id FROM mermas WHERE idem=${String(idem)}`).rows[0]; if (ex) return res.json({ ok: true, duplicado: true }); }
+  if (!isInt(cantidad, 1, 100000)) throw fail(400, 'Cantidad inválida');
+  if (!CAUSAS.includes(causa)) throw fail(400, 'Causa no válida');
+  const f = fechaCliente(req.body.fecha_cliente), descontar = !!producto_id && !pdv_id;   // merma de almacén o transporte descuenta stock; la del cliente no
+  if (descontar) {
+    let us; try { us = await consumirFIFO(+producto_id, +cantidad, hoy(), true); } catch (e) { throw fail(409, 'La cantidad supera el stock registrado de ese producto'); }
+    for (const u of us) await movStock(+producto_id, u.lote_id, 'Merma', -u.cantidad, causa, req.user.id);
+  }
+  await sql`INSERT INTO mermas (pdv_id,producto_id,cantidad,causa,responsable,fecha,dia,descontar_stock,idem) VALUES (${pdv_id || null},${producto_id || null},${+cantidad},${causa},${req.user.nombre},${f.toISOString()},${diaDe(f)},${descontar ? 1 : 0},${idem ? String(idem) : null})`;
+  await log(req.user, 'Merma registrada', `${cantidad} u. (${causa})${descontar ? ' con descuento de stock' : ''}`);
+  res.json({ ok: true, descontado: descontar });
 }));
 app.get('/api/mermas', auth, h(async (req, res) =>
-  res.json((await sql`SELECT m.*, pr.nombre AS producto, p.nombre AS pdv_nombre
-    FROM mermas m LEFT JOIN productos pr ON m.producto_id=pr.id LEFT JOIN pdvs p ON m.pdv_id=p.id ORDER BY m.id DESC LIMIT 50`).rows)));
+  res.json((await sql`SELECT m.*, pr.nombre AS producto, p.nombre AS pdv_nombre FROM mermas m LEFT JOIN productos pr ON m.producto_id=pr.id LEFT JOIN pdvs p ON m.pdv_id=p.id ORDER BY m.id DESC LIMIT 50`).rows)));
 
 // ---------- Liquidación ----------
 async function resumenDia(uid) {
@@ -490,31 +806,69 @@ async function resumenDia(uid) {
     .map(f => ({ metodo: f.metodo, moneda: f.moneda, n: parseInt(f.n), monto: parseFloat(f.monto), monto_usd: parseFloat(f.monto_usd) }));
   const g = n => (filas.find(f => f.metodo === n) || {}).monto || 0;
   return {
-    filas,
-    esperado_usd: r2(g('Efectivo USD')),
-    esperado_bs: r2(g('Efectivo Bs')),
+    filas, esperado_usd: r2(g('Efectivo USD')), esperado_bs: r2(g('Efectivo Bs')),
     digital_usd: r2(filas.filter(f => !f.metodo.startsWith('Efectivo') && f.metodo !== 'Crédito').reduce((s, f) => s + f.monto_usd, 0)),
     credito_usd: r2((filas.find(f => f.metodo === 'Crédito') || {}).monto_usd || 0)
   };
 }
-
 app.get('/api/liquidaciones/resumen', auth, h(async (req, res) => {
-  res.json({ ...(await resumenDia(req.user.id)), tasa: (await leerTasa()).tasa });
+  const ya = (await sql`SELECT id FROM liquidaciones WHERE usuario_id=${req.user.id} AND dia=${hoy()}`).rows[0];
+  res.json({ ...(await resumenDia(req.user.id)), tasa: (await leerTasa()).tasa, liquidado: !!ya });
 }));
-
 app.post('/api/liquidaciones', auth, h(async (req, res) => {
-  const entUsd = parseFloat(req.body.efectivo_usd) || 0;
-  const entBs = parseFloat(req.body.efectivo_bs) || 0;
-  const { tasa } = await tasaVigente();
-  if (!(tasa > 0)) return res.status(400).json({ error: 'No hay tasa BCV configurada' });
-  const r = await resumenDia(req.user.id);
-  const difUsd = r2(entUsd - r.esperado_usd), difBs = r2(entBs - r.esperado_bs);
-  const difEq = r2(difUsd + difBs / tasa);
+  const entUsd = parseFloat(req.body.efectivo_usd) || 0, entBs = parseFloat(req.body.efectivo_bs) || 0;
+  if (!(entUsd >= 0 && entUsd <= 1e9 && entBs >= 0 && entBs <= 1e13)) throw fail(400, 'Los montos contados deben ser números positivos');
+  const { tasa } = await tasaVigente(); if (!(tasa > 0)) throw fail(400, 'No hay tasa BCV configurada');
+  if ((await sql`SELECT id FROM liquidaciones WHERE usuario_id=${req.user.id} AND dia=${hoy()}`).rows.length) throw fail(409, 'Ya liquidó su turno de hoy. Un supervisor puede anular la liquidación si hubo un error.');
+  const r = await resumenDia(req.user.id), difUsd = r2(entUsd - r.esperado_usd), difBs = r2(entBs - r.esperado_bs), difEq = r2(difUsd + difBs / tasa);
   await sql`INSERT INTO liquidaciones (usuario_id,fecha,dia,tasa,esperado_usd,entregado_usd,esperado_bs,entregado_bs,digital_usd,credito_usd,diferencia_usd)
     VALUES (${req.user.id},${new Date().toISOString()},${hoy()},${tasa},${r.esperado_usd},${entUsd},${r.esperado_bs},${entBs},${r.digital_usd},${r.credito_usd},${difEq})`;
+  await log(req.user, 'Turno liquidado', `Diferencia ${difEq} USD`);
   res.json({ esperado_usd: r.esperado_usd, esperado_bs: r.esperado_bs, dif_usd: difUsd, dif_bs: difBs, dif_equiv_usd: difEq, tasa });
 }));
+app.get('/api/liquidaciones', auth, h(async (req, res) =>
+  res.json((await sql`SELECT l.*, COALESCE(u.nombre,'-') AS vendedor FROM liquidaciones l LEFT JOIN usuarios u ON l.usuario_id=u.id ORDER BY l.id DESC LIMIT 30`).rows)));
+app.delete('/api/liquidaciones/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const l = (await sql`SELECT * FROM liquidaciones WHERE id=${+req.params.id}`).rows[0]; if (!l) throw fail(404, 'Liquidación no encontrada');
+  await sql`DELETE FROM liquidaciones WHERE id=${l.id}`; await log(req.user, 'Liquidación anulada', `id ${l.id} del ${l.dia}`); res.json({ ok: true });
+}));
 
+// ---------- Perfil y usuarios ----------
+app.post('/api/me/password', auth, h(async (req, res) => {
+  const { actual, nueva } = req.body || {};
+  const u = (await sql`SELECT * FROM usuarios WHERE id=${req.user.id}`).rows[0];
+  if (!u || !bcrypt.compareSync(String(actual || ''), u.password_hash)) throw fail(400, 'La contraseña actual es incorrecta');
+  if (!CLAVE_OK.test(String(nueva || ''))) throw fail(400, CLAVE_MSG);
+  if (nueva === actual) throw fail(400, 'La nueva contraseña debe ser distinta de la actual');
+  await sql`UPDATE usuarios SET password_hash=${bcrypt.hashSync(nueva, 10)} WHERE id=${u.id}`; await log(req.user, 'Cambio de contraseña'); res.json({ ok: true });
+}));
+app.get('/api/usuarios', auth, rol('Gerente'), h(async (req, res) => res.json((await sql`SELECT id, nombre, usuario, rol, activo FROM usuarios ORDER BY id`).rows)));
+app.post('/api/usuarios', auth, rol('Gerente'), h(async (req, res) => {
+  const { nombre, usuario, password, rol: rolNuevo } = req.body || {};
+  if (String(nombre || '').trim().length < 2) throw fail(400, 'Ingrese el nombre completo');
+  if (!/^[a-z0-9._-]{3,30}$/i.test(String(usuario || ''))) throw fail(400, 'Usuario inválido (3 a 30 caracteres: letras, números, punto, guion)');
+  if (!ROLES.includes(rolNuevo)) throw fail(400, 'Rol no válido');
+  if (!CLAVE_OK.test(String(password || ''))) throw fail(400, CLAVE_MSG);
+  try {
+    const r = await sql`INSERT INTO usuarios (nombre,usuario,password_hash,rol) VALUES (${nombre.trim()},${usuario.trim().toLowerCase()},${bcrypt.hashSync(password, 10)},${rolNuevo}) RETURNING id`;
+    await log(req.user, 'Usuario creado', usuario + ' (' + rolNuevo + ')'); res.json({ id: r.rows[0].id });
+  } catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe un usuario con ese nombre de acceso'); throw e; }
+}));
+app.put('/api/usuarios/:id', auth, rol('Gerente'), h(async (req, res) => {
+  const id = +req.params.id, { nombre, rol: rolNuevo, activo, password } = req.body || {};
+  const u = (await sql`SELECT * FROM usuarios WHERE id=${id}`).rows[0]; if (!u) throw fail(404, 'Usuario no encontrado');
+  const nom = nombre != null ? String(nombre).trim() : u.nombre, rol2 = rolNuevo || u.rol, act = activo == null ? u.activo : (activo ? 1 : 0);
+  if (nom.length < 2) throw fail(400, 'Ingrese el nombre completo');
+  if (!ROLES.includes(rol2)) throw fail(400, 'Rol no válido');
+  if (id === req.user.id && (rol2 !== u.rol || act !== 1)) throw fail(400, 'No puede cambiar su propio rol ni desactivarse');
+  if (password && !CLAVE_OK.test(String(password))) throw fail(400, CLAVE_MSG);
+  await sql`UPDATE usuarios SET nombre=${nom}, rol=${rol2}, activo=${act} WHERE id=${id}`;
+  if (password) await sql`UPDATE usuarios SET password_hash=${bcrypt.hashSync(password, 10)} WHERE id=${id}`;
+  await log(req.user, 'Usuario modificado', u.usuario + (password ? ' (clave restablecida)' : '')); res.json({ ok: true });
+}));
+app.get('/api/bitacora', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => res.json((await sql`SELECT * FROM bitacora ORDER BY id DESC LIMIT 200`).rows)));
+
+module.exports = app;
 app.get('/api/liquidaciones', auth, h(async (req, res) =>
   res.json((await sql`SELECT l.*, COALESCE(u.nombre,'-') AS vendedor FROM liquidaciones l LEFT JOIN usuarios u ON l.usuario_id=u.id ORDER BY l.id DESC LIMIT 30`).rows)));
 
