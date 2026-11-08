@@ -2,8 +2,14 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0B1220">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="format-detection" content="telephone=no">
 <title>SIG FMCG Maracaibo</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%230F766E'/%3E%3Ctext x='16' y='21' font-size='13' font-family='Arial' font-weight='700' text-anchor='middle' fill='white'%3ESIG%3C/text%3E%3C/svg%3E">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
 <style>
@@ -12,18 +18,32 @@
   --primary:#0F766E;--primary-d:#115E59;--primary-l:#E6F4F1;
   --navy:#0B1220;--navy-2:#131D31;--gold:#B45309;--gold-l:#FEF3E2;
   --ok:#15803D;--ok-l:#E3F4E8;--bad:#B91C1C;--bad-l:#FBE7E7;--warn:#B45309;--warn-l:#FEF3E2;--info:#1D4ED8;--info-l:#E5EDFD;
-  --radius:12px;--shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.05)
+  --radius:12px;--shadow:0 1px 2px rgba(15,23,42,.05),0 4px 14px rgba(15,23,42,.05);
+  --sbw:248px;--sat:env(safe-area-inset-top,0px);--sab:env(safe-area-inset-bottom,0px);--sal:env(safe-area-inset-left,0px);--sar:env(safe-area-inset-right,0px)
 }
-*{box-sizing:border-box;font-family:'Inter',system-ui,sans-serif}
-body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased}
+*{box-sizing:border-box;font-family:'Inter',system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-size:14px;-webkit-font-smoothing:antialiased;min-height:100vh;min-height:100dvh;overflow-x:hidden}
+body.lock{overflow:hidden}
 h1,h2,h3,h4,h5{margin:0}
 .num{font-variant-numeric:tabular-nums}
+:focus-visible{outline:2px solid var(--primary);outline-offset:2px}
+button,input,select,a{touch-action:manipulation}
+[hidden]{display:none!important}
+
+/* Barra de carga y estado de red */
+#loadbar{position:fixed;top:0;left:0;right:0;height:3px;z-index:100000;background:transparent;overflow:hidden;opacity:0;transition:opacity .2s;pointer-events:none}
+#loadbar.on{opacity:1}
+#loadbar::after{content:'';position:absolute;inset:0;width:40%;background:linear-gradient(90deg,transparent,#2DD4BF,transparent);animation:lb 1s infinite}
+@keyframes lb{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+#offline{position:fixed;left:0;right:0;bottom:0;z-index:100001;background:var(--bad);color:#fff;text-align:center;font-weight:600;font-size:.84rem;padding:10px 14px calc(10px + var(--sab));transform:translateY(110%);transition:.25s}
+#offline.show{transform:none}
 
 /* Login */
-#login{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;z-index:9999;background:radial-gradient(1200px 600px at 10% 0%,#13584f 0,transparent 60%),linear-gradient(135deg,#0B1220,#0F2A33)}
-.login-box{display:grid;grid-template-columns:1.05fr 1fr;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.45);max-width:920px;width:100%}
+#login{position:fixed;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;display:flex;padding:calc(20px + var(--sat)) 20px calc(20px + var(--sab));z-index:9999;background:radial-gradient(1200px 600px at 10% 0%,#13584f 0,transparent 60%),linear-gradient(135deg,#0B1220,#0F2A33)}
+.login-box{margin:auto;display:grid;grid-template-columns:1.05fr 1fr;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.45);max-width:920px;width:100%}
 .login-left{padding:52px 44px;color:#fff;background:linear-gradient(160deg,#0F766E,#0B3B3A)}
-.brand-mark{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.5px;margin-bottom:22px;border:1px solid rgba(255,255,255,.25)}
+.brand-mark{width:44px;height:44px;border-radius:12px;background:rgba(255,255,255,.14);display:flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.5px;margin-bottom:22px;border:1px solid rgba(255,255,255,.25);flex:none}
 .login-left h1{font-size:1.7rem;font-weight:800;line-height:1.2}
 .login-left p{opacity:.85;margin:10px 0 28px;line-height:1.5}
 .feat{display:flex;gap:10px;align-items:center;margin:11px 0;font-size:.88rem;opacity:.95}
@@ -32,120 +52,187 @@ h1,h2,h3,h4,h5{margin:0}
 .login-right h2{font-size:1.5rem;font-weight:800}
 .login-right .sub{color:var(--muted);margin:6px 0 26px}
 .demo{margin-top:20px;padding:14px;border-radius:10px;background:var(--primary-l);color:var(--primary-d);font-size:.78rem;line-height:1.7}
+.pw{position:relative}.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--primary);font-weight:700;font-size:.76rem;cursor:pointer;padding:8px}
+.pw input{padding-right:70px}
 
-/* Layout */
+/* Estructura */
 #app{display:none}
-.sidebar{position:fixed;inset:0 auto 0 0;width:248px;background:var(--navy);color:#cbd5e1;overflow-y:auto;z-index:100;display:flex;flex-direction:column}
-.sb-logo{padding:22px 22px 18px;display:flex;gap:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.07)}
+.sidebar{position:fixed;top:0;bottom:0;left:0;width:var(--sbw);background:var(--navy);color:#cbd5e1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;z-index:100;display:flex;flex-direction:column;transition:transform .25s ease;padding-top:var(--sat);padding-bottom:var(--sab)}
+.sb-logo{padding:20px 18px 16px 22px;display:flex;gap:12px;align-items:center;border-bottom:1px solid rgba(255,255,255,.07)}
 .sb-logo .brand-mark{margin:0;width:38px;height:38px;font-size:.85rem;background:var(--primary);border:0}
-.sb-logo b{display:block;color:#fff;font-size:.95rem}
-.sb-logo small{color:#7C8AA5;font-size:.72rem}
+.sb-logo b{display:block;color:#fff;font-size:.95rem}.sb-logo small{color:#7C8AA5;font-size:.72rem}
+.sb-close{display:none;margin-left:auto;background:rgba(255,255,255,.08);border:0;color:#fff;width:38px;height:38px;border-radius:10px;font-size:1.5rem;line-height:1;cursor:pointer}
 .sb-group{padding:18px 22px 6px;font-size:.66rem;text-transform:uppercase;letter-spacing:1.2px;color:#5B6B88;font-weight:700}
-.sidebar nav a{display:block;padding:10px 22px;color:#A7B3C9;font-size:.86rem;font-weight:500;cursor:pointer;border-left:3px solid transparent;transition:.15s}
+.sidebar nav{padding-bottom:20px}
+.sidebar nav a{display:block;padding:11px 22px;color:#A7B3C9;font-size:.88rem;font-weight:500;cursor:pointer;border-left:3px solid transparent;transition:.15s;user-select:none}
 .sidebar nav a:hover{background:var(--navy-2);color:#fff}
 .sidebar nav a.active{background:var(--navy-2);color:#fff;border-left-color:#2DD4BF;font-weight:600}
-.main{margin-left:248px;min-height:100vh}
-.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);padding:12px 28px;display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
-.topbar h4{font-size:1.1rem;font-weight:700}
-.tools{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.rate{display:flex;align-items:center;gap:10px;padding:7px 12px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
-.rate .lbl{font-size:.64rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
-.rate .val{font-weight:800;font-size:.95rem}
-.rate .meta{font-size:.7rem;color:var(--muted)}
-.rate.stale{border-color:#F2C27A;background:var(--gold-l)}
-.rate.none{border-color:#F0B4B4;background:var(--bad-l)}
-.avatar{width:36px;height:36px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700}
-.content{padding:24px 28px 40px}
-.menu-btn{display:none}
-.view{display:none}.view.active{display:block}
+.scrim{position:fixed;inset:0;background:rgba(11,18,32,.55);opacity:0;pointer-events:none;transition:opacity .25s;z-index:90;-webkit-backdrop-filter:blur(2px);backdrop-filter:blur(2px)}
+.scrim.show{opacity:1;pointer-events:auto}
+.main{margin-left:var(--sbw);min-height:100vh;min-height:100dvh;transition:margin .25s ease}
+body.sb-collapsed .sidebar{transform:translateX(-100%)}
+body.sb-collapsed .main{margin-left:0}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(10px + var(--sat)) calc(24px + var(--sar)) 10px calc(24px + var(--sal));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.tl{display:flex;align-items:center;gap:12px;min-width:0}
+.topbar h4{font-size:1.1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon-btn{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex:none;padding:0}
+.icon-btn:hover{background:#F6F8FA}
+.icon-btn span{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px;transition:.2s}
+.tools{display:flex;align-items:center;gap:10px}
+.rate{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface)}
+.rate .lbl{font-size:.62rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
+.rate .val{font-weight:800;font-size:.92rem;white-space:nowrap}
+.rate .meta{font-size:.7rem;color:var(--muted);white-space:nowrap}
+.rate.stale{border-color:#F2C27A;background:var(--gold-l)}.rate.none{border-color:#F0B4B4;background:var(--bad-l)}
+.avatar{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:0;cursor:pointer;flex:none;font-size:.95rem}
+.content{padding:22px calc(26px + var(--sar)) calc(40px + var(--sab)) calc(26px + var(--sal))}
+.view{display:none}.view.active{display:block;animation:fd .22s ease}
+@keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
 /* Grid */
-.grid{display:grid;gap:16px;margin-bottom:16px}
+.grid{display:grid;gap:16px;margin-bottom:16px}.grid>*{min-width:0}
 .g2{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
 .g4{grid-template-columns:repeat(4,minmax(0,1fr))}.g5{grid-template-columns:repeat(5,minmax(0,1fr))}
 .s83{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.s57{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
-.s64{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}.s11{grid-template-columns:1fr 1fr}
 
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px}
-.card.flat{box-shadow:none}
+/* Tarjetas */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-bottom:16px}
+.grid>.card,.grid>div>.card:last-child{margin-bottom:0}.grid>div>.card{margin-bottom:16px}
+.card.flat{box-shadow:none;margin-bottom:0}
 .card-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.95rem;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .card-title small{font-weight:500;color:var(--muted)}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px 20px;position:relative;overflow:hidden}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;position:relative;overflow:hidden}
 .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--primary)}
 .kpi.gold::before{background:var(--gold)}.kpi.red::before{background:var(--bad)}.kpi.navy::before{background:var(--navy)}
-.kpi-lbl{font-size:.7rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
-.kpi-val{font-size:1.8rem;font-weight:800;margin:8px 0 8px;line-height:1.1}
+.kpi-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
+.kpi-val{font-size:clamp(1.35rem,2.2vw,1.8rem);font-weight:800;margin:8px 0;line-height:1.1;overflow-wrap:anywhere}
 .kpi-sub{font-size:.78rem;color:var(--muted)}
+.chart-box{position:relative;height:270px}
 
-/* Elements */
+/* Elementos */
 .pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:.7rem;font-weight:700;white-space:nowrap}
-.pill.ok{background:var(--ok-l);color:var(--ok)}.pill.bad{background:var(--bad-l);color:var(--bad)}
-.pill.warn{background:var(--warn-l);color:var(--warn)}.pill.info{background:var(--info-l);color:var(--info)}.pill.mute{background:#EEF1F5;color:var(--muted)}
-.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--primary);color:#fff;border:0;padding:9px 16px;border-radius:9px;font-weight:600;font-size:.82rem;cursor:pointer;transition:.15s}
-.btn:hover{background:var(--primary-d)}.btn:disabled{opacity:.5;cursor:not-allowed}
+.pill.ok{background:var(--ok-l);color:var(--ok)}.pill.bad{background:var(--bad-l);color:var(--bad)}.pill.warn{background:var(--warn-l);color:var(--warn)}
+.pill.info{background:var(--info-l);color:var(--info)}.pill.mute{background:#EEF1F5;color:var(--muted)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;background:var(--primary);color:#fff;border:0;padding:10px 16px;min-height:40px;border-radius:9px;font-weight:600;font-size:.84rem;cursor:pointer;transition:.15s;position:relative}
+.btn:hover{background:var(--primary-d)}.btn:disabled{opacity:.55;cursor:not-allowed}
 .btn.ghost{background:#fff;color:var(--ink);border:1px solid var(--line)}.btn.ghost:hover{background:#F6F8FA}
 .btn.gold{background:var(--gold)}.btn.gold:hover{background:#92400E}
 .btn.danger{background:var(--bad)}.btn.danger:hover{background:#991B1B}
-.btn.sm{padding:5px 10px;font-size:.75rem}.btn.block{width:100%}
-input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:10px 12px;border:1px solid #D5DBE4;border-radius:9px;font-size:.88rem;background:#fff;color:var(--ink)}
+.btn.sm{padding:6px 11px;min-height:34px;font-size:.78rem}.btn.block{width:100%}
+.btn.loading{color:transparent!important;pointer-events:none}
+.btn.loading::after{content:'';position:absolute;width:16px;height:16px;border-radius:50%;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;animation:sp .7s linear infinite}
+.btn.ghost.loading::after{border-color:#CBD3DF;border-top-color:var(--primary)}
+@keyframes sp{to{transform:rotate(360deg)}}
+input[type=text],input[type=password],input[type=number],select,textarea{width:100%;padding:10px 12px;min-height:42px;border:1px solid #D5DBE4;border-radius:9px;font-size:.9rem;background:#fff;color:var(--ink);-webkit-appearance:none;appearance:none}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' fill='none' stroke='%2364748B' stroke-width='2' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:34px}
 input:focus,select:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(15,118,110,.15)}
+input:disabled{background:#F3F5F8;color:var(--muted)}
 label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.5px}
-.field{margin-bottom:14px}
-.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:4px}
+.field{margin-bottom:14px}.fgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:4px}
+.invalid input,.invalid select{border-color:var(--bad)!important;background-color:#FFF8F8}
+.invalid input:focus,.invalid select:focus{box-shadow:0 0 0 3px rgba(185,28,28,.15)}
+.prod.invalid{border-color:var(--bad)}
+.err{color:var(--bad);font-size:.74rem;margin-top:4px;font-weight:500}
 .table{width:100%;border-collapse:collapse;font-size:.84rem}
-.table th{padding:10px 12px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--line);background:#F8FAFC;font-weight:700}
+.scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
+.scroll .table{min-width:560px}
+.table th{padding:10px 12px;text-align:left;font-size:.68rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);border-bottom:1px solid var(--line);background:#F8FAFC;font-weight:700;white-space:nowrap}
 .table td{padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:middle}
-.table tbody tr:hover{background:#FAFBFC}
-.table .r{text-align:right}
-.scroll{overflow-x:auto}
-.note{padding:13px 15px;border-radius:10px;font-size:.85rem;margin-bottom:12px;border:1px solid transparent;line-height:1.5}
+.table tbody tr:hover{background:#FAFBFC}.table .r{text-align:right}
+.note{padding:13px 15px;border-radius:10px;font-size:.85rem;margin-bottom:12px;border:1px solid transparent;line-height:1.5;overflow-wrap:anywhere}
 .note.ok{background:var(--ok-l);color:#14532D;border-color:#BFE3CA}.note.bad{background:var(--bad-l);color:#7F1D1D;border-color:#F2C4C4}
 .note.warn{background:var(--warn-l);color:#7C2D12;border-color:#F2D3A3}.note.info{background:var(--info-l);color:#1E3A8A;border-color:#C3D3F7}
 .empty{color:var(--muted);text-align:center;padding:26px 10px;font-size:.85rem}
-.row-item{padding:11px 4px;border-bottom:1px solid var(--line);font-size:.84rem}
-.row-item small{color:var(--muted)}
-.prod{display:grid;grid-template-columns:1fr auto 84px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
-.prod b{display:block}.prod small{color:var(--muted)}
-.prod .p{text-align:right;font-weight:700}.prod .p small{display:block;font-weight:500}
+.row-item{padding:11px 4px;border-bottom:1px solid var(--line);font-size:.84rem}.row-item small{color:var(--muted)}
+.prod{display:grid;grid-template-columns:1fr auto 88px;gap:12px;align-items:center;padding:12px 14px;border:1px solid var(--line);border-radius:10px;margin-bottom:8px}
+.prod b{display:block}.prod small{color:var(--muted)}.prod .p{text-align:right;font-weight:700}.prod .p small{display:block;font-weight:500}
 .totals{background:#F8FAFC;border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:14px 0}
-.totals .l{display:flex;justify-content:space-between;padding:3px 0}
+.totals .l{display:flex;justify-content:space-between;gap:10px;padding:3px 0}
 .totals .big{font-weight:800;font-size:1.1rem;border-top:1px solid var(--line);margin-top:6px;padding-top:9px}
 .totals .bs{color:var(--gold);font-weight:700}
 .paybox{border:1px solid var(--line);border-radius:10px;padding:14px;margin-top:12px}
 .paybox h5{font-size:.8rem;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px}
 .payrow{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
-#map{height:520px;border-radius:var(--radius);border:1px solid var(--line)}
+.bar{height:10px;border-radius:6px;overflow:hidden;display:flex;background:#E5E9EF}
 .dark-card{background:linear-gradient(150deg,#0F766E,#0B3B3A);color:#fff;border:0}
 .dark-card .card-title{border-color:rgba(255,255,255,.2)}
+.dark-card select{color:var(--ink)}
 .mini-chart{height:260px;position:relative}
-.bar{height:10px;border-radius:6px;overflow:hidden;display:flex;background:#E5E9EF}
+.searchbar{display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap}.searchbar input{flex:1;min-width:200px}
 
-/* Toast / Modal */
-#toast{position:fixed;top:18px;right:18px;z-index:99999;display:flex;flex-direction:column;gap:10px}
-.toast{background:#fff;border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:10px;padding:12px 16px;min-width:290px;max-width:380px;box-shadow:0 12px 30px rgba(15,23,42,.18);animation:in .25s}
+/* Mapa */
+.map-wrap{position:relative;isolation:isolate;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:#E8ECEF}
+#map{height:clamp(340px,64dvh,640px);height:clamp(340px,64vh,640px);width:100%;z-index:0;position:relative}
+@supports (height:1dvh){#map{height:clamp(340px,64dvh,640px)}}
+.map-tools{position:absolute;top:10px;right:10px;z-index:1001;display:flex;flex-direction:column;gap:6px}
+.map-tools .btn{box-shadow:0 2px 8px rgba(15,23,42,.18)}
+.legend{position:absolute;left:10px;bottom:10px;z-index:1001;background:rgba(255,255,255,.95);border-radius:10px;padding:8px 10px;font-size:.74rem;box-shadow:0 2px 8px rgba(15,23,42,.18);max-width:70%;display:flex;gap:10px;flex-wrap:wrap}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.map-wrap.full{position:fixed;inset:0;z-index:200;border-radius:0;border:0}
+.map-wrap.full #map{height:100%}
+.leaflet-popup-content{font-size:.82rem;line-height:1.5}
+.leaflet-container{font-family:inherit;-webkit-tap-highlight-color:transparent}
+
+/* Toast y modales */
+#toast{position:fixed;top:calc(14px + var(--sat));right:14px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
+.toast{pointer-events:auto;background:#fff;border:1px solid var(--line);border-left:4px solid var(--primary);border-radius:10px;padding:12px 16px;min-width:270px;max-width:380px;box-shadow:0 12px 30px rgba(15,23,42,.18);animation:in .25s}
 .toast.error{border-left-color:var(--bad)}.toast.warn{border-left-color:var(--gold)}
-.toast b{display:block;font-size:.86rem}.toast small{color:var(--muted);font-size:.78rem}
+.toast b{display:block;font-size:.86rem}.toast small{color:var(--muted);font-size:.78rem;display:block;margin-top:2px}
 @keyframes in{from{transform:translateX(30px);opacity:0}to{transform:none;opacity:1}}
-.modal{display:none;position:fixed;inset:0;background:rgba(11,18,32,.55);z-index:1000;align-items:center;justify-content:center;padding:20px}
+.modal{display:none;position:fixed;inset:0;background:rgba(11,18,32,.55);z-index:1000;align-items:center;justify-content:center;padding:16px}
 .modal.open{display:flex}
-.modal-card{background:#fff;border-radius:16px;width:100%;max-width:720px;max-height:92vh;overflow:auto;box-shadow:0 30px 70px rgba(0,0,0,.35)}
-.modal-card.sm{max-width:420px}
-.modal-h{padding:18px 22px;border-bottom:1px solid var(--line);font-weight:700;font-size:1rem}
+.modal-card{background:#fff;border-radius:16px;width:100%;max-width:720px;max-height:90vh;max-height:90dvh;overflow-y:auto;-webkit-overflow-scrolling:touch;overscroll-behavior:contain;box-shadow:0 30px 70px rgba(0,0,0,.35);animation:fd .2s}
+.modal-card.sm{max-width:430px}
+.modal-h{padding:18px 22px;border-bottom:1px solid var(--line);font-weight:700;font-size:1rem;position:sticky;top:0;background:#fff;z-index:2}
 .modal-b{padding:20px 22px}
-.modal-f{padding:14px 22px;border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px}
+.modal-f{padding:14px 22px calc(14px + var(--sab));border-top:1px solid var(--line);display:flex;justify-content:flex-end;gap:10px;position:sticky;bottom:0;background:#fff}
 
-@media (max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.s83,.s57,.s64,.s11,.g3{grid-template-columns:1fr}}
+/* Tablet */
+@media (max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr 1fr}.s83,.s57{grid-template-columns:1fr}}
+
+/* Móvil y tablet pequeña: menú tipo cajón */
 @media (max-width:900px){
-  .sidebar{transform:translateX(-100%);transition:.2s}.sidebar.open{transform:none}
-  .main{margin-left:0}.menu-btn{display:inline-flex}.content{padding:18px 14px}.topbar{padding:10px 14px}
-  .login-box{grid-template-columns:1fr}.login-left{display:none}.g2{grid-template-columns:1fr}
-  .payrow{grid-template-columns:1fr 1fr}
+  .sidebar{transform:translateX(-100%);width:min(84vw,310px);box-shadow:none}
+  .sidebar.open{transform:none;box-shadow:12px 0 40px rgba(0,0,0,.4)}
+  .sb-close{display:block}
+  body.sb-collapsed .sidebar{transform:translateX(-100%)}
+  .sidebar.open{transform:none!important}
+  .main,body.sb-collapsed .main{margin-left:0}
+  .topbar{padding:calc(8px + var(--sat)) calc(12px + var(--sar)) 8px calc(12px + var(--sal))}
+  .tools{width:100%;justify-content:space-between}
+  .rate{flex:1;min-width:0;justify-content:space-between}.rate .meta{display:none}
+  .content{padding:14px calc(12px + var(--sar)) calc(30px + var(--sab)) calc(12px + var(--sal))}
+  .login-box{grid-template-columns:1fr}.login-left{display:none}.login-right{padding:34px 24px}
+  .g2,.g3{grid-template-columns:1fr}
+  input[type=text],input[type=password],input[type=number],select,textarea{font-size:16px}
+  .card{padding:16px}.grid{gap:12px}
+  .hide-m{display:none!important}
+  #toast{left:12px;right:12px}.toast{max-width:none;min-width:0}
+  .modal{align-items:flex-end;padding:0}
+  .modal-card,.modal-card.sm{max-width:none;border-radius:18px 18px 0 0;max-height:92vh;max-height:92dvh;animation:up .25s}
+  @keyframes up{from{transform:translateY(40px);opacity:0}to{transform:none;opacity:1}}
+  .payrow{grid-template-columns:1fr 1fr}.payrow .btn{grid-column:1/-1}
+  .prod{grid-template-columns:1fr 92px;grid-template-areas:"n i" "p i"}
+  .prod>div:first-child{grid-area:n}.prod .p{grid-area:p;text-align:left}.prod input{grid-area:i}
+  .btn{min-height:44px}.btn.sm{min-height:38px}
+  .chart-box{height:230px}
+  .map-tools{top:8px;right:8px}.legend{max-width:calc(100% - 20px)}
 }
-@media print{.sidebar,.topbar,.btn,.no-print{display:none!important}.main{margin:0}.card{box-shadow:none}}
+@media (max-width:560px){
+  .g5,.g4{grid-template-columns:1fr 1fr}
+  .kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}
+  .topbar h4{font-size:1rem}
+  .fgrid{grid-template-columns:1fr 1fr}
+  .modal-b{padding:16px}.modal-h{padding:16px}
+}
+@media (max-width:380px){.g5,.g4{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+@media print{.sidebar,.topbar,.btn,.no-print,.scrim{display:none!important}.main{margin:0!important}.card{box-shadow:none}}
 </style>
 </head>
 <body>
+<div id="loadbar"></div>
+<div id="offline" role="alert">Sin conexión a internet. Los cambios no se guardarán hasta que se restablezca.</div>
 
 <!-- LOGIN -->
 <div id="login">
@@ -158,14 +245,14 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
       <div class="feat"><i></i>Cobro en efectivo, Zelle, Pago Móvil, punto de venta y crédito</div>
       <div class="feat"><i></i>Geofencing GPS y ruteo de entregas</div>
       <div class="feat"><i></i>Cadena de frío y envases retornables</div>
-      <div class="feat"><i></i>Liquidación de caja por moneda</div>
+      <div class="feat"><i></i>Liquidación de caja por moneda y bitácora de auditoría</div>
     </div>
     <div class="login-right">
       <h2>Iniciar sesión</h2>
       <p class="sub">Ingrese sus credenciales para continuar</p>
-      <div class="field"><label>Usuario</label><input type="text" id="lu" autocomplete="username"></div>
-      <div class="field"><label>Contraseña</label><input type="password" id="lp" autocomplete="current-password" onkeypress="if(event.key==='Enter')doLogin()"></div>
-      <button class="btn block" style="padding:13px" onclick="doLogin()">Ingresar</button>
+      <div class="field"><label for="lu">Usuario</label><input type="text" id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next"></div>
+      <div class="field"><label for="lp">Contraseña</label><div class="pw"><input type="password" id="lp" autocomplete="current-password" enterkeyhint="go" onkeydown="if(event.key==='Enter')lock($('btnLogin'),doLogin)"><button type="button" onclick="verClave()" id="btnVer">Mostrar</button></div></div>
+      <button class="btn block" id="btnLogin" style="padding:13px" onclick="lock(this,doLogin)">Ingresar</button>
       <div class="demo"><b>Usuarios de demostración</b><br>admin / admin123 (Gerente)<br>maria / maria123 (Supervisor)<br>pedro / pedro123 (Preventista)</div>
     </div>
   </div>
@@ -173,8 +260,9 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
 
 <!-- APP -->
 <div id="app">
-  <aside class="sidebar" id="sidebar">
-    <div class="sb-logo"><div class="brand-mark">SIG</div><div><b>SIG FMCG</b><small>Maracaibo</small></div></div>
+  <div class="scrim" id="scrim" onclick="toggleMenu(false)"></div>
+  <aside class="sidebar" id="sidebar" aria-label="Menú principal">
+    <div class="sb-logo"><div class="brand-mark">SIG</div><div><b>SIG FMCG</b><small>Maracaibo</small></div><button class="sb-close" onclick="toggleMenu(false)" aria-label="Cerrar menú">&times;</button></div>
     <nav>
       <div class="sb-group">Operación</div>
       <a class="active" onclick="showView('dashboard',this)">Dashboard</a>
@@ -192,28 +280,30 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
       <a onclick="showView('mermas',this)">Mermas</a>
       <div class="sb-group">Logística</div>
       <a onclick="showView('vrp',this)">Ruteo de entregas</a>
+      <div class="sb-group" data-roles="Gerente,Supervisor">Administración</div>
+      <a data-roles="Gerente,Supervisor" onclick="showView('bitacora',this)">Bitácora de auditoría</a>
+      <a data-roles="Gerente" onclick="showView('usuarios',this)">Usuarios y accesos</a>
     </nav>
   </aside>
 
   <div class="main">
-    <div class="topbar">
-      <div style="display:flex;align-items:center;gap:12px">
-        <button class="btn ghost sm menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">Menú</button>
+    <header class="topbar">
+      <div class="tl">
+        <button class="icon-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Abrir o cerrar el menú" aria-expanded="false" aria-controls="sidebar"><span></span><span></span><span></span></button>
         <h4 id="viewTitle">Dashboard gerencial</h4>
       </div>
       <div class="tools">
         <div class="rate" id="rateBox">
           <div><div class="lbl">Tasa BCV</div><div class="val num" id="rateVal">-</div></div>
           <div class="meta" id="rateMeta"></div>
-          <span id="rateBtns" style="display:none;gap:6px"><button class="btn ghost sm" onclick="actualizarTasaBCV()" id="btnRate">Actualizar</button><button class="btn ghost sm" onclick="abrirTasa()">Fijar</button></span>
+          <span id="rateBtns" style="display:none;gap:6px"><button class="btn ghost sm" onclick="lock(this,actualizarTasaBCV)" id="btnRate">Actualizar</button><button class="btn ghost sm" onclick="abrirTasa()">Fijar</button></span>
         </div>
-        <span id="userLabel" style="font-size:.84rem;color:var(--muted)"></span>
-        <div class="avatar" id="avatar">A</div>
-        <button class="btn ghost sm" onclick="logout()">Salir</button>
+        <span id="userLabel" class="hide-m" style="font-size:.84rem;color:var(--muted)"></span>
+        <button class="avatar" id="avatar" onclick="abrirPerfil()" aria-label="Mi perfil">A</button>
       </div>
-    </div>
+    </header>
 
-    <div class="content">
+    <main class="content">
 
       <!-- DASHBOARD -->
       <div id="view-dashboard" class="view active">
@@ -231,7 +321,7 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
           <div class="kpi"><div class="kpi-lbl">OTIF</div><div class="kpi-val num" id="kOTIF">-</div><span class="pill mute" id="kOTIFM">Meta superior a 92%</span></div>
         </div>
         <div class="grid s83">
-          <div class="card"><div class="card-title">Ventas por zona <small>Acumulado en USD</small></div><canvas id="chartZ" height="110"></canvas></div>
+          <div class="card"><div class="card-title">Ventas por zona <small>Acumulado en USD</small></div><div class="chart-box"><canvas id="chartZ"></canvas></div></div>
           <div class="card"><div class="card-title">Alertas</div><div id="alertasList"></div></div>
         </div>
       </div>
@@ -239,8 +329,8 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
       <!-- PDVS -->
       <div id="view-pdvs" class="view">
         <div class="card">
-          <div class="card-title">Puntos de venta <button class="btn" onclick="abrirPDV()">Nuevo PDV</button></div>
-          <input type="text" id="searchPDV" placeholder="Buscar por código, nombre o zona" oninput="renderPDVs()" style="margin-bottom:14px">
+          <div class="card-title">Puntos de venta <span style="display:flex;gap:8px"><button class="btn ghost sm" onclick="exportarPDVs()">Exportar CSV</button><button class="btn sm" onclick="abrirPDV()">Nuevo PDV</button></span></div>
+          <div class="searchbar"><input type="text" id="searchPDV" placeholder="Buscar por código, nombre o zona" oninput="renderPDVs()" aria-label="Buscar PDV"></div>
           <div class="scroll"><table class="table">
             <thead><tr><th>Código</th><th>Nombre</th><th>Zona</th><th>Cestas</th><th>Botellas</th><th class="r">Límite crédito</th><th>Canal</th><th>Estado</th><th></th></tr></thead>
             <tbody id="tblPDVs"></tbody>
@@ -251,17 +341,25 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
       <!-- MAPA -->
       <div id="view-mapa" class="view">
         <div class="grid s83">
-          <div id="map"></div>
+          <div class="map-wrap" id="mapWrap">
+            <div id="map" role="application" aria-label="Mapa de puntos de venta"></div>
+            <div class="map-tools">
+              <button class="btn ghost sm" onclick="fitMap()">Centrar</button>
+              <button class="btn ghost sm" onclick="ubicarme()">Mi ubicación</button>
+              <button class="btn ghost sm" id="btnFull" onclick="mapaCompleto()">Ampliar</button>
+            </div>
+            <div class="legend" id="mapLegend"></div>
+          </div>
           <div>
             <div class="card dark-card">
               <div class="card-title">Check-in por geofencing</div>
-              <div class="field"><select id="selPDVCheckin"></select></div>
+              <div class="field"><select id="selPDVCheckin" aria-label="PDV para check-in"></select></div>
               <div id="gpsStatus" style="font-size:.84rem;margin-bottom:8px">GPS: en espera</div>
               <div id="distInfo" style="font-size:.84rem;margin-bottom:14px"></div>
-              <button class="btn block" style="background:#fff;color:var(--primary-d);margin-bottom:8px" onclick="getLocation()">Usar mi ubicación</button>
-              <button class="btn block gold" onclick="simularCheckin()">Simular check-in</button>
+              <button class="btn block" style="background:#fff;color:var(--primary-d);margin-bottom:8px" onclick="lock(this,getLocation)">Usar mi ubicación</button>
+              <button class="btn block gold" onclick="lock(this,simularCheckin)">Simular check-in</button>
             </div>
-            <div class="card"><div class="card-title">Últimas visitas</div><div id="visitasList" style="max-height:300px;overflow-y:auto"></div></div>
+            <div class="card"><div class="card-title">Últimas visitas</div><div id="visitasList" style="max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div></div>
           </div>
         </div>
       </div>
@@ -272,15 +370,14 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
           <div>
             <div class="card">
               <div class="card-title">Cliente</div>
-              <select id="selPDV" onchange="cargarPDV()" style="margin-bottom:14px"></select>
-              <div id="infoPDV"></div>
-              <div id="smartOrder"></div>
+              <div class="field"><select id="selPDV" onchange="cargarPDV()" aria-label="Cliente"></select></div>
+              <div id="infoPDV"></div><div id="smartOrder"></div>
             </div>
             <div class="card"><div class="card-title">Promociones activas</div><div id="promosList"></div></div>
           </div>
           <div class="card">
             <div class="card-title">Productos <small>Precios en USD, equivalente en Bs a tasa BCV</small></div>
-            <div id="listaProds" style="max-height:340px;overflow-y:auto"></div>
+            <div id="listaProds" style="max-height:340px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div>
             <div class="totals num">
               <div class="l"><span>Subtotal</span><span id="subTotal"></span></div>
               <div class="l" style="color:var(--gold)"><span>Descuento</span><span id="descTotal"></span></div>
@@ -290,15 +387,15 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
             <div class="paybox">
               <h5>Forma de pago</h5>
               <div class="payrow">
-                <div><label>Método</label><select id="payMetodo" onchange="onMetodo()"></select></div>
-                <div><label id="payLbl">Monto</label><input type="number" id="payMonto" step="0.01" min="0"></div>
-                <div><label>Referencia</label><input type="text" id="payRef"></div>
+                <div><label for="payMetodo">Método</label><select id="payMetodo" onchange="onMetodo()"></select></div>
+                <div><label for="payMonto" id="payLbl">Monto</label><input type="number" id="payMonto" step="0.01" min="0" inputmode="decimal"></div>
+                <div><label for="payRef">Referencia</label><input type="text" id="payRef" maxlength="30" autocomplete="off"></div>
                 <button class="btn" onclick="addPago()">Agregar</button>
               </div>
               <button class="btn ghost sm" onclick="pagarSaldo()">Cobrar saldo con el método seleccionado</button>
               <div id="payList" style="margin-top:12px"></div>
             </div>
-            <button class="btn block" style="margin-top:14px;padding:13px" onclick="confirmarPedido()">Confirmar pedido</button>
+            <button class="btn block" style="margin-top:14px;padding:13px" onclick="lock(this,confirmarPedido)">Confirmar pedido</button>
             <div id="pedidoMsg" style="margin-top:14px"></div>
           </div>
         </div>
@@ -309,11 +406,11 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
         <div class="grid s57">
           <div class="card">
             <div class="card-title">Registrar abono</div>
-            <div class="field"><label>Cliente</label><select id="cobPDV"></select></div>
-            <div class="field"><label>Método</label><select id="cobMetodo" onchange="onCobMetodo()"></select></div>
-            <div class="field"><label id="cobLbl">Monto</label><input type="number" id="cobMonto" step="0.01" min="0"></div>
-            <div class="field"><label>Referencia</label><input type="text" id="cobRef"></div>
-            <button class="btn block" onclick="registrarAbono()">Registrar abono</button>
+            <div class="field"><label for="cobPDV">Cliente</label><select id="cobPDV"></select></div>
+            <div class="field"><label for="cobMetodo">Método</label><select id="cobMetodo" onchange="onCobMetodo()"></select></div>
+            <div class="field"><label for="cobMonto" id="cobLbl">Monto</label><input type="number" id="cobMonto" step="0.01" min="0" inputmode="decimal"></div>
+            <div class="field"><label for="cobRef">Referencia</label><input type="text" id="cobRef" maxlength="30" autocomplete="off"></div>
+            <button class="btn block" onclick="lock(this,registrarAbono)">Registrar abono</button>
           </div>
           <div class="card">
             <div class="card-title">Cuentas por cobrar <small>Saldo pendiente por cliente</small></div>
@@ -327,12 +424,12 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
         <div class="grid g2">
           <div class="card">
             <div class="card-title">Registrar devolución</div>
-            <div class="field"><label>PDV</label><select id="selRetPDV"></select></div>
+            <div class="field"><label for="selRetPDV">PDV</label><select id="selRetPDV"></select></div>
             <div class="fgrid">
-              <div class="field"><label>Tipo</label><select id="retTipo"><option value="Cesta">Cesta</option><option value="Botella">Botella</option></select></div>
-              <div class="field"><label>Cantidad</label><input type="number" id="retCant" value="1" min="1"></div>
+              <div class="field"><label for="retTipo">Tipo</label><select id="retTipo"><option value="Cesta">Cesta</option><option value="Botella">Botella</option></select></div>
+              <div class="field"><label for="retCant">Cantidad</label><input type="number" id="retCant" value="1" min="1" step="1" inputmode="numeric"></div>
             </div>
-            <button class="btn block" onclick="registrarDevolucion()">Registrar devolución</button>
+            <button class="btn block" onclick="lock(this,registrarDevolucion)">Registrar devolución</button>
           </div>
           <div class="card"><div class="card-title">Resumen</div><div id="retStats"></div></div>
         </div>
@@ -346,17 +443,17 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
         <div class="grid g2">
           <div class="card">
             <div class="card-title">Nueva auditoría RED</div>
-            <div class="field"><select id="selPDVRed"></select></div>
-            <div style="border:2px dashed #CBD3DF;border-radius:12px;padding:30px;text-align:center;cursor:pointer;margin-bottom:12px" onclick="document.getElementById('fotoIn').click()">
+            <div class="field"><select id="selPDVRed" aria-label="PDV a auditar"></select></div>
+            <div style="border:2px dashed #CBD3DF;border-radius:12px;padding:28px 14px;text-align:center;cursor:pointer;margin-bottom:12px" onclick="$('fotoIn').click()">
               <b>Subir fotografía del anaquel</b>
-              <p style="color:var(--muted);margin:6px 0 0;font-size:.82rem">Haga clic para seleccionar una imagen</p>
-              <input type="file" id="fotoIn" accept="image/*" style="display:none" onchange="previewFoto(event)">
+              <p style="color:var(--muted);margin:6px 0 0;font-size:.82rem">Toque para tomar o seleccionar una imagen</p>
+              <input type="file" id="fotoIn" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(event)">
             </div>
             <div id="fotoPrev" style="margin-bottom:12px"></div>
-            <button class="btn block" onclick="analizarRED()">Analizar cumplimiento</button>
+            <button class="btn block" onclick="lock(this,analizarRED)">Analizar cumplimiento</button>
             <div id="redRes" style="margin-top:14px"></div>
           </div>
-          <div class="card"><div class="card-title">Historial de auditorías</div><div id="redHist" style="max-height:520px;overflow-y:auto"></div></div>
+          <div class="card"><div class="card-title">Historial de auditorías</div><div id="redHist" style="max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div></div>
         </div>
       </div>
 
@@ -368,7 +465,7 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
           <div class="kpi red"><div class="kpi-lbl">Alertas (últimas lecturas)</div><div class="kpi-val num" id="fAlert">0</div></div>
         </div>
         <div class="card">
-          <div class="card-title">Monitoreo en tiempo real <button class="btn gold" onclick="toggleSim()" id="btnSim">Iniciar simulación</button></div>
+          <div class="card-title">Monitoreo en tiempo real <button class="btn gold sm" onclick="toggleSim()" id="btnSim">Iniciar simulación</button></div>
           <div class="mini-chart"><canvas id="chartF"></canvas></div>
           <div id="frioAlert" style="margin-top:14px"></div>
         </div>
@@ -383,8 +480,8 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
           <div class="card">
             <div class="card-title">Ruteo de entregas</div>
             <p style="color:var(--muted);margin:0 0 12px;font-size:.84rem">Seleccione los PDV a visitar. El algoritmo de vecino más cercano calcula la secuencia desde el almacén.</p>
-            <div id="vrpChecks" style="max-height:360px;overflow-y:auto;margin-bottom:14px"></div>
-            <button class="btn block" onclick="calcularVRP()">Calcular ruta</button>
+            <div id="vrpChecks" style="max-height:360px;overflow-y:auto;-webkit-overflow-scrolling:touch;margin-bottom:14px"></div>
+            <button class="btn block" onclick="lock(this,calcularVRP)">Calcular ruta</button>
           </div>
           <div class="card"><div class="card-title">Resultado</div><div id="vrpResult"><div class="empty">Seleccione PDV y calcule la ruta</div></div></div>
         </div>
@@ -395,13 +492,13 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
         <div class="grid s57">
           <div class="card">
             <div class="card-title">Registrar merma</div>
-            <div class="field"><label>PDV (opcional)</label><select id="merPDV"></select></div>
-            <div class="field"><label>Producto (opcional)</label><select id="merProd"></select></div>
-            <div class="field"><label>Cantidad</label><input type="number" id="merCant" value="1" min="1"></div>
-            <div class="field"><label>Causa</label><select id="merCausa"><option>Rotura</option><option>Vencimiento</option><option>Falla de empaque</option><option>Daño en transporte</option></select></div>
-            <button class="btn block" onclick="registrarMerma()">Registrar merma</button>
+            <div class="field"><label for="merPDV">PDV (opcional)</label><select id="merPDV"></select></div>
+            <div class="field"><label for="merProd">Producto (opcional)</label><select id="merProd"></select></div>
+            <div class="field"><label for="merCant">Cantidad</label><input type="number" id="merCant" value="1" min="1" step="1" inputmode="numeric"></div>
+            <div class="field"><label for="merCausa">Causa</label><select id="merCausa"><option>Rotura</option><option>Vencimiento</option><option>Falla de empaque</option><option>Daño en transporte</option></select></div>
+            <button class="btn block" onclick="lock(this,registrarMerma)">Registrar merma</button>
           </div>
-          <div class="card"><div class="card-title">Historial de mermas</div><div id="mermasList" style="max-height:520px;overflow-y:auto"></div></div>
+          <div class="card"><div class="card-title">Historial de mermas</div><div id="mermasList" style="max-height:520px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div></div>
         </div>
       </div>
 
@@ -412,56 +509,114 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
             <div class="card-title">Cierre de turno <small id="liqTasa"></small></div>
             <div id="liqResumen"></div>
             <div class="fgrid" style="margin-top:14px">
-              <div class="field"><label>Efectivo USD contado</label><input type="number" id="liqUsd" step="0.01" min="0" value="0"></div>
-              <div class="field"><label>Efectivo Bs contado</label><input type="number" id="liqBs" step="0.01" min="0" value="0"></div>
+              <div class="field"><label for="liqUsd">Efectivo USD contado</label><input type="number" id="liqUsd" step="0.01" min="0" value="0" inputmode="decimal" onfocus="this.select()"></div>
+              <div class="field"><label for="liqBs">Efectivo Bs contado</label><input type="number" id="liqBs" step="0.01" min="0" value="0" inputmode="decimal" onfocus="this.select()"></div>
             </div>
-            <button class="btn block" onclick="cerrarTurno()">Liquidar turno</button>
+            <button class="btn block" onclick="lock(this,cerrarTurno)">Liquidar turno</button>
             <div id="liqResult" style="margin-top:14px"></div>
           </div>
-          <div class="card"><div class="card-title">Historial de liquidaciones</div><div id="liqHist" style="max-height:480px;overflow-y:auto"></div></div>
+          <div class="card"><div class="card-title">Historial de liquidaciones</div><div id="liqHist" style="max-height:480px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div></div>
         </div>
         <div class="card">
-          <div class="card-title">Pedidos del día <button class="btn ghost sm" onclick="window.print()">Imprimir</button></div>
+          <div class="card-title">Pedidos del día <span style="display:flex;gap:8px" class="no-print"><button class="btn ghost sm" onclick="exportarPedidos()">Exportar CSV</button><button class="btn ghost sm" onclick="window.print()">Imprimir</button></span></div>
           <div id="tablaLiq"></div>
         </div>
       </div>
 
-    </div>
+      <!-- BITACORA -->
+      <div id="view-bitacora" class="view">
+        <div class="card">
+          <div class="card-title">Bitácora de auditoría <small>Últimas 200 acciones</small> <button class="btn ghost sm" onclick="exportarBitacora()">Exportar CSV</button></div>
+          <div class="searchbar"><input type="text" id="searchBit" placeholder="Filtrar por usuario o acción" oninput="renderBitacora()" aria-label="Filtrar bitácora"></div>
+          <div class="scroll"><table class="table"><thead><tr><th>Fecha</th><th>Usuario</th><th>Acción</th><th>Detalle</th></tr></thead><tbody id="tblBit"></tbody></table></div>
+        </div>
+      </div>
+
+      <!-- USUARIOS -->
+      <div id="view-usuarios" class="view">
+        <div class="card">
+          <div class="card-title">Usuarios y accesos <button class="btn sm" onclick="abrirUsr()">Nuevo usuario</button></div>
+          <div class="scroll"><table class="table"><thead><tr><th>Nombre</th><th>Usuario</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody id="tblUsr"></tbody></table></div>
+        </div>
+      </div>
+
+    </main>
   </div>
 </div>
 
 <!-- MODAL PDV -->
 <div class="modal" id="modalPDV">
-  <div class="modal-card">
+  <div class="modal-card" role="dialog" aria-modal="true" aria-label="Punto de venta">
     <div class="modal-h">Punto de venta</div>
     <div class="modal-b">
       <input type="hidden" id="pId">
-      <div class="fgrid"><div class="field"><label>Código</label><input type="text" id="pCodigo"></div><div class="field"><label>Nombre comercial</label><input type="text" id="pNombre"></div></div>
-      <div class="fgrid"><div class="field"><label>Razón social</label><input type="text" id="pRazon"></div><div class="field"><label>Dirección</label><input type="text" id="pDireccion"></div></div>
-      <div class="fgrid"><div class="field"><label>Zona</label><select id="pZona"></select></div>
-        <div class="field"><label>Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
-        <div class="field"><label>Límite de crédito (USD)</label><input type="number" id="pCredito" min="0" step="0.01" value="0"></div></div>
-      <div class="fgrid"><div class="field"><label>Latitud</label><input type="text" id="pLat"></div><div class="field"><label>Longitud</label><input type="text" id="pLng"></div><div class="field"><label>Radio geofence (m)</label><input type="number" id="pRadio"></div></div>
-      <div class="fgrid"><div class="field"><label>Saldo cestas</label><input type="number" id="pSaldoC"></div><div class="field"><label>Límite cestas</label><input type="number" id="pLimC"></div>
-        <div class="field"><label>Saldo botellas</label><input type="number" id="pSaldoB"></div><div class="field"><label>Límite botellas</label><input type="number" id="pLimB"></div></div>
+      <div class="fgrid"><div class="field"><label for="pCodigo">Código</label><input type="text" id="pCodigo" maxlength="20" autocapitalize="characters"></div><div class="field"><label for="pNombre">Nombre comercial</label><input type="text" id="pNombre" maxlength="120"></div></div>
+      <div class="fgrid"><div class="field"><label for="pRazon">Razón social</label><input type="text" id="pRazon" maxlength="150"></div><div class="field"><label for="pDireccion">Dirección</label><input type="text" id="pDireccion" maxlength="200"></div></div>
+      <div class="fgrid"><div class="field"><label for="pZona">Zona</label><select id="pZona"></select></div>
+        <div class="field"><label for="pCanal">Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
+        <div class="field"><label for="pCredito">Límite de crédito (USD)</label><input type="number" id="pCredito" min="0" step="0.01" inputmode="decimal"></div></div>
+      <div class="fgrid"><div class="field"><label for="pLat">Latitud</label><input type="text" id="pLat" inputmode="decimal"></div><div class="field"><label for="pLng">Longitud</label><input type="text" id="pLng" inputmode="decimal"></div><div class="field"><label for="pRadio">Radio geofence (m)</label><input type="number" id="pRadio" inputmode="numeric"></div></div>
+      <div class="fgrid"><div class="field"><label for="pSaldoC">Saldo cestas</label><input type="number" id="pSaldoC" inputmode="numeric"></div><div class="field"><label for="pLimC">Límite cestas</label><input type="number" id="pLimC" inputmode="numeric"></div>
+        <div class="field"><label for="pSaldoB">Saldo botellas</label><input type="number" id="pSaldoB" inputmode="numeric"></div><div class="field"><label for="pLimB">Límite botellas</label><input type="number" id="pLimB" inputmode="numeric"></div></div>
     </div>
-    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="guardarPDV()">Guardar</button></div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="lock(this,guardarPDV)">Guardar</button></div>
   </div>
 </div>
 
 <!-- MODAL TASA -->
 <div class="modal" id="modalTasa">
-  <div class="modal-card sm">
+  <div class="modal-card sm" role="dialog" aria-modal="true" aria-label="Fijar tasa">
     <div class="modal-h">Fijar tasa manualmente</div>
     <div class="modal-b">
       <p style="margin:0 0 14px;color:var(--muted);font-size:.84rem">Use esta opción solo si el servicio automático no está disponible. La tasa quedará marcada como manual hasta que pulse Actualizar.</p>
-      <div class="field"><label>Bs por 1 USD</label><input type="number" id="tasaManual" step="0.0001" min="0"></div>
+      <div class="field"><label for="tasaManual">Bs por 1 USD</label><input type="number" id="tasaManual" step="0.0001" min="0" inputmode="decimal"></div>
     </div>
-    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalTasa')">Cancelar</button><button class="btn" onclick="guardarTasaManual()">Guardar</button></div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalTasa')">Cancelar</button><button class="btn" onclick="lock(this,guardarTasaManual)">Guardar</button></div>
   </div>
 </div>
 
-<div id="toast"></div>
+<!-- MODAL USUARIO -->
+<div class="modal" id="modalUsr">
+  <div class="modal-card sm" role="dialog" aria-modal="true" aria-label="Usuario">
+    <div class="modal-h" id="usrTitulo">Usuario</div>
+    <div class="modal-b">
+      <input type="hidden" id="uId">
+      <div class="field"><label for="uNombre">Nombre completo</label><input type="text" id="uNombre" maxlength="80"></div>
+      <div class="field"><label for="uUsuario">Usuario de acceso</label><input type="text" id="uUsuario" maxlength="30" autocapitalize="none" autocorrect="off"></div>
+      <div class="fgrid"><div class="field"><label for="uRol">Rol</label><select id="uRol"><option>Preventista</option><option>Supervisor</option><option>Gerente</option></select></div>
+        <div class="field"><label for="uActivo">Estado</label><select id="uActivo"><option value="1">Activo</option><option value="0">Inactivo</option></select></div></div>
+      <div class="field"><label for="uPass" id="uPassLbl">Contraseña</label><input type="password" id="uPass" autocomplete="new-password" maxlength="72"><small style="color:var(--muted);font-size:.74rem">Mínimo 8 caracteres, con letras y números</small></div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalUsr')">Cancelar</button><button class="btn" onclick="lock(this,guardarUsr)">Guardar</button></div>
+  </div>
+</div>
+
+<!-- MODAL PERFIL -->
+<div class="modal" id="modalPerfil">
+  <div class="modal-card sm" role="dialog" aria-modal="true" aria-label="Mi perfil">
+    <div class="modal-h">Mi perfil</div>
+    <div class="modal-b">
+      <div class="note info" id="perfilInfo"></div>
+      <div class="field"><label for="cpActual">Contraseña actual</label><input type="password" id="cpActual" autocomplete="current-password"></div>
+      <div class="field"><label for="cpNueva">Nueva contraseña</label><input type="password" id="cpNueva" autocomplete="new-password" maxlength="72"></div>
+      <div class="field"><label for="cpConf">Confirmar nueva contraseña</label><input type="password" id="cpConf" autocomplete="new-password" maxlength="72"></div>
+      <button class="btn block" onclick="lock(this,cambiarClave)">Cambiar contraseña</button>
+    </div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPerfil')">Cerrar</button><button class="btn danger" onclick="logout()">Cerrar sesión</button></div>
+  </div>
+</div>
+
+<!-- DIALOGO GENERICO -->
+<div class="modal" id="modalDlg">
+  <div class="modal-card sm" role="alertdialog" aria-modal="true">
+    <div class="modal-h" id="dlgT"></div>
+    <div class="modal-b"><p id="dlgX" style="margin:0;color:var(--muted);line-height:1.5"></p>
+      <div class="field" id="dlgField" style="margin:14px 0 0"><label for="dlgI" id="dlgL"></label><input type="text" id="dlgI" onkeydown="if(event.key==='Enter')dlgClose(true)"></div></div>
+    <div class="modal-f"><button class="btn ghost" id="dlgCancel" onclick="dlgClose(false)">Cancelar</button><button class="btn" id="dlgOk" onclick="dlgClose(true)">Aceptar</button></div>
+  </div>
+</div>
+
+<div id="toast" aria-live="polite"></div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.js"></script>
@@ -470,8 +625,8 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
 let TOKEN = sessionStorage.getItem('token');
 let USER = JSON.parse(sessionStorage.getItem('user') || 'null');
 let PDVS = [], ZONAS = [], PRODS = [], PROMOS = [], METODOS = [], TASA = { tasa: 0 };
-let PAGOS = [], CUR = { sub: 0, desc: 0, total: 0 };
-let map = null, chartZ = null, chartF = null, simInt = null;
+let PAGOS = [], CUR = { sub: 0, desc: 0, total: 0 }, PEDIDOS_DIA = [], BITACORA = [], USUARIOS = [];
+let map = null, markersLayer = null, meLayer = null, chartZ = null, chartF = null, simInt = null, VISTA = 'dashboard';
 
 // ===== UTILIDADES =====
 const $ = id => document.getElementById(id);
@@ -485,101 +640,210 @@ const canRate = () => USER && ['Gerente', 'Supervisor'].includes(USER.rol);
 const metInfo = n => METODOS.find(m => m.nombre === n) || {};
 const fmtMonto = (monto, moneda) => moneda === 'USD' ? usd(monto) : bs(monto);
 const isBloq = p => p.saldo_cestas > p.limite_cestas || p.saldo_botellas > p.limite_botellas;
-const openModal = id => $(id).classList.add('open');
-const closeModal = id => $(id).classList.remove('open');
+const fechaHora = f => f ? new Date(f).toLocaleString('es-VE') : '-';
+const mobile = window.matchMedia('(max-width:900px)');
 
+// Estado de carga global
+let _busy = 0;
+function busy(d) { _busy += d; $('loadbar').classList.toggle('on', _busy > 0); }
+// Evita doble envío: deshabilita el botón mientras se ejecuta la acción
+async function lock(btn, fn) {
+  if (!btn || btn.disabled) return;
+  btn.disabled = true; btn.classList.add('loading');
+  try { return await fn(); } finally { btn.disabled = false; btn.classList.remove('loading'); }
+}
 async function api(path, opts = {}) {
-  const res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, ...(opts.headers || {}) } });
-  if (res.status === 401) { logout(); throw new Error('Sesión expirada'); }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.mensaje || data.error || 'Error del servidor (' + res.status + ')');
-  return data;
+  busy(1);
+  try {
+    let res;
+    try { res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + TOKEN, ...(opts.headers || {}) } }); }
+    catch (e) { throw new Error('No hay conexión con el servidor. Verifique su internet.'); }
+    if (res.status === 401 && !path.startsWith('/me')) { sessionStorage.setItem('aviso', 'Su sesión expiró. Inicie sesión nuevamente.'); logout(); throw new Error('Sesión expirada'); }
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.mensaje || data.error || 'Error del servidor (' + res.status + ')');
+    return data;
+  } finally { busy(-1); }
 }
 function toast(msg, sub = '', type = '') {
-  const d = document.createElement('div');
-  d.className = 'toast ' + type;
+  const d = document.createElement('div'); d.className = 'toast ' + type; d.setAttribute('role', type === 'error' ? 'alert' : 'status');
   const b = document.createElement('b'); b.textContent = msg; d.appendChild(b);
   if (sub) { const s = document.createElement('small'); s.textContent = sub; d.appendChild(s); }
-  $('toast').appendChild(d);
-  setTimeout(() => d.remove(), 4500);
+  d.onclick = () => d.remove(); $('toast').appendChild(d);
+  setTimeout(() => d.remove(), type === 'error' ? 6500 : 4200);
 }
 
+// ===== VALIDACION DE FORMULARIOS =====
+function limpiarErr(scope) { (scope || document).querySelectorAll('.invalid').forEach(f => { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); }); }
+function marcar(id, msg) {
+  const el = $(id), f = el.closest('.field') || el.closest('.prod') || el.parentElement;
+  f.classList.add('invalid'); let e = f.querySelector('.err');
+  if (!e) { e = document.createElement('div'); e.className = 'err'; f.appendChild(e); }
+  e.textContent = msg; return false;
+}
+function validar(reglas, scope) {
+  limpiarErr(scope); let ok = true, first = null;
+  reglas.forEach(([id, fn]) => { const el = $(id); const m = fn(String(el.value).trim()); if (m) { marcar(id, m); ok = false; if (!first) first = el; } });
+  if (first) { first.scrollIntoView({ block: 'center', behavior: 'smooth' }); setTimeout(() => first.focus({ preventScroll: true }), 250); toast('Revise los campos marcados', '', 'warn'); }
+  return ok;
+}
+const R = {
+  req: m => v => v ? null : (m || 'Campo obligatorio'),
+  num: (min, max) => v => { if (v === '') return 'Campo obligatorio'; const n = Number(v.replace(',', '.')); return Number.isFinite(n) && n >= min && n <= max ? null : `Ingrese un valor entre ${min} y ${max}`; },
+  int: (min, max) => v => { if (v === '') return 'Campo obligatorio'; const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? null : `Ingrese un entero entre ${min} y ${max}`; },
+  len: (min, max) => v => v.length >= min && v.length <= max ? null : `Debe tener entre ${min} y ${max} caracteres`,
+  pat: (re, m) => v => re.test(v) ? null : m,
+  clave: () => v => /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(v) ? null : 'Mínimo 8 caracteres, con letras y números'
+};
+document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.invalid'); if (f) { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); } });
+
+// ===== MODALES Y DIALOGOS =====
+const modalesAbiertos = () => [...document.querySelectorAll('.modal.open')];
+function syncLock() { document.body.classList.toggle('lock', modalesAbiertos().length > 0 || (mobile.matches && $('sidebar').classList.contains('open')) || $('mapWrap')?.classList.contains('full')); }
+function openModal(id) { $(id).classList.add('open'); syncLock(); }
+function closeModal(id) { if (id === 'modalDlg') return dlgClose(false); $(id).classList.remove('open'); syncLock(); }
+document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal')) closeModal(e.target.id); });
+let _dlgRes = null;
+function dialogo({ titulo, texto = '', input = null, valor = '', tipo = 'text', ok = 'Aceptar', peligro = false }) {
+  return new Promise(res => {
+    $('dlgT').textContent = titulo; $('dlgX').textContent = texto; $('dlgX').style.display = texto ? 'block' : 'none';
+    $('dlgField').style.display = input ? 'block' : 'none';
+    if (input) { $('dlgL').textContent = input; $('dlgI').type = tipo; $('dlgI').value = valor; }
+    $('dlgOk').textContent = ok; $('dlgOk').className = 'btn' + (peligro ? ' danger' : '');
+    _dlgRes = res; openModal('modalDlg'); if (input) setTimeout(() => $('dlgI').focus(), 80);
+  });
+}
+function dlgClose(ok) {
+  const hasIn = $('dlgField').style.display !== 'none', val = $('dlgI').value;
+  $('modalDlg').classList.remove('open'); syncLock();
+  const r = _dlgRes; _dlgRes = null; if (r) r(hasIn ? (ok ? val : null) : ok);
+}
+
+// ===== MENU (abre y cierra) =====
+const menuAbierto = () => mobile.matches ? $('sidebar').classList.contains('open') : !document.body.classList.contains('sb-collapsed');
+function toggleMenu(force) {
+  const abrir = force == null ? !menuAbierto() : force;
+  if (mobile.matches) { $('sidebar').classList.toggle('open', abrir); $('scrim').classList.toggle('show', abrir); }
+  else { document.body.classList.toggle('sb-collapsed', !abrir); try { localStorage.setItem('sb', abrir ? '1' : '0'); } catch (e) {} }
+  $('menuBtn').setAttribute('aria-expanded', abrir); syncLock();
+  setTimeout(() => map && map.invalidateSize(), 280);
+}
+function resetMenu() {
+  $('sidebar').classList.remove('open'); $('scrim').classList.remove('show');
+  let col = false; try { col = localStorage.getItem('sb') === '0'; } catch (e) {}
+  document.body.classList.toggle('sb-collapsed', !mobile.matches && col);
+  $('menuBtn').setAttribute('aria-expanded', menuAbierto()); syncLock();
+}
+mobile.addEventListener ? mobile.addEventListener('change', resetMenu) : mobile.addListener(resetMenu);
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Escape') return;
+  const m = modalesAbiertos().pop();
+  if (m) closeModal(m.id);
+  else if ($('mapWrap')?.classList.contains('full')) mapaCompleto();
+  else if (mobile.matches && menuAbierto()) toggleMenu(false);
+});
+// Gestos: deslizar desde el borde izquierdo abre; deslizar a la izquierda cierra
+let _tx = 0, _ty = 0;
+document.addEventListener('touchstart', e => { const t = e.touches[0]; _tx = t.clientX; _ty = t.clientY; }, { passive: true });
+document.addEventListener('touchend', e => {
+  if (!mobile.matches || !$('app') || $('app').style.display !== 'block') return;
+  const t = e.changedTouches[0], dx = t.clientX - _tx, dy = t.clientY - _ty;
+  if (Math.abs(dx) < 70 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+  if (!menuAbierto() && _tx < 22 && dx > 0 && !modalesAbiertos().length && !$('mapWrap').classList.contains('full')) toggleMenu(true);
+  else if (menuAbierto() && dx < 0) toggleMenu(false);
+}, { passive: true });
+
 // ===== LOGIN =====
+function verClave() { const i = $('lp'), v = i.type === 'password'; i.type = v ? 'text' : 'password'; $('btnVer').textContent = v ? 'Ocultar' : 'Mostrar'; }
 async function doLogin() {
-  const usuario = $('lu').value.trim(), password = $('lp').value.trim();
-  if (!usuario || !password) return toast('Complete usuario y contraseña', '', 'warn');
+  if (!validar([['lu', R.req('Ingrese su usuario')], ['lp', R.req('Ingrese su contraseña')]])) return;
   try {
-    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario, password }) });
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: $('lu').value.trim(), password: $('lp').value }) });
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw new Error(data.error || 'Error del servidor (' + res.status + ')');
     TOKEN = data.token; USER = data.user;
     sessionStorage.setItem('token', TOKEN); sessionStorage.setItem('user', JSON.stringify(USER));
-    initApp();
-  } catch (e) { toast('No se pudo iniciar sesión', e.message, 'error'); }
+    $('lp').value = ''; initApp();
+  } catch (e) { toast('No se pudo iniciar sesión', e.message.includes('fetch') ? 'Sin conexión con el servidor' : e.message, 'error'); }
 }
-function logout() { sessionStorage.clear(); location.reload(); }
+function logout() { sessionStorage.removeItem('token'); sessionStorage.removeItem('user'); location.reload(); }
+function programarSesion() {
+  try {
+    const exp = JSON.parse(atob(TOKEN.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000, ms = exp - Date.now();
+    if (ms <= 0) return logout();
+    if (ms > 5 * 60000) setTimeout(() => toast('Su sesión vence en 5 minutos', 'Guarde su trabajo y vuelva a iniciar sesión', 'warn'), ms - 5 * 60000);
+    setTimeout(() => { sessionStorage.setItem('aviso', 'Su sesión expiró. Inicie sesión nuevamente.'); logout(); }, ms);
+  } catch (e) {}
+}
+
+// ===== PERFIL =====
+function abrirPerfil() {
+  limpiarErr($('modalPerfil')); ['cpActual', 'cpNueva', 'cpConf'].forEach(i => $(i).value = '');
+  $('perfilInfo').innerHTML = `<b>${esc(USER.nombre)}</b><br>Rol: ${esc(USER.rol)}`; openModal('modalPerfil');
+}
+async function cambiarClave() {
+  if (!validar([['cpActual', R.req()], ['cpNueva', R.clave()], ['cpConf', v => v === $('cpNueva').value ? null : 'Las contraseñas no coinciden']], $('modalPerfil'))) return;
+  try { await api('/me/password', { method: 'POST', body: JSON.stringify({ actual: $('cpActual').value, nueva: $('cpNueva').value }) }); closeModal('modalPerfil'); toast('Contraseña actualizada'); }
+  catch (e) { toast('No se pudo cambiar', e.message, 'error'); }
+}
 
 // ===== TASA BCV =====
 function renderTasa() {
-  const box = $('rateBox');
-  $('rateBtns').style.display = canRate() ? 'inline-flex' : 'none';
-  if (!(TASA.tasa > 0)) {
-    box.className = 'rate none'; $('rateVal').textContent = 'No configurada';
-    $('rateMeta').textContent = 'Actualice o fije la tasa'; return;
-  }
+  const box = $('rateBox'); $('rateBtns').style.display = canRate() ? 'inline-flex' : 'none';
+  if (!(TASA.tasa > 0)) { box.className = 'rate none'; $('rateVal').textContent = 'No configurada'; $('rateMeta').textContent = 'Actualice o fije la tasa'; return; }
   $('rateVal').textContent = 'Bs ' + new Intl.NumberFormat('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 4 }).format(TASA.tasa);
-  const f = TASA.fecha ? new Date(TASA.fecha) : null;
-  const edad = f ? (Date.now() - f.getTime()) / 86400000 : 99;
+  const f = TASA.fecha ? new Date(TASA.fecha) : null, edad = f ? (Date.now() - f.getTime()) / 86400000 : 99;
   $('rateMeta').textContent = (TASA.fuente || '') + (f ? ' · ' + f.toLocaleDateString('es-VE') : '');
   box.className = 'rate' + (edad > 3 || TASA.fuente === 'Manual' ? ' stale' : '');
 }
 function refrescarMontos() { renderProductos(); calcTotal(); cargarKPIs(); }
 async function actualizarTasaBCV() {
-  const b = $('btnRate'); b.disabled = true;
   try { TASA = await api('/tasa/actualizar', { method: 'POST' }); renderTasa(); refrescarMontos(); toast('Tasa actualizada', 'Bs ' + TASA.tasa + ' por USD'); }
   catch (e) { toast('No se pudo actualizar', e.message, 'error'); }
-  b.disabled = false;
 }
-function abrirTasa() { $('tasaManual').value = TASA.tasa || ''; openModal('modalTasa'); }
+function abrirTasa() { limpiarErr($('modalTasa')); $('tasaManual').value = TASA.tasa || ''; openModal('modalTasa'); }
 async function guardarTasaManual() {
+  if (!validar([['tasaManual', R.num(0.0001, 9999999)]], $('modalTasa'))) return;
   try { TASA = await api('/tasa', { method: 'PUT', body: JSON.stringify({ tasa: +$('tasaManual').value }) }); closeModal('modalTasa'); renderTasa(); refrescarMontos(); toast('Tasa fijada manualmente'); }
   catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== INIT =====
 function poblarSelects() {
-  const optsPDV = PDVS.map(p => `<option value="${p.id}">${esc(p.codigo)} - ${esc(p.nombre)}</option>`).join('');
+  const optsPDV = PDVS.map(p => `<option value="${p.id}">${esc(p.codigo)} - ${esc(p.nombre)}</option>`).join('') || '<option value="">Sin PDV registrados</option>';
   ['selPDV', 'selPDVCheckin', 'selPDVRed', 'selRetPDV', 'cobPDV'].forEach(id => { if ($(id)) $(id).innerHTML = optsPDV; });
   $('merPDV').innerHTML = '<option value="">Sin PDV</option>' + optsPDV;
   $('merProd').innerHTML = '<option value="">Sin producto</option>' + PRODS.map(p => `<option value="${p.id}">${esc(p.nombre)}</option>`).join('');
   $('pZona').innerHTML = ZONAS.map(z => `<option value="${z.id}">${esc(z.nombre)}</option>`).join('');
-  const opts = METODOS.map(m => `<option value="${esc(m.nombre)}">${esc(m.nombre)} (${m.moneda === 'USD' ? 'USD' : 'Bs'})</option>`).join('');
-  $('payMetodo').innerHTML = opts;
-  $('cobMetodo').innerHTML = METODOS.filter(m => m.nombre !== 'Crédito').map(m => `<option value="${esc(m.nombre)}">${esc(m.nombre)} (${m.moneda === 'USD' ? 'USD' : 'Bs'})</option>`).join('');
+  const op = m => `<option value="${esc(m.nombre)}">${esc(m.nombre)} (${m.moneda === 'USD' ? 'USD' : 'Bs'})</option>`;
+  $('payMetodo').innerHTML = METODOS.map(op).join('');
+  $('cobMetodo').innerHTML = METODOS.filter(m => m.nombre !== 'Crédito').map(op).join('');
 }
 async function initApp() {
   $('login').style.display = 'none'; $('app').style.display = 'block';
-  $('userLabel').textContent = USER.nombre + ' · ' + USER.rol;
-  $('avatar').textContent = USER.nombre[0];
+  $('userLabel').textContent = USER.nombre + ' · ' + USER.rol; $('avatar').textContent = USER.nombre[0].toUpperCase();
+  document.querySelectorAll('[data-roles]').forEach(a => { if (!a.dataset.roles.split(',').includes(USER.rol)) a.style.display = 'none'; });
+  resetMenu(); programarSesion();
   try {
-    let cfg;
-    [PDVS, ZONAS, PRODS, PROMOS, cfg] = await Promise.all([api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones'), api('/config')]);
+    let cfg; [PDVS, ZONAS, PRODS, PROMOS, cfg] = await Promise.all([api('/pdvs'), api('/zonas'), api('/productos'), api('/promociones'), api('/config')]);
     METODOS = cfg.metodos; TASA = cfg.tasa;
   } catch (e) { toast('Error al cargar datos', e.message, 'error'); return; }
   renderTasa(); poblarSelects(); renderProductos(); renderPDVs(); renderPromos(); renderVRPChecks(); onMetodo(); onCobMetodo(); renderPagos();
   cargarKPIs(); cargarComodatos(); cargarMermas(); cargarVisitas(); cargarRedHist(); cargarLiquidaciones();
   setTimeout(initMap, 150);
+  setInterval(() => { if (!document.hidden && VISTA === 'dashboard') cargarKPIs(); }, 60000);
+  setInterval(async () => { if (document.hidden) return; try { TASA = await api('/tasa'); renderTasa(); } catch (e) {} }, 30 * 60000);
 }
 
 // ===== NAVEGACION =====
-const TITULOS = { dashboard: 'Dashboard gerencial', pdvs: 'Puntos de venta', mapa: 'Mapa y geofencing', pedido: 'Tomar pedido', cobranza: 'Cobranza y crédito', retornables: 'Envases retornables', red: 'Auditoría RED', frio: 'Cadena de frío', comodato: 'Activos en comodato', vrp: 'Ruteo de entregas', mermas: 'Mermas', liq: 'Liquidación de caja' };
+const TITULOS = { dashboard: 'Dashboard gerencial', pdvs: 'Puntos de venta', mapa: 'Mapa y geofencing', pedido: 'Tomar pedido', cobranza: 'Cobranza y crédito', retornables: 'Envases retornables', red: 'Auditoría RED', frio: 'Cadena de frío', comodato: 'Activos en comodato', vrp: 'Ruteo de entregas', mermas: 'Mermas', liq: 'Liquidación de caja', bitacora: 'Bitácora de auditoría', usuarios: 'Usuarios y accesos' };
 function showView(id, el) {
+  VISTA = id;
   document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
   document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
-  $('view-' + id).classList.add('active'); el.classList.add('active');
-  $('viewTitle').textContent = TITULOS[id];
-  $('sidebar').classList.remove('open');
-  if (id === 'mapa') { if (map) setTimeout(() => map.invalidateSize(), 100); cargarVisitas(); }
+  $('view-' + id).classList.add('active'); el.classList.add('active'); $('viewTitle').textContent = TITULOS[id];
+  if (mobile.matches) toggleMenu(false);
+  window.scrollTo({ top: 0 });
+  if (id === 'mapa') { setTimeout(() => { if (map) { map.invalidateSize(); if (!map._fitted) { fitMap(); map._fitted = true; } } }, 120); cargarVisitas(); }
   if (id === 'pedido') cargarPDV();
   if (id === 'cobranza') cargarCobranza();
   if (id === 'retornables') renderRetornables();
@@ -588,34 +852,37 @@ function showView(id, el) {
   if (id === 'comodato') cargarComodatos();
   if (id === 'mermas') cargarMermas();
   if (id === 'dashboard') cargarKPIs();
+  if (id === 'bitacora') cargarBitacora();
+  if (id === 'usuarios') cargarUsuarios();
 }
+
+// ===== EXPORTAR CSV =====
+function descargarCSV(nombre, cabecera, filas) {
+  const q = v => { const esTxt = typeof v === 'string'; v = v == null ? '' : String(v); if (esTxt && /^[=+\-@]/.test(v)) v = "'" + v; return /[";\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  const txt = '\uFEFF' + [cabecera, ...filas].map(r => r.map(q).join(';')).join('\r\n');
+  const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([txt], { type: 'text/csv;charset=utf-8' }));
+  a.download = nombre + '_' + new Date().toISOString().slice(0, 10) + '.csv'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+}
+const exportarPDVs = () => descargarCSV('pdvs', ['Codigo', 'Nombre', 'Zona', 'Canal', 'Saldo cestas', 'Limite cestas', 'Saldo botellas', 'Limite botellas', 'Limite credito USD', 'Latitud', 'Longitud'], PDVS.map(p => [p.codigo, p.nombre, p.zona_nombre, p.canal, p.saldo_cestas, p.limite_cestas, p.saldo_botellas, p.limite_botellas, p.limite_credito, p.lat, p.lng]));
+const exportarPedidos = () => PEDIDOS_DIA.length ? descargarCSV('pedidos', ['Numero', 'PDV', 'Vendedor', 'Fecha', 'Total USD', 'Total Bs', 'Tasa', 'Pagos'], PEDIDOS_DIA.map(p => [p.id, p.pdv_nombre, p.vendedor, fechaHora(p.fecha), p.total, p.total_bs, p.tasa, p.pagos.map(g => g.metodo + ' ' + g.monto + (g.referencia ? ' ref ' + g.referencia : '')).join(' | ')])) : toast('No hay pedidos para exportar', '', 'warn');
+const exportarBitacora = () => BITACORA.length ? descargarCSV('bitacora', ['Fecha', 'Usuario', 'Accion', 'Detalle'], BITACORA.map(b => [fechaHora(b.fecha), b.usuario, b.accion, b.detalle])) : toast('No hay registros para exportar', '', 'warn');
 
 // ===== DASHBOARD =====
 function meta(id, val, min) {
-  const el = $(id);
-  if (val == null) { el.className = 'pill mute'; el.textContent = 'Sin datos'; return; }
+  const el = $(id); if (val == null) { el.className = 'pill mute'; el.textContent = 'Sin datos'; return; }
   const ok = val >= min; el.className = 'pill ' + (ok ? 'ok' : 'bad'); el.textContent = ok ? 'Cumple la meta' : 'Bajo la meta';
 }
 async function cargarKPIs() {
   try {
-    const k = await api('/kpis');
-    const v = x => x == null ? 'N/D' : x + '%';
-    $('kDrop').textContent = v(k.dropRate); $('kRED').textContent = v(k.cumplimientoRED); $('kFrio').textContent = v(k.adherenciaTermica);
-    $('kRet').textContent = v(k.retornabilidad); $('kOTIF').textContent = v(k.otif);
+    const k = await api('/kpis'), v = x => x == null ? 'N/D' : x + '%';
+    $('kDrop').textContent = v(k.dropRate); $('kRED').textContent = v(k.cumplimientoRED); $('kFrio').textContent = v(k.adherenciaTermica); $('kRet').textContent = v(k.retornabilidad); $('kOTIF').textContent = v(k.otif);
     meta('kDropM', k.dropRate, 85); meta('kREDM', k.cumplimientoRED, 90); meta('kFrioM', k.adherenciaTermica, 100); meta('kRetM', k.retornabilidad, 98); meta('kOTIFM', k.otif, 92);
-    $('kVentasUsd').textContent = usd(k.ventasUsd); $('kVentasBs').textContent = bs(k.ventasBs);
-    $('kCxc').textContent = usd(k.cxcUsd); $('kCxcBs').textContent = bs(toBs(k.cxcUsd));
-    const t = k.tempActual;
-    $('kTemp').textContent = t == null ? 'N/D' : Number(t).toFixed(1) + ' °C';
-    $('kTemp').style.color = (t != null && (t > 8 || t < 2)) ? 'var(--bad)' : '';
-    $('kBloq').textContent = k.bloqueados;
-
+    $('kVentasUsd').textContent = usd(k.ventasUsd); $('kVentasBs').textContent = bs(k.ventasBs); $('kCxc').textContent = usd(k.cxcUsd); $('kCxcBs').textContent = bs(toBs(k.cxcUsd));
+    const t = k.tempActual; $('kTemp').textContent = t == null ? 'N/D' : Number(t).toFixed(1) + ' °C'; $('kTemp').style.color = (t != null && (t > 8 || t < 2)) ? 'var(--bad)' : ''; $('kBloq').textContent = k.bloqueados;
     const ventas = await api('/ventas-zona');
     if (chartZ) chartZ.destroy();
-    chartZ = new Chart($('chartZ'), { type: 'bar',
-      data: { labels: ventas.map(x => x.nombre), datasets: [{ data: ventas.map(x => Number(x.total)), backgroundColor: ventas.map(x => x.color), borderRadius: 6, maxBarThickness: 60 }] },
-      options: { plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => usd(c.parsed.y) + '  /  ' + bs(toBs(c.parsed.y)) } } }, scales: { y: { beginAtZero: true, grid: { color: '#EEF1F5' }, ticks: { callback: v => '$ ' + v } }, x: { grid: { display: false } } } } });
-
+    chartZ = new Chart($('chartZ'), { type: 'bar', data: { labels: ventas.map(x => x.nombre), datasets: [{ data: ventas.map(x => Number(x.total)), backgroundColor: ventas.map(x => x.color), borderRadius: 6, maxBarThickness: 60 }] },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => usd(c.parsed.y) + '  /  ' + bs(toBs(c.parsed.y)) } } }, scales: { y: { beginAtZero: true, grid: { color: '#EEF1F5' }, ticks: { callback: v => '$ ' + v } }, x: { grid: { display: false } } } } });
     const al = [];
     PDVS.filter(isBloq).forEach(p => al.push({ t: 'bad', m: esc(p.nombre) + ' bloqueado', s: `Cestas ${p.saldo_cestas}/${p.limite_cestas}, botellas ${p.saldo_botellas}/${p.limite_botellas}` }));
     if (t != null && (t > 8 || t < 2)) al.push({ t: 'bad', m: 'Temperatura fuera de rango', s: Number(t).toFixed(1) + ' °C' });
@@ -627,18 +894,18 @@ async function cargarKPIs() {
 
 // ===== PDVS =====
 function renderPDVs() {
-  const q = ($('searchPDV')?.value || '').toLowerCase();
+  const q = ($('searchPDV')?.value || '').toLowerCase().trim();
   const f = PDVS.filter(p => !q || ((p.codigo || '') + (p.nombre || '') + (p.zona_nombre || '')).toLowerCase().includes(q));
-  $('tblPDVs').innerHTML = f.map(p => `<tr>
+  $('tblPDVs').innerHTML = f.length ? f.map(p => `<tr>
     <td><b>${esc(p.codigo)}</b></td><td>${esc(p.nombre)}</td>
     <td><span class="pill" style="background:${esc(p.zona_color)}1F;color:${esc(p.zona_color)}">${esc(p.zona_nombre || 'Sin zona')}</span></td>
     <td class="num">${p.saldo_cestas}/${p.limite_cestas}</td><td class="num">${p.saldo_botellas}/${p.limite_botellas}</td>
     <td class="r num">${usd(p.limite_credito)}</td><td>${esc(p.canal)}</td>
     <td>${isBloq(p) ? '<span class="pill bad">Bloqueado</span>' : '<span class="pill ok">Habilitado</span>'}</td>
-    <td style="white-space:nowrap"><button class="btn ghost sm" onclick="abrirPDV(${p.id})">Editar</button> <button class="btn danger sm" onclick="eliminarPDV(${p.id})">Eliminar</button></td></tr>`).join('');
+    <td style="white-space:nowrap"><button class="btn ghost sm" onclick="abrirPDV(${p.id})">Editar</button>${canRate() ? ` <button class="btn danger sm" onclick="eliminarPDV(${p.id})">Eliminar</button>` : ''}</td></tr>`).join('') : '<tr><td colspan="9"><div class="empty">No se encontraron puntos de venta</div></td></tr>';
 }
 function abrirPDV(id) {
-  const f = (k, v) => $(k).value = v;
+  limpiarErr($('modalPDV')); const f = (k, v) => $(k).value = v;
   if (id) {
     const p = PDVS.find(x => x.id === id);
     f('pId', p.id); f('pCodigo', p.codigo); f('pNombre', p.nombre); f('pRazon', p.razon_social || ''); f('pDireccion', p.direccion || '');
@@ -651,127 +918,129 @@ function abrirPDV(id) {
   openModal('modalPDV');
 }
 async function guardarPDV() {
-  const id = $('pId').value;
-  const data = { codigo: $('pCodigo').value.trim(), nombre: $('pNombre').value.trim(), razon_social: $('pRazon').value, direccion: $('pDireccion').value,
-    zona_id: +$('pZona').value, canal: $('pCanal').value, limite_credito: +$('pCredito').value || 0, lat: +$('pLat').value, lng: +$('pLng').value,
-    geofence_radio_m: +$('pRadio').value, saldo_cestas: +$('pSaldoC').value, limite_cestas: +$('pLimC').value, saldo_botellas: +$('pSaldoB').value, limite_botellas: +$('pLimB').value };
+  const ok = validar([['pCodigo', R.pat(/^[A-Za-z0-9._-]{2,20}$/, '2 a 20 caracteres: letras, números, punto o guion')], ['pNombre', R.len(2, 120)], ['pZona', R.req('Seleccione una zona')],
+    ['pLat', R.num(-90, 90)], ['pLng', R.num(-180, 180)], ['pRadio', R.int(10, 1000)], ['pCredito', R.num(0, 10000000)],
+    ['pSaldoC', R.int(0, 100000)], ['pLimC', R.int(0, 100000)], ['pSaldoB', R.int(0, 100000)], ['pLimB', R.int(0, 100000)]], $('modalPDV'));
+  if (!ok) return;
+  const id = $('pId').value, n = k => +String($(k).value).replace(',', '.');
+  const data = { codigo: $('pCodigo').value.trim(), nombre: $('pNombre').value.trim(), razon_social: $('pRazon').value.trim(), direccion: $('pDireccion').value.trim(), zona_id: +$('pZona').value, canal: $('pCanal').value,
+    limite_credito: n('pCredito'), lat: n('pLat'), lng: n('pLng'), geofence_radio_m: n('pRadio'), saldo_cestas: n('pSaldoC'), limite_cestas: n('pLimC'), saldo_botellas: n('pSaldoB'), limite_botellas: n('pLimB') };
   try {
-    if (id) await api('/pdvs/' + id, { method: 'PUT', body: JSON.stringify(data) });
-    else await api('/pdvs', { method: 'POST', body: JSON.stringify(data) });
+    if (id) await api('/pdvs/' + id, { method: 'PUT', body: JSON.stringify(data) }); else await api('/pdvs', { method: 'POST', body: JSON.stringify(data) });
     toast('PDV guardado', data.nombre); closeModal('modalPDV');
     PDVS = await api('/pdvs'); poblarSelects(); renderPDVs(); renderVRPChecks(); cargarKPIs(); if (map) refreshMarkers();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  } catch (e) { toast('No se pudo guardar', e.message, 'error'); }
 }
 async function eliminarPDV(id) {
-  if (!confirm('¿Eliminar este punto de venta?')) return;
-  try {
-    await api('/pdvs/' + id, { method: 'DELETE' });
-    PDVS = await api('/pdvs'); poblarSelects(); renderPDVs(); renderVRPChecks(); cargarKPIs(); if (map) refreshMarkers();
-    toast('PDV eliminado');
-  } catch (e) { toast('Error', e.message, 'error'); }
+  const p = PDVS.find(x => x.id === id);
+  if (!await dialogo({ titulo: 'Eliminar punto de venta', texto: `Se eliminará "${p ? p.nombre : ''}". Esta acción no se puede deshacer.`, ok: 'Eliminar', peligro: true })) return;
+  try { await api('/pdvs/' + id, { method: 'DELETE' }); PDVS = await api('/pdvs'); poblarSelects(); renderPDVs(); renderVRPChecks(); cargarKPIs(); if (map) refreshMarkers(); toast('PDV eliminado'); }
+  catch (e) { toast('No se pudo eliminar', e.message, 'error'); }
 }
 
 // ===== MAPA =====
 function initMap() {
   if (map) return;
-  map = L.map('map').setView([10.654, -71.63], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap' }).addTo(map);
+  map = L.map('map', { scrollWheelZoom: false, tap: true, zoomControl: true }).setView([10.654, -71.63], 13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(map);
+  markersLayer = L.layerGroup().addTo(map); meLayer = L.layerGroup().addTo(map);
   refreshMarkers();
+  map.on('click', () => map.scrollWheelZoom.enable()); $('map').addEventListener('mouseleave', () => map.scrollWheelZoom.disable());
+  if ('ResizeObserver' in window) new ResizeObserver(() => map.invalidateSize()).observe($('map'));
+  addEventListener('orientationchange', () => setTimeout(() => map.invalidateSize(), 350)); addEventListener('resize', () => map.invalidateSize());
+  map.on('locationfound', e => {
+    meLayer.clearLayers(); L.circle(e.latlng, { radius: e.accuracy, color: '#1D4ED8', weight: 1, fillOpacity: .08 }).addTo(meLayer);
+    L.circleMarker(e.latlng, { radius: 8, color: '#fff', weight: 3, fillColor: '#1D4ED8', fillOpacity: 1 }).addTo(meLayer).bindPopup('Usted está aquí');
+  });
+  map.on('locationerror', () => toast('No se pudo obtener su ubicación', 'Revise el permiso de ubicación del navegador', 'warn'));
+}
+function fitMap() { if (!map) return; const pts = PDVS.filter(p => p.lat != null && p.lng != null).map(p => [p.lat, p.lng]); if (pts.length) map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 }); }
+function ubicarme() { if (map) map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true, timeout: 10000 }); }
+function mapaCompleto() {
+  const w = $('mapWrap'), on = w.classList.toggle('full'); $('btnFull').textContent = on ? 'Cerrar' : 'Ampliar';
+  syncLock(); setTimeout(() => map && map.invalidateSize(), 120);
 }
 function refreshMarkers() {
-  map.eachLayer(l => { if (l instanceof L.Marker) map.removeLayer(l); });
+  if (!map) return; markersLayer.clearLayers();
   PDVS.forEach(p => {
     if (p.lat == null || p.lng == null) return;
-    const icon = L.divIcon({ html: `<div style="background:${esc(p.zona_color)};width:20px;height:20px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className: '', iconSize: [20, 20] });
-    L.marker([p.lat, p.lng], { icon }).addTo(map).bindPopup(`<b>${esc(p.nombre)}</b><br>${esc(p.codigo)} · ${esc(p.zona_nombre || '')}<br>Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}<br>${isBloq(p) ? 'Bloqueado' : 'Habilitado'}`);
+    const ring = isBloq(p) ? '#B91C1C' : '#fff';
+    const icon = L.divIcon({ html: `<div style="background:${esc(p.zona_color)};width:22px;height:22px;border-radius:50%;border:3px solid ${ring};box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className: '', iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -12] });
+    L.marker([p.lat, p.lng], { icon }).addTo(markersLayer).bindPopup(`<b>${esc(p.nombre)}</b><br>${esc(p.codigo)} · ${esc(p.zona_nombre || '')}<br>Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas}<br>${isBloq(p) ? '<b style="color:#B91C1C">Bloqueado</b>' : 'Habilitado'}`, { maxWidth: 240 });
   });
+  $('mapLegend').innerHTML = ZONAS.map(z => `<span><i style="background:${esc(z.color)}"></i>${esc(z.nombre)}</span>`).join('') + '<span><i style="background:#fff;border:2px solid #B91C1C"></i>Bloqueado</span>';
 }
 function hav(lat1, lon1, lat2, lon2) {
-  const R = 6371000, r = x => x * Math.PI / 180, dLat = r(lat2 - lat1), dLon = r(lon2 - lon1);
+  const R_ = 6371000, r = x => x * Math.PI / 180, dLat = r(lat2 - lat1), dLon = r(lon2 - lon1);
   const a = Math.sin(dLat / 2) ** 2 + Math.cos(r(lat1)) * Math.cos(r(lat2)) * Math.sin(dLon / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R_ * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+function posicion() {
+  return new Promise((res, rej) => { if (!navigator.geolocation) return rej(new Error('Su dispositivo no tiene GPS disponible')); navigator.geolocation.getCurrentPosition(res, e => rej(new Error(e.code === 1 ? 'Permiso de ubicación denegado. Actívelo en la configuración del navegador.' : 'No se pudo obtener la ubicación')), { enableHighAccuracy: true, timeout: 12000, maximumAge: 0 }); });
 }
 async function getLocation() {
-  const id = +$('selPDVCheckin').value, pdv = PDVS.find(p => p.id === id);
-  if (!pdv) return toast('Seleccione un PDV', '', 'warn');
-  if (!navigator.geolocation) return toast('GPS no disponible', '', 'error');
+  const pdv = PDVS.find(p => p.id === +$('selPDVCheckin').value); if (!pdv) return toast('Seleccione un PDV', '', 'warn');
   $('gpsStatus').textContent = 'GPS: obteniendo ubicación';
-  navigator.geolocation.getCurrentPosition(async pos => {
-    const { latitude: lat, longitude: lng } = pos.coords, dist = hav(lat, lng, pdv.lat, pdv.lng);
-    $('gpsStatus').textContent = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
+  try {
+    const pos = await posicion(), lat = pos.coords.latitude, lng = pos.coords.longitude, dist = hav(lat, lng, pdv.lat, pdv.lng);
+    $('gpsStatus').textContent = `GPS: ${lat.toFixed(5)}, ${lng.toFixed(5)} (precisión ${Math.round(pos.coords.accuracy)} m)`;
     $('distInfo').innerHTML = `Distancia: <b>${dist.toFixed(0)} m</b> · ${dist <= pdv.geofence_radio_m ? 'Dentro del radio' : 'Fuera del radio'}`;
-    try { await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat, lng }) }); toast('Check-in registrado', `${pdv.nombre} · ${dist.toFixed(0)} m`); cargarVisitas(); cargarKPIs(); }
-    catch (e) { toast('Check-in rechazado', e.message, 'error'); }
-  }, () => { $('gpsStatus').textContent = 'GPS: sin permiso o error'; toast('GPS bloqueado', 'Use la simulación', 'warn'); }, { enableHighAccuracy: true, timeout: 10000 });
+    await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: pdv.id, lat, lng }) });
+    toast('Check-in registrado', `${pdv.nombre} · ${dist.toFixed(0)} m`); cargarVisitas(); cargarKPIs();
+  } catch (e) { $('gpsStatus').textContent = 'GPS: ' + e.message; toast('Check-in no realizado', e.message, 'error'); }
 }
 async function simularCheckin() {
-  const id = +$('selPDVCheckin').value, pdv = PDVS.find(p => p.id === id);
-  if (!pdv) return toast('Seleccione un PDV', '', 'warn');
-  $('gpsStatus').textContent = `GPS simulado: ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`;
-  $('distInfo').innerHTML = 'Distancia: <b>aprox. 15 m</b> · Dentro del radio';
-  try { await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) }); toast('Check-in simulado', pdv.nombre); cargarVisitas(); cargarKPIs(); }
+  const pdv = PDVS.find(p => p.id === +$('selPDVCheckin').value); if (!pdv) return toast('Seleccione un PDV', '', 'warn');
+  $('gpsStatus').textContent = `GPS simulado: ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`; $('distInfo').innerHTML = 'Distancia: <b>aprox. 15 m</b> · Dentro del radio';
+  try { await api('/visitas/checkin', { method: 'POST', body: JSON.stringify({ pdv_id: pdv.id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }) }); toast('Check-in simulado', pdv.nombre); cargarVisitas(); cargarKPIs(); }
   catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarVisitas() {
-  try {
-    const v = await api('/visitas'), c = $('visitasList');
-    c.innerHTML = v.length ? v.slice(0, 15).map(x => `<div class="row-item"><b>${esc(x.pdv_nombre)}</b><br><small>${new Date(x.fecha_checkin).toLocaleString('es-VE')} · ${esc(x.vendedor)} · ${x.distancia_m != null ? Number(x.distancia_m).toFixed(0) + ' m' : ''}</small></div>`).join('') : '<div class="empty">Sin visitas registradas</div>';
-  } catch (e) {}
+  try { const v = await api('/visitas'); $('visitasList').innerHTML = v.length ? v.slice(0, 15).map(x => `<div class="row-item"><b>${esc(x.pdv_nombre)}</b><br><small>${fechaHora(x.fecha_checkin)} · ${esc(x.vendedor)} · ${x.distancia_m != null ? Number(x.distancia_m).toFixed(0) + ' m' : ''}</small></div>`).join('') : '<div class="empty">Sin visitas registradas</div>'; } catch (e) {}
 }
 
 // ===== PEDIDO =====
 function renderProductos() {
   const saved = {}; PRODS.forEach(p => { const el = $('prod_' + p.id); if (el) saved[p.id] = el.value; });
-  $('listaProds').innerHTML = PRODS.map(p => `<div class="prod">
+  $('listaProds').innerHTML = PRODS.length ? PRODS.map(p => `<div class="prod">
     <div><b>${esc(p.nombre)}</b><small>${p.retornable ? 'Retornable: ' + esc(p.tipo_envase) : 'No retornable'}</small></div>
     <div class="p num">${usd(p.precio)}<small>${bs(toBs(p.precio))}</small></div>
-    <input type="number" min="0" value="${saved[p.id] || 0}" id="prod_${p.id}" oninput="calcTotal()"></div>`).join('');
+    <input type="number" min="0" max="9999" step="1" inputmode="numeric" value="${saved[p.id] || 0}" id="prod_${p.id}" oninput="calcTotal()" onfocus="this.select()" aria-label="Cantidad de ${esc(p.nombre)}"></div>`).join('') : '<div class="empty">No hay productos</div>';
 }
-function renderPromos() {
-  $('promosList').innerHTML = PROMOS.length ? PROMOS.map(pr => `<div class="note warn"><b>${esc(pr.nombre)}</b><br>${pr.tipo === 'Volumen' ? `Mínimo ${pr.min_cantidad} unidades: ${pr.descuento_pct}% de descuento` : `${pr.descuento_pct}% de descuento por fecha corta`}</div>`).join('') : '<div class="empty">Sin promociones activas</div>';
-}
+function renderPromos() { $('promosList').innerHTML = PROMOS.length ? PROMOS.map(pr => `<div class="note warn"><b>${esc(pr.nombre)}</b><br>${pr.tipo === 'Volumen' ? `Mínimo ${pr.min_cantidad} unidades: ${pr.descuento_pct}% de descuento` : `${pr.descuento_pct}% de descuento por fecha corta`}</div>`).join('') : '<div class="empty">Sin promociones activas</div>'; }
 async function cargarPDV() {
-  const p = PDVS.find(x => x.id === +$('selPDV').value); if (!p) return;
+  const p = PDVS.find(x => x.id === +$('selPDV').value); if (!p) { $('infoPDV').innerHTML = ''; return; }
   $('infoPDV').innerHTML = `<div class="note ${isBloq(p) ? 'bad' : 'ok'}"><b>${esc(p.nombre)}</b> · ${esc(p.codigo)}<br>Zona ${esc(p.zona_nombre || '-')} · ${esc(p.canal)}<br>Cestas ${p.saldo_cestas}/${p.limite_cestas} · Botellas ${p.saldo_botellas}/${p.limite_botellas} · Crédito hasta ${usd(p.limite_credito)}<br><b>${isBloq(p) ? 'Cliente bloqueado: requiere autorización del supervisor' : 'Cliente habilitado'}</b></div>`;
-  try {
-    const s = await api('/smart-order/' + p.id);
-    $('smartOrder').innerHTML = s.length ? `<div class="note info"><b>Venta sugerida</b><br>${s.slice(0, 4).map(x => `${esc(x.nombre)}: ${x.cantidad_sugerida} unidades`).join('<br>')}</div>` : '';
-  } catch (e) {}
+  try { const s = await api('/smart-order/' + p.id); $('smartOrder').innerHTML = s.length ? `<div class="note info"><b>Venta sugerida</b><br>${s.slice(0, 4).map(x => `${esc(x.nombre)}: ${x.cantidad_sugerida} unidades`).join('<br>')}</div>` : ''; } catch (e) {}
 }
 function calcTotal() {
   let sub = 0, desc = 0;
   PRODS.forEach(p => {
-    const c = +$('prod_' + p.id)?.value || 0; if (c <= 0) return;
+    const c = Math.max(0, Math.min(9999, parseInt($('prod_' + p.id)?.value) || 0)); if (c <= 0) return;
     const s = c * p.precio; sub += s; let pct = 0;
     const pv = PROMOS.find(x => x.producto_id === p.id && x.tipo === 'Volumen' && c >= x.min_cantidad); if (pv) pct += pv.descuento_pct;
     if (p.fecha_vencimiento) { const d = Math.ceil((new Date(p.fecha_vencimiento) - new Date()) / 86400000); if (d >= 0 && d <= 30) { const ps = PROMOS.find(x => x.producto_id === p.id && x.tipo === 'ShortDate'); if (ps) pct += ps.descuento_pct; } }
     desc += s * pct / 100;
   });
   sub = r2(sub); desc = r2(desc); CUR = { sub, desc, total: r2(sub - desc) };
-  $('subTotal').textContent = usd(sub); $('descTotal').textContent = '- ' + usd(desc);
-  $('totalUsd').textContent = usd(CUR.total); $('totalBs').textContent = bs(toBs(CUR.total));
+  $('subTotal').textContent = usd(sub); $('descTotal').textContent = '- ' + usd(desc); $('totalUsd').textContent = usd(CUR.total); $('totalBs').textContent = bs(toBs(CUR.total));
   renderPagos(); onMetodo();
 }
-// --- Pagos ---
 const pagadoUsd = () => PAGOS.reduce((s, p) => s + p.usd, 0);
 const restUsd = () => r2(CUR.total - pagadoUsd());
 function onMetodo() {
-  const m = metInfo($('payMetodo').value);
-  $('payLbl').textContent = 'Monto en ' + (m.moneda === 'USD' ? 'USD' : 'Bs');
-  $('payRef').placeholder = m.ref ? 'Obligatoria' : 'Opcional';
-  const rest = Math.max(0, restUsd());
-  $('payMonto').value = rest > 0 ? (m.moneda === 'USD' ? rest.toFixed(2) : toBs(rest).toFixed(2)) : '';
+  const m = metInfo($('payMetodo').value); $('payLbl').textContent = 'Monto en ' + (m.moneda === 'USD' ? 'USD' : 'Bs'); $('payRef').placeholder = m.ref ? 'Obligatoria' : 'Opcional';
+  const rest = Math.max(0, restUsd()); $('payMonto').value = rest > 0 ? (m.moneda === 'USD' ? rest.toFixed(2) : toBs(rest).toFixed(2)) : '';
 }
 function addPago() {
+  limpiarErr($('view-pedido'));
   if (CUR.total <= 0) return toast('Agregue productos al pedido', '', 'warn');
-  if (!(TASA.tasa > 0)) return toast('Tasa BCV no configurada', '', 'error');
-  const m = metInfo($('payMetodo').value), monto = +$('payMonto').value, ref = $('payRef').value.trim();
-  if (!(monto > 0)) return toast('Monto inválido', '', 'warn');
-  if (m.ref && !ref) return toast('Referencia requerida', 'El método ' + m.nombre + ' exige referencia', 'warn');
-  const u = m.moneda === 'USD' ? monto : monto / TASA.tasa;
-  if (u > restUsd() + 0.02) return toast('El monto excede el saldo', 'Saldo: ' + usd(restUsd()), 'warn');
-  PAGOS.push({ metodo: m.nombre, moneda: m.moneda, monto, usd: u, referencia: ref });
-  $('payRef').value = ''; renderPagos(); onMetodo();
+  if (!(TASA.tasa > 0)) return toast('Tasa BCV no configurada', 'Actualícela o fíjela manualmente', 'error');
+  const m = metInfo($('payMetodo').value);
+  if (!validar([['payMonto', R.num(0.01, 1e12)], ['payRef', v => m.ref && v.length < 4 ? 'Ingrese la referencia (mínimo 4 caracteres)' : null]], $('view-pedido'))) return;
+  const monto = +$('payMonto').value, ref = $('payRef').value.trim(), u = m.moneda === 'USD' ? monto : monto / TASA.tasa;
+  if (u > restUsd() + 0.02) return marcar('payMonto', 'Excede el saldo: ' + usd(restUsd()));
+  PAGOS.push({ metodo: m.nombre, moneda: m.moneda, monto, usd: u, referencia: ref }); $('payRef').value = ''; renderPagos(); onMetodo();
 }
 function pagarSaldo() { onMetodo(); addPago(); }
 function quitarPago(i) { PAGOS.splice(i, 1); renderPagos(); onMetodo(); }
@@ -782,15 +1051,19 @@ function renderPagos() {
     `<div class="totals num" style="margin:12px 0 0"><div class="l"><span>Pagado</span><span>${usd(pagadoUsd())}</span></div><div class="l big" style="color:${Math.abs(rest) <= 0.02 ? 'var(--ok)' : 'var(--ink)'}"><span>${rest < -0.02 ? 'Exceso' : 'Saldo por cobrar'}</span><span>${usd(Math.abs(rest))}</span></div><div class="l bs"><span></span><span>${bs(toBs(Math.abs(rest)))}</span></div></div>`;
 }
 async function confirmarPedido() {
-  const pdv_id = +$('selPDV').value, items = [];
-  PRODS.forEach(p => { const c = +$('prod_' + p.id).value || 0; if (c > 0) items.push({ producto_id: p.id, cantidad: c }); });
+  limpiarErr($('view-pedido'));
+  const pdv = PDVS.find(x => x.id === +$('selPDV').value); if (!pdv) return toast('Seleccione un cliente', '', 'warn');
+  if (isBloq(pdv)) return toast('Cliente bloqueado', 'Excede el límite de envases retornables. Requiere autorización del supervisor.', 'error');
+  const items = []; let bad = false;
+  PRODS.forEach(p => { const raw = String($('prod_' + p.id).value).trim(), c = Number(raw); if (raw === '' || !Number.isInteger(c) || c < 0 || c > 9999) { marcar('prod_' + p.id, 'Cantidad entera entre 0 y 9999'); bad = true; } else if (c > 0) items.push({ producto_id: p.id, cantidad: c }); });
+  if (bad) return toast('Revise las cantidades', '', 'warn');
   if (!items.length) return toast('Sin productos', 'Seleccione al menos uno', 'warn');
+  if (!(TASA.tasa > 0)) return toast('Tasa BCV no configurada', '', 'error');
   if (Math.abs(restUsd()) > 0.02) return toast('El pago no cubre el total', 'Saldo: ' + usd(restUsd()), 'warn');
   try {
-    const r = await api('/pedidos', { method: 'POST', body: JSON.stringify({ pdv_id, items, pagos: PAGOS.map(p => ({ metodo: p.metodo, monto: p.monto, referencia: p.referencia })) }) });
+    const r = await api('/pedidos', { method: 'POST', body: JSON.stringify({ pdv_id: pdv.id, items, pagos: PAGOS.map(p => ({ metodo: p.metodo, monto: p.monto, referencia: p.referencia })) }) });
     $('pedidoMsg').innerHTML = `<div class="note ok"><b>Pedido #${r.id} confirmado</b><br>Subtotal ${usd(r.subtotal)} · Descuento ${usd(r.descuento)}<br><b>Total ${usd(r.total)} / ${bs(r.total_bs)}</b> (tasa ${r.tasa})<br>${r.pagos.map(p => `${esc(p.metodo)}: ${fmtMonto(p.monto, p.moneda)}`).join('<br>')}</div>`;
-    toast('Pedido confirmado', `#${r.id} · ${usd(r.total)}`);
-    PAGOS = []; PRODS.forEach(p => $('prod_' + p.id).value = 0); calcTotal();
+    toast('Pedido confirmado', `#${r.id} · ${usd(r.total)}`); PAGOS = []; PRODS.forEach(p => $('prod_' + p.id).value = 0); calcTotal();
     PDVS = await api('/pdvs'); renderPDVs(); cargarPDV(); cargarKPIs(); if (map) refreshMarkers();
   } catch (e) { $('pedidoMsg').innerHTML = `<div class="note bad"><b>No se pudo registrar el pedido</b><br>${esc(e.message)}</div>`; toast('Pedido rechazado', e.message, 'error'); }
 }
@@ -798,170 +1071,177 @@ async function confirmarPedido() {
 // ===== COBRANZA =====
 function onCobMetodo() { const m = metInfo($('cobMetodo').value); $('cobLbl').textContent = 'Monto en ' + (m.moneda === 'USD' ? 'USD' : 'Bs'); $('cobRef').placeholder = m.ref ? 'Obligatoria' : 'Opcional'; }
 async function cargarCobranza() {
-  try {
-    const r = await api('/cobranza');
-    $('tblCxc').innerHTML = r.map(x => { const s = Math.max(0, +x.saldo), disp = Math.max(0, x.limite_credito - s);
-      return `<tr><td><b>${esc(x.nombre)}</b><br><small style="color:var(--muted)">${esc(x.codigo)}</small></td><td class="r num">${usd(x.limite_credito)}</td><td class="r num"><b>${usd(s)}</b></td><td class="r num">${bs(toBs(s))}</td><td class="r num">${usd(disp)}</td></tr>`; }).join('');
-  } catch (e) { toast('Error', e.message, 'error'); }
+  try { const r = await api('/cobranza'); $('tblCxc').innerHTML = r.map(x => { const s = Math.max(0, +x.saldo), disp = Math.max(0, x.limite_credito - s);
+    return `<tr><td><b>${esc(x.nombre)}</b><br><small style="color:var(--muted)">${esc(x.codigo)}</small></td><td class="r num">${usd(x.limite_credito)}</td><td class="r num"><b>${usd(s)}</b></td><td class="r num">${bs(toBs(s))}</td><td class="r num">${usd(disp)}</td></tr>`; }).join(''); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 async function registrarAbono() {
-  const pdv_id = +$('cobPDV').value, metodo = $('cobMetodo').value, monto = +$('cobMonto').value, referencia = $('cobRef').value.trim();
-  if (!(monto > 0)) return toast('Monto inválido', '', 'warn');
-  try {
-    const r = await api('/cobranza', { method: 'POST', body: JSON.stringify({ pdv_id, metodo, monto, referencia }) });
+  const m = metInfo($('cobMetodo').value);
+  if (!validar([['cobPDV', R.req('Seleccione un cliente')], ['cobMonto', R.num(0.01, 1e12)], ['cobRef', v => m.ref && v.length < 4 ? 'Ingrese la referencia (mínimo 4 caracteres)' : null]], $('view-cobranza'))) return;
+  try { const r = await api('/cobranza', { method: 'POST', body: JSON.stringify({ pdv_id: +$('cobPDV').value, metodo: m.nombre, monto: +$('cobMonto').value, referencia: $('cobRef').value.trim() }) });
     toast('Abono registrado', 'Saldo restante ' + usd(r.saldo)); $('cobMonto').value = ''; $('cobRef').value = ''; cargarCobranza(); cargarKPIs();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  } catch (e) { toast('No se pudo registrar', e.message, 'error'); }
 }
 
 // ===== RETORNABLES =====
 async function renderRetornables() {
   try {
-    const r = await api('/retornables');
-    const tc = r.reduce((s, p) => s + p.saldo_cestas, 0), tb = r.reduce((s, p) => s + p.saldo_botellas, 0), bq = r.filter(isBloq).length;
+    const r = await api('/retornables'), tc = r.reduce((s, p) => s + p.saldo_cestas, 0), tb = r.reduce((s, p) => s + p.saldo_botellas, 0), bq = r.filter(isBloq).length;
     $('retStats').innerHTML = `<div class="row-item">Cestas adeudadas <b style="float:right" class="num">${tc}</b></div><div class="row-item">Botellas adeudadas <b style="float:right" class="num">${tb}</b></div><div class="row-item" style="border:0">Clientes bloqueados <b style="float:right;color:var(--bad)" class="num">${bq}</b></div>`;
     $('tblRet').innerHTML = r.map(p => `<tr><td><b>${esc(p.nombre)}</b><br><small style="color:var(--muted)">${esc(p.codigo)}</small></td><td class="num">${p.saldo_cestas}/${p.limite_cestas}</td><td class="num">${p.saldo_botellas}/${p.limite_botellas}</td><td>Cestas ${p.limite_cestas} · Botellas ${p.limite_botellas}</td><td>${isBloq(p) ? '<span class="pill bad">Bloqueado</span>' : '<span class="pill ok">Habilitado</span>'}</td></tr>`).join('');
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function registrarDevolucion() {
-  const pdv_id = +$('selRetPDV').value, tipo = $('retTipo').value, cantidad = +$('retCant').value;
-  if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
-  try { const r = await api('/retornables/devolucion', { method: 'POST', body: JSON.stringify({ pdv_id, tipo, cantidad }) });
-    toast('Devolución registrada', 'Nuevo saldo: ' + r.nuevo_saldo); PDVS = await api('/pdvs'); renderRetornables(); renderPDVs(); cargarKPIs(); if (map) refreshMarkers();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  if (!validar([['selRetPDV', R.req('Seleccione un PDV')], ['retCant', R.int(1, 100000)]], $('view-retornables'))) return;
+  const pdv_id = +$('selRetPDV').value, tipo = $('retTipo').value, cantidad = +$('retCant').value, p = PDVS.find(x => x.id === pdv_id), saldo = p ? (tipo === 'Cesta' ? p.saldo_cestas : p.saldo_botellas) : 0;
+  if (cantidad > saldo && !await dialogo({ titulo: 'La cantidad supera el saldo', texto: `El cliente debe ${saldo} (${tipo.toLowerCase()}) y usted registra ${cantidad}. El saldo quedará en 0.`, ok: 'Registrar igualmente' })) return;
+  try { const r = await api('/retornables/devolucion', { method: 'POST', body: JSON.stringify({ pdv_id, tipo, cantidad }) }); toast('Devolución registrada', 'Nuevo saldo: ' + r.nuevo_saldo); PDVS = await api('/pdvs'); renderRetornables(); renderPDVs(); cargarKPIs(); if (map) refreshMarkers(); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== RED =====
 let fotoBase64 = null;
 function previewFoto(e) {
   const f = e.target.files[0]; if (!f) return;
-  const r = new FileReader();
-  r.onload = ev => { fotoBase64 = ev.target.result; $('fotoPrev').innerHTML = `<img src="${fotoBase64}" style="width:100%;border-radius:10px;max-height:220px;object-fit:cover">`; toast('Fotografía cargada'); };
-  r.readAsDataURL(f);
+  if (!f.type.startsWith('image/')) return toast('Archivo no válido', 'Seleccione una imagen', 'warn');
+  if (f.size > 12 * 1024 * 1024) return toast('Imagen muy pesada', 'Máximo 12 MB', 'warn');
+  const r = new FileReader(); r.onload = ev => { fotoBase64 = ev.target.result; $('fotoPrev').innerHTML = `<img src="${fotoBase64}" alt="Vista previa" style="width:100%;border-radius:10px;max-height:240px;object-fit:cover">`; toast('Fotografía cargada'); }; r.readAsDataURL(f);
 }
 async function analizarRED() {
+  if (!$('selPDVRed').value) return toast('Seleccione un PDV', '', 'warn');
   if (!fotoBase64) return toast('Sin fotografía', 'Suba una imagen primero', 'warn');
-  const pdv_id = +$('selPDVRed').value, c = Math.round(70 + Math.random() * 30);
+  const c = Math.round(70 + Math.random() * 30);
   try {
-    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id, cumplimiento_pct: c }) });
+    await api('/red', { method: 'POST', body: JSON.stringify({ pdv_id: +$('selPDVRed').value, cumplimiento_pct: c }) });
     const col = c >= 90 ? '#15803D' : c >= 75 ? '#B45309' : '#B91C1C';
-    $('redRes').innerHTML = `<div class="note ${c >= 90 ? 'ok' : 'warn'}"><div style="text-align:center"><div style="font-size:2.4rem;font-weight:800;color:${col}">${c}%</div><small>Cuota de anaquel (Share of Shelf)</small></div>
-      <div class="bar" style="margin:10px 0 6px"><div style="width:${c}%;background:${col}"></div></div><small>Marca propia ${c}% · Competencia ${100 - c}%</small><br><b>${c >= 90 ? 'Cumple el estándar RED' : 'Requiere corrección'}</b></div>`;
+    $('redRes').innerHTML = `<div class="note ${c >= 90 ? 'ok' : 'warn'}"><div style="text-align:center"><div style="font-size:2.4rem;font-weight:800;color:${col}">${c}%</div><small>Cuota de anaquel (Share of Shelf)</small></div><div class="bar" style="margin:10px 0 6px"><div style="width:${c}%;background:${col}"></div></div><small>Marca propia ${c}% · Competencia ${100 - c}%</small><br><b>${c >= 90 ? 'Cumple el estándar RED' : 'Requiere corrección'}</b></div>`;
     toast('Análisis completado', c + '%'); cargarRedHist(); cargarKPIs();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarRedHist() {
-  try {
-    const r = await api('/red'), c = $('redHist');
-    c.innerHTML = r.length ? r.map(x => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center"><div><b>${esc(x.pdv_nombre)}</b><br><small>${new Date(x.fecha).toLocaleString('es-VE')}</small></div><span class="pill ${x.cumplimiento_pct >= 90 ? 'ok' : x.cumplimiento_pct >= 75 ? 'warn' : 'bad'}">${Number(x.cumplimiento_pct).toFixed(0)}%</span></div>`).join('') : '<div class="empty">Sin auditorías</div>';
-  } catch (e) {}
+  try { const r = await api('/red'); $('redHist').innerHTML = r.length ? r.map(x => `<div class="row-item" style="display:flex;justify-content:space-between;align-items:center;gap:10px"><div><b>${esc(x.pdv_nombre)}</b><br><small>${fechaHora(x.fecha)}</small></div><span class="pill ${x.cumplimiento_pct >= 90 ? 'ok' : x.cumplimiento_pct >= 75 ? 'warn' : 'bad'}">${Number(x.cumplimiento_pct).toFixed(0)}%</span></div>`).join('') : '<div class="empty">Sin auditorías</div>'; } catch (e) {}
 }
 
 // ===== FRIO =====
 async function renderChartFrio() {
   try {
-    const data = await api('/frio');
-    if (chartF) chartF.destroy();
-    chartF = new Chart($('chartF'), { type: 'line',
-      data: { labels: data.map((_, i) => i), datasets: [{ data: data.map(x => x.temperatura), borderColor: '#0F766E', backgroundColor: 'rgba(15,118,110,.1)', tension: .35, fill: true, pointRadius: 2 }] },
+    const data = await api('/frio'); if (chartF) chartF.destroy();
+    chartF = new Chart($('chartF'), { type: 'line', data: { labels: data.map((_, i) => i), datasets: [{ data: data.map(x => x.temperatura), borderColor: '#0F766E', backgroundColor: 'rgba(15,118,110,.1)', tension: .35, fill: true, pointRadius: 2 }] },
       options: { plugins: { legend: { display: false } }, scales: { y: { min: 0, max: 12, grid: { color: '#EEF1F5' } }, x: { display: false } }, responsive: true, maintainAspectRatio: false } });
-    if (data.length) {
-      const u = data[data.length - 1].temperatura, al = data.filter(x => x.alerta).length;
-      $('fTemp').textContent = u.toFixed(1) + ' °C'; $('fTemp').style.color = (u > 8 || u < 2) ? 'var(--bad)' : '';
-      $('fAlert').textContent = al; $('fAdh').textContent = Math.round((1 - al / data.length) * 100) + '%';
-    }
+    if (data.length) { const u = data[data.length - 1].temperatura, al = data.filter(x => x.alerta).length; $('fTemp').textContent = u.toFixed(1) + ' °C'; $('fTemp').style.color = (u > 8 || u < 2) ? 'var(--bad)' : ''; $('fAlert').textContent = al; $('fAdh').textContent = Math.round((1 - al / data.length) * 100) + '%'; }
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 function toggleSim() {
   if (simInt) { clearInterval(simInt); simInt = null; $('btnSim').textContent = 'Iniciar simulación'; return; }
   $('btnSim').textContent = 'Detener simulación';
   simInt = setInterval(async () => {
-    try {
-      const v = 2 + Math.random() * 8;
-      await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
-      $('frioAlert').innerHTML = (v > 8 || v < 2) ? `<div class="note bad"><b>Alerta: ${v.toFixed(1)} °C, fuera de rango.</b> Notifique al supervisor.</div>` : `<div class="note ok"><b>Temperatura dentro de rango:</b> ${v.toFixed(1)} °C</div>`;
-      await renderChartFrio();
-    } catch (e) { console.error(e); }
+    if (VISTA !== 'frio') return;
+    try { const v = 2 + Math.random() * 8; await api('/frio', { method: 'POST', body: JSON.stringify({ camion: 'MC-001', temperatura: v }) });
+      $('frioAlert').innerHTML = (v > 8 || v < 2) ? `<div class="note bad"><b>Alerta: ${v.toFixed(1)} °C, fuera de rango.</b> Notifique al supervisor.</div>` : `<div class="note ok"><b>Temperatura dentro de rango:</b> ${v.toFixed(1)} °C</div>`; await renderChartFrio(); } catch (e) { console.error(e); }
   }, 2000);
 }
 
 // ===== COMODATO =====
 async function cargarComodatos() {
   try {
-    const a = await api('/comodatos'), c = $('comodatosList');
-    if (!a.length) { c.innerHTML = '<div class="empty">Sin activos registrados</div>'; return; }
-    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px">${a.map(x => {
-      const t = x.temperatura_actual, fuera = t != null && (t > x.temp_max || t < x.temp_min);
-      return `<div class="card flat"><div style="display:flex;justify-content:space-between;margin-bottom:10px"><b>${esc(x.tipo)}</b><span class="pill info">${esc(x.codigo_qr)}</span></div>
+    const a = await api('/comodatos'), c = $('comodatosList'); if (!a.length) { c.innerHTML = '<div class="empty">Sin activos registrados</div>'; return; }
+    c.innerHTML = `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(min(270px,100%),1fr));gap:14px">${a.map(x => { const t = x.temperatura_actual, fuera = t != null && (t > x.temp_max || t < x.temp_min);
+      return `<div class="card flat"><div style="display:flex;justify-content:space-between;margin-bottom:10px;gap:8px"><b>${esc(x.tipo)}</b><span class="pill info">${esc(x.codigo_qr)}</span></div>
         <div style="font-size:.82rem;color:var(--muted);line-height:1.7;margin-bottom:12px">${esc(x.pdv_nombre)}<br>Marca ${esc(x.marca)}<br>Instalado ${esc(x.fecha_instalacion || '-')}<br>Último mantenimiento ${esc(x.ultimo_mantenimiento || '-')}</div>
         <div class="note ${t == null ? 'info' : fuera ? 'bad' : 'ok'}" style="text-align:center"><b>${t != null ? Number(t).toFixed(1) + ' °C' : 'Sin lectura'}</b><br><small>Rango ${x.temp_min} a ${x.temp_max} °C</small></div>
         <button class="btn block sm" onclick="verificarComodato(${x.id})">Registrar temperatura</button></div>`; }).join('')}</div>`;
   } catch (e) {}
 }
 async function verificarComodato(id) {
-  const t = prompt('Temperatura actual (°C):', '4.5'); if (t === null) return;
-  try { const r = await api(`/comodatos/${id}/verificar`, { method: 'POST', body: JSON.stringify({ temperatura_actual: +t }) });
-    toast(r.alerta ? 'Temperatura fuera de rango' : 'Temperatura correcta', 'Registrada: ' + t + ' °C', r.alerta ? 'error' : ''); cargarComodatos();
-  } catch (e) { toast('Error', e.message, 'error'); }
+  const t = await dialogo({ titulo: 'Registrar temperatura', input: 'Temperatura actual (°C)', valor: '4.5', tipo: 'number', ok: 'Registrar' }); if (t === null) return;
+  const n = Number(String(t).replace(',', '.')); if (t === '' || !Number.isFinite(n) || n < -50 || n > 60) return toast('Temperatura inválida', 'Ingrese un valor entre -50 y 60', 'warn');
+  try { const r = await api(`/comodatos/${id}/verificar`, { method: 'POST', body: JSON.stringify({ temperatura_actual: n }) }); toast(r.alerta ? 'Temperatura fuera de rango' : 'Temperatura correcta', 'Registrada: ' + n + ' °C', r.alerta ? 'error' : ''); cargarComodatos(); }
+  catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== VRP =====
-function renderVRPChecks() {
-  $('vrpChecks').innerHTML = PDVS.map(p => `<label style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:.86rem;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:500;margin:0"><input type="checkbox" value="${p.id}" style="width:auto"> ${esc(p.codigo)} - ${esc(p.nombre)}</label>`).join('');
-}
+function renderVRPChecks() { $('vrpChecks').innerHTML = PDVS.map(p => `<label style="display:flex;align-items:center;gap:12px;padding:10px 0;font-size:.88rem;text-transform:none;letter-spacing:0;color:var(--ink);font-weight:500;margin:0;cursor:pointer"><input type="checkbox" value="${p.id}" style="width:20px;height:20px;min-height:0;accent-color:var(--primary)"> ${esc(p.codigo)} - ${esc(p.nombre)}</label>`).join(''); }
 async function calcularVRP() {
-  const ids = [...document.querySelectorAll('#vrpChecks input:checked')].map(c => +c.value);
-  if (!ids.length) return toast('Seleccione PDV', '', 'warn');
-  try {
-    const r = await api('/vrp', { method: 'POST', body: JSON.stringify({ pdv_ids: ids }) });
-    $('vrpResult').innerHTML = `<div class="note ok"><b>Distancia total ${r.total_km} km</b> · ${r.ruta.length - 1} paradas</div>
-      <table class="table"><thead><tr><th>Orden</th><th>Parada</th><th class="r">Desde la anterior</th></tr></thead><tbody>${r.ruta.map((x, i) => `<tr><td>${i === 0 ? 'Origen' : i}</td><td>${esc(x.nombre)}</td><td class="r num">${i === 0 ? '-' : (x.distancia_desde_anterior_m / 1000).toFixed(2) + ' km'}</td></tr>`).join('')}</tbody></table>`;
-    toast('Ruta calculada', r.total_km + ' km');
-  } catch (e) { toast('Error', e.message, 'error'); }
+  const ids = [...document.querySelectorAll('#vrpChecks input:checked')].map(c => +c.value); if (!ids.length) return toast('Seleccione al menos un PDV', '', 'warn');
+  try { const r = await api('/vrp', { method: 'POST', body: JSON.stringify({ pdv_ids: ids }) });
+    $('vrpResult').innerHTML = `<div class="note ok"><b>Distancia total ${r.total_km} km</b> · ${r.ruta.length - 1} paradas</div><div class="scroll"><table class="table"><thead><tr><th>Orden</th><th>Parada</th><th class="r">Desde la anterior</th></tr></thead><tbody>${r.ruta.map((x, i) => `<tr><td>${i === 0 ? 'Origen' : i}</td><td>${esc(x.nombre)}</td><td class="r num">${i === 0 ? '-' : (x.distancia_desde_anterior_m / 1000).toFixed(2) + ' km'}</td></tr>`).join('')}</tbody></table></div>`;
+    toast('Ruta calculada', r.total_km + ' km'); } catch (e) { toast('Error', e.message, 'error'); }
 }
 
 // ===== MERMAS =====
 async function registrarMerma() {
-  const pdv_id = +$('merPDV').value || null, producto_id = +$('merProd').value || null, cantidad = +$('merCant').value, causa = $('merCausa').value;
-  if (cantidad <= 0) return toast('Cantidad inválida', '', 'warn');
-  try { await api('/mermas', { method: 'POST', body: JSON.stringify({ pdv_id, producto_id, cantidad, causa }) }); toast('Merma registrada', causa); cargarMermas(); }
+  if (!validar([['merCant', R.int(1, 100000)]], $('view-mermas'))) return;
+  try { await api('/mermas', { method: 'POST', body: JSON.stringify({ pdv_id: +$('merPDV').value || null, producto_id: +$('merProd').value || null, cantidad: +$('merCant').value, causa: $('merCausa').value }) }); toast('Merma registrada', $('merCausa').value); cargarMermas(); }
   catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarMermas() {
-  try {
-    const m = await api('/mermas'), c = $('mermasList');
-    c.innerHTML = m.length ? m.map(x => `<div class="row-item"><b>${esc(x.producto || 'Sin producto')}</b> x${x.cantidad}<br><small>${esc(x.causa)} · ${esc(x.pdv_nombre || 'Sin PDV')} · ${new Date(x.fecha).toLocaleString('es-VE')}</small></div>`).join('') : '<div class="empty">Sin mermas registradas</div>';
-  } catch (e) {}
+  try { const m = await api('/mermas'); $('mermasList').innerHTML = m.length ? m.map(x => `<div class="row-item"><b>${esc(x.producto || 'Sin producto')}</b> x${x.cantidad}<br><small>${esc(x.causa)} · ${esc(x.pdv_nombre || 'Sin PDV')} · ${fechaHora(x.fecha)}</small></div>`).join('') : '<div class="empty">Sin mermas registradas</div>'; } catch (e) {}
 }
 
 // ===== LIQUIDACION =====
 async function renderLiquidacion() {
   try {
-    const [r, pedidos] = await Promise.all([api('/liquidaciones/resumen'), api('/pedidos')]);
-    $('liqTasa').textContent = 'Tasa ' + r.tasa;
+    const [r, pedidos] = await Promise.all([api('/liquidaciones/resumen'), api('/pedidos')]); PEDIDOS_DIA = pedidos; $('liqTasa').textContent = 'Tasa ' + r.tasa;
     $('liqResumen').innerHTML = r.filas.length ? `<div class="scroll"><table class="table"><thead><tr><th>Método</th><th class="r">Operaciones</th><th class="r">Monto</th><th class="r">Equiv. USD</th></tr></thead><tbody>${r.filas.map(f => `<tr><td>${esc(f.metodo)}</td><td class="r num">${f.n}</td><td class="r num">${fmtMonto(f.monto, f.moneda)}</td><td class="r num">${usd(f.monto_usd)}</td></tr>`).join('')}</tbody></table></div>
       <div class="note info" style="margin-top:12px">Efectivo esperado: <b>${usd(r.esperado_usd)}</b> y <b>${bs(r.esperado_bs)}</b>. Los pagos digitales (${usd(r.digital_usd)}) se concilian contra el banco y el crédito otorgado (${usd(r.credito_usd)}) pasa a cuentas por cobrar.</div>` : '<div class="empty">Sin operaciones registradas hoy</div>';
     $('tablaLiq').innerHTML = pedidos.length ? `<div style="margin-bottom:12px"><b>Total del día:</b> ${usd(pedidos.reduce((s, p) => s + p.total, 0))} · ${bs(pedidos.reduce((s, p) => s + p.total_bs, 0))} · ${pedidos.length} pedidos</div>
-      <div class="scroll"><table class="table"><thead><tr><th>N.°</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Productos</th><th>Pagos</th><th class="r">Total USD</th><th class="r">Total Bs</th></tr></thead><tbody>${pedidos.map(p => `<tr><td>${p.id}</td><td>${esc(p.pdv_nombre)}</td><td>${esc(p.vendedor)}</td><td>${new Date(p.fecha).toLocaleTimeString('es-VE')}</td>
+      <div class="scroll"><table class="table" style="min-width:760px"><thead><tr><th>N.°</th><th>PDV</th><th>Vendedor</th><th>Hora</th><th>Productos</th><th>Pagos</th><th class="r">Total USD</th><th class="r">Total Bs</th></tr></thead><tbody>${pedidos.map(p => `<tr><td>${p.id}</td><td>${esc(p.pdv_nombre)}</td><td>${esc(p.vendedor)}</td><td>${new Date(p.fecha).toLocaleTimeString('es-VE')}</td>
         <td style="font-size:.78rem">${p.items.map(i => `${esc(i.nombre)} x${i.cantidad}`).join('<br>')}</td>
         <td style="font-size:.78rem">${p.pagos.map(g => `${esc(g.metodo)}: ${fmtMonto(g.monto, g.moneda)}${g.referencia ? ' (ref. ' + esc(g.referencia) + ')' : ''}`).join('<br>')}</td>
         <td class="r num"><b>${usd(p.total)}</b></td><td class="r num">${bs(p.total_bs)}</td></tr>`).join('')}</tbody></table></div>` : '<div class="empty">Sin pedidos registrados hoy</div>';
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cerrarTurno() {
+  if (!validar([['liqUsd', R.num(0, 1e9)], ['liqBs', R.num(0, 1e13)]], $('view-liq'))) return;
+  if (!await dialogo({ titulo: 'Liquidar turno', texto: `Se registrará la liquidación con ${usd($('liqUsd').value)} y ${bs($('liqBs').value)} en efectivo. ¿Desea continuar?`, ok: 'Liquidar' })) return;
   try {
-    const r = await api('/liquidaciones', { method: 'POST', body: JSON.stringify({ efectivo_usd: +$('liqUsd').value, efectivo_bs: +$('liqBs').value }) });
-    const ok = Math.abs(r.dif_equiv_usd) < 0.01;
+    const r = await api('/liquidaciones', { method: 'POST', body: JSON.stringify({ efectivo_usd: +$('liqUsd').value, efectivo_bs: +$('liqBs').value }) }), ok = Math.abs(r.dif_equiv_usd) < 0.01;
     $('liqResult').innerHTML = `<div class="note ${ok ? 'ok' : 'bad'}"><b>${ok ? 'Turno cerrado sin diferencias' : 'Diferencia detectada'}</b><br>USD: esperado ${usd(r.esperado_usd)}, diferencia ${usd(r.dif_usd)}<br>Bs: esperado ${bs(r.esperado_bs)}, diferencia ${bs(r.dif_bs)}<br><b>Diferencia total equivalente: ${usd(r.dif_equiv_usd)}</b></div>`;
     toast(ok ? 'Turno cerrado' : 'Diferencia en caja', usd(r.dif_equiv_usd), ok ? '' : 'error'); cargarLiquidaciones();
   } catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarLiquidaciones() {
-  try {
-    const l = await api('/liquidaciones'), c = $('liqHist');
-    c.innerHTML = l.length ? l.map(x => `<div class="row-item"><b>${esc(x.vendedor)}</b> · ${new Date(x.fecha).toLocaleDateString('es-VE')}<br><small>USD ${usd(x.entregado_usd)} de ${usd(x.esperado_usd)} · Bs ${nf.format(x.entregado_bs)} de ${nf.format(x.esperado_bs)}</small><br><span class="pill ${Math.abs(x.diferencia_usd) < 0.01 ? 'ok' : 'bad'}">Diferencia ${usd(x.diferencia_usd)}</span></div>`).join('') : '<div class="empty">Sin liquidaciones</div>';
-  } catch (e) {}
+  try { const l = await api('/liquidaciones'); $('liqHist').innerHTML = l.length ? l.map(x => `<div class="row-item"><b>${esc(x.vendedor)}</b> · ${new Date(x.fecha).toLocaleDateString('es-VE')}<br><small>USD ${usd(x.entregado_usd)} de ${usd(x.esperado_usd)} · Bs ${nf.format(x.entregado_bs)} de ${nf.format(x.esperado_bs)}</small><br><span class="pill ${Math.abs(x.diferencia_usd) < 0.01 ? 'ok' : 'bad'}">Diferencia ${usd(x.diferencia_usd)}</span></div>`).join('') : '<div class="empty">Sin liquidaciones</div>'; } catch (e) {}
 }
 
+// ===== BITACORA =====
+async function cargarBitacora() { try { BITACORA = await api('/bitacora'); renderBitacora(); } catch (e) { toast('Error', e.message, 'error'); } }
+function renderBitacora() {
+  const q = ($('searchBit').value || '').toLowerCase().trim(), f = BITACORA.filter(b => !q || (b.usuario + b.accion + (b.detalle || '')).toLowerCase().includes(q));
+  $('tblBit').innerHTML = f.length ? f.map(b => `<tr><td style="white-space:nowrap">${fechaHora(b.fecha)}</td><td>${esc(b.usuario)}</td><td><b>${esc(b.accion)}</b></td><td style="color:var(--muted)">${esc(b.detalle)}</td></tr>`).join('') : '<tr><td colspan="4"><div class="empty">Sin registros</div></td></tr>';
+}
+
+// ===== USUARIOS =====
+async function cargarUsuarios() {
+  try { USUARIOS = await api('/usuarios'); $('tblUsr').innerHTML = USUARIOS.map(u => `<tr><td><b>${esc(u.nombre)}</b></td><td>${esc(u.usuario)}</td><td>${esc(u.rol)}</td><td>${u.activo ? '<span class="pill ok">Activo</span>' : '<span class="pill mute">Inactivo</span>'}</td><td><button class="btn ghost sm" onclick="abrirUsr(${u.id})">Editar</button></td></tr>`).join(''); }
+  catch (e) { toast('Error', e.message, 'error'); }
+}
+function abrirUsr(id) {
+  limpiarErr($('modalUsr')); const u = id ? USUARIOS.find(x => x.id === id) : null;
+  $('uId').value = u ? u.id : ''; $('uNombre').value = u ? u.nombre : ''; $('uUsuario').value = u ? u.usuario : ''; $('uUsuario').disabled = !!u;
+  $('uRol').value = u ? u.rol : 'Preventista'; $('uActivo').value = u ? String(u.activo) : '1'; $('uPass').value = '';
+  $('uPassLbl').textContent = u ? 'Nueva contraseña (opcional)' : 'Contraseña'; $('usrTitulo').textContent = u ? 'Editar usuario' : 'Nuevo usuario'; openModal('modalUsr');
+}
+async function guardarUsr() {
+  const id = $('uId').value, reglas = [['uNombre', R.len(2, 80)]];
+  if (!id) { reglas.push(['uUsuario', R.pat(/^[A-Za-z0-9._-]{3,30}$/, '3 a 30 caracteres: letras, números, punto o guion')]); reglas.push(['uPass', R.clave()]); }
+  else if ($('uPass').value) reglas.push(['uPass', R.clave()]);
+  if (!validar(reglas, $('modalUsr'))) return;
+  const body = { nombre: $('uNombre').value.trim(), rol: $('uRol').value, activo: $('uActivo').value === '1' };
+  if ($('uPass').value) body.password = $('uPass').value;
+  try {
+    if (id) await api('/usuarios/' + id, { method: 'PUT', body: JSON.stringify(body) }); else await api('/usuarios', { method: 'POST', body: JSON.stringify({ ...body, usuario: $('uUsuario').value.trim() }) });
+    closeModal('modalUsr'); toast('Usuario guardado'); cargarUsuarios();
+  } catch (e) { toast('No se pudo guardar', e.message, 'error'); }
+}
+
+// ===== RED DE CONEXION =====
+addEventListener('offline', () => $('offline').classList.add('show'));
+addEventListener('online', () => { $('offline').classList.remove('show'); toast('Conexión restablecida'); });
+if (!navigator.onLine) $('offline').classList.add('show');
+
+// ===== ARRANQUE =====
+const aviso = sessionStorage.getItem('aviso'); if (aviso) { sessionStorage.removeItem('aviso'); setTimeout(() => toast(aviso, '', 'warn'), 300); }
 if (TOKEN && USER) initApp();
 </script>
 </body>
