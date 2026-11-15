@@ -232,11 +232,11 @@ async function initDB() {
   if (parseInt(check.rows[0].c) === 0) {
     const a = bcrypt.hashSync('admin123', 10), m = bcrypt.hashSync('maria123', 10), p = bcrypt.hashSync('pedro123', 10);
     await sql`INSERT INTO usuarios (nombre,usuario,password_hash,rol) VALUES ('Gerente','admin',${a},'Gerente'),('María','maria',${m},'Supervisor'),('Pedro','pedro',${p},'Preventista')`;
-    await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0F766E'),('Bella Vista','#B45309'),('Las Pulgas','#B91C1C')`;
+    await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0F766E'),('Bella Vista','#B45309'),('Sur','#1D4ED8')`;
     await sql`INSERT INTO pdvs (codigo,rif,nombre,zona_id,lat,lng,limite_credito,limite_pedidos,periodo_limite,canal) VALUES
       ('PDV-0001',${rifDe('J', '30112233')},'Bodega Esperanza',1,10.6427,-71.6125,150,5,'Semanal','Abasto/Bodega'),
       ('PDV-0002',${rifDe('J', '29876543')},'Panadería Trigal',1,10.6450,-71.6150,100,3,'Semanal','Panadería'),
-      ('PDV-0003',${rifDe('J', '31456789')},'Mayorista Pulgas',3,10.6472,-71.6565,500,10,'Semanal','Mayorista')`;
+      ('PDV-0003',${rifDe('J', '31456789')},'Mayorista Los Haticos',3,10.6070,-71.6330,500,10,'Semanal','Mayorista')`;
     await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,peso_kg,stock_minimo,alicuota) VALUES
       ('REF-2L','Refresco 2L',1.80,1,'Botella',2.2,100,'G'),
       ('AGU-C12','Agua Cesta x12',6.50,1,'Cesta',14,50,'G'),
@@ -355,6 +355,15 @@ app.put('/api/zonas/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res)
   const d = req.body || {}, err = validarZona(d); if (err) throw fail(400, err);
   try { await sql`UPDATE zonas SET nombre=${String(d.nombre).trim()}, color=${d.color} WHERE id=${+req.params.id}`; await log(req.user, 'Zona modificada', d.nombre); res.json({ ok: true }); }
   catch (e) { if (String(e.message).includes('duplicate')) throw fail(400, 'Ya existe una zona con ese nombre'); throw e; }
+}));
+app.post('/api/zonas/:id/unir', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
+  const id = +req.params.id, dest = +(req.body || {}).destino_id;
+  if (!isInt(dest, 1, 1e9) || dest === id) throw fail(400, 'Seleccione una zona de destino distinta de la actual');
+  const z = (await sql`SELECT nombre FROM zonas WHERE id=${id}`).rows[0], d = (await sql`SELECT nombre FROM zonas WHERE id=${dest}`).rows[0];
+  if (!z || !d) throw fail(404, 'Zona no encontrada');
+  const n = (await sql`UPDATE pdvs SET zona_id=${dest} WHERE zona_id=${id} RETURNING id`).rows.length;
+  await sql`DELETE FROM zonas WHERE id=${id}`;
+  await log(req.user, 'Zonas unidas', `${z.nombre} pasó a ${d.nombre} (${n} punto(s) de venta)`); res.json({ ok: true, movidos: n });
 }));
 app.delete('/api/zonas/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
   const id = +req.params.id;
@@ -820,7 +829,9 @@ app.get('/api/kpis', auth, h(async (req, res) => {
   const bajo = (await sql`SELECT COUNT(*)::int AS c FROM productos p WHERE p.activo=1 AND p.stock_minimo>0 AND COALESCE((SELECT SUM(cantidad_actual) FROM lotes l WHERE l.producto_id=p.id AND (l.fecha_vencimiento IS NULL OR l.fecha_vencimiento>=${d})),0) < p.stock_minimo`).rows[0].c;
   const pv = (await sql`SELECT COALESCE(SUM(cantidad_actual),0)::int AS u FROM lotes WHERE cantidad_actual>0 AND fecha_vencimiento IS NOT NULL AND fecha_vencimiento>=${d} AND fecha_vencimiento<=${lim}`).rows[0].u;
   const venc = (await sql`SELECT COALESCE(SUM(cantidad_actual),0)::int AS u FROM lotes WHERE cantidad_actual>0 AND fecha_vencimiento IS NOT NULL AND fecha_vencimiento<${d}`).rows[0].u;
+  const vv = (await sql`SELECT COUNT(DISTINCT v.pdv_id)::int AS vis, COUNT(DISTINCT pe.pdv_id)::int AS ped FROM visitas v LEFT JOIN pedidos pe ON pe.pdv_id=v.pdv_id AND pe.dia=${d} AND pe.estado<>'Rechazado' WHERE v.dia=${d}`).rows[0];
   res.json({
+    visitasConVenta: vv.vis ? Math.round(vv.ped / vv.vis * 100) : null, visitasMedidas: vv.vis,
     cumplimientoRED: red == null ? null : Math.round(red),
     retornabilidad: ret.e > 0 ? Math.min(100, Math.round(ret.r / ret.e * 100)) : null,
     otif: ot.n > 0 ? Math.round(ot.ok / ot.n * 100) : null, entregasMedidas: ot.n,
@@ -829,8 +840,23 @@ app.get('/api/kpis', auth, h(async (req, res) => {
   });
 }));
 
-app.get('/api/ventas-zona', auth, h(async (req, res) =>
-  res.json((await sql`SELECT z.nombre, z.color, COALESCE(SUM(pe.total),0) AS total FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id LEFT JOIN pedidos pe ON pe.pdv_id=p.id GROUP BY z.id, z.nombre, z.color ORDER BY z.id`).rows)));
+// Ventas por zona dentro de un período; las zonas sin ventas aparecen en cero
+function rangoPeriodo(periodo) {
+  const hasta = hoy(); let desde = hasta;
+  if (periodo === 'semana') desde = periodoDesde(hasta, 'Semanal');
+  else if (periodo === 'mes') desde = hasta.slice(0, 8) + '01';
+  else if (periodo === 'trimestre') { const m = +hasta.slice(5, 7); desde = `${hasta.slice(0, 4)}-${String(Math.floor((m - 1) / 3) * 3 + 1).padStart(2, '0')}-01`; }
+  else if (periodo === 'anio') desde = hasta.slice(0, 4) + '-01-01';
+  return { desde, hasta };
+}
+app.get('/api/ventas-zona', auth, h(async (req, res) => {
+  const periodo = ['hoy', 'semana', 'mes', 'trimestre', 'anio'].includes(req.query.periodo) ? req.query.periodo : 'mes', { desde, hasta } = rangoPeriodo(periodo);
+  const zonas = (await sql`SELECT z.id, z.nombre, z.color, COALESCE(SUM(pe.total),0)::float AS total, COUNT(pe.id)::int AS pedidos
+    FROM zonas z LEFT JOIN pdvs p ON p.zona_id=z.id
+    LEFT JOIN pedidos pe ON pe.pdv_id=p.id AND pe.dia>=${desde} AND pe.dia<=${hasta} AND pe.estado<>'Rechazado'
+    GROUP BY z.id, z.nombre, z.color ORDER BY total DESC, z.nombre`).rows;
+  res.json({ periodo, desde, hasta, zonas });
+}));
 
 // Cantidades vendidas por escala temporal (datos reales; los períodos sin ventas aparecen en cero)
 function inicioPeriodo(escala, dia) {
