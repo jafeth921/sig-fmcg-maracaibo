@@ -1,0 +1,23 @@
+# Dependencias
+node_modules/
+
+# Variables de entorno (nunca subir credenciales)
+.env
+.env.*
+!.env.example
+
+# Base de datos embebida de desarrollo y registros
+.data/
+*.log
+
+# Resultados de pruebas
+dev/screenshots/
+dev/index.script.js
+
+# Despliegue y sistema operativo
+.vercel/
+.DS_Store
+Thumbs.db
+
+.vercel
+.env*

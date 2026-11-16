@@ -1,3 +1,10 @@
+// Compatibilidad: aceptar DATABASE_URL (Neon, Supabase, Railway, etc.) cuando no
+// exista POSTGRES_URL, que es la variable que lee @vercel/postgres.
+if (!process.env.POSTGRES_URL) {
+  const url = process.env.POSTGRES_URL_NON_POOLING || process.env.DATABASE_URL;
+  if (url) process.env.POSTGRES_URL = url;
+}
+
 const express = require('express');
 const crypto = require('crypto');
 const { sql } = require('@vercel/postgres');
@@ -5,11 +12,13 @@ const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const JWT_SECRET = process.env.JWT_SECRET || 'sig-fmcg-maracaibo-2026';
+// El secreto de sesión se toma de JWT_SECRET. Si no está definido, initDB genera uno
+// aleatorio y lo guarda en la base de datos (nunca se usa una clave fija conocida).
+let JWT_SECRET = process.env.JWT_SECRET || null;
 const ALMACEN = { nombre: 'Almacén Central', lat: 10.6540, lng: -71.6300 };
 const BCV_URL = 'https://ve.dolarapi.com/v1/dolares/oficial';
 const VEL_KMH = 25, SERVICIO_MIN = 10, FACTOR_VIA = 1.3;   // estimaciones de ruteo
-const SCHEMA_V = '9';
+const SCHEMA_V = '10';
 
 // Métodos de pago: moneda en la que se registra el monto y si exige referencia
 const METODOS = [
@@ -147,6 +156,13 @@ function registrarFallo(k) {
 // ---------- Tasa BCV ----------
 async function getConfig(k) { const r = (await sql`SELECT valor FROM config WHERE clave=${k}`).rows[0]; return r ? r.valor : null; }
 async function setConfig(k, v) { await sql`INSERT INTO config (clave,valor) VALUES (${k},${String(v)}) ON CONFLICT (clave) DO UPDATE SET valor=EXCLUDED.valor`; }
+// "Toma" atómica de una tarea de inicialización: solo una instancia la ejecuta
+// aunque varias funciones serverless arranquen al mismo tiempo con la base vacía.
+async function reclamarTarea(clave) {
+  const r = await sql`INSERT INTO config (clave,valor) VALUES (${clave},${new Date().toISOString()}) ON CONFLICT (clave) DO NOTHING RETURNING clave`;
+  return r.rows.length > 0;
+}
+async function liberarTarea(clave) { await sql`DELETE FROM config WHERE clave=${clave}`; }
 async function leerTasa() {
   return { tasa: parseFloat(await getConfig('tasa_bcv')) || 0, fecha: await getConfig('tasa_fecha'), fuente: (await getConfig('tasa_fuente')) || 'Pendiente' };
 }
@@ -200,6 +216,18 @@ async function initDB() {
   await sql`CREATE TABLE IF NOT EXISTS movimientos_stock (id SERIAL PRIMARY KEY, producto_id INTEGER, lote_id INTEGER, tipo TEXT, cantidad INTEGER, referencia TEXT, usuario_id INTEGER, fecha TEXT)`;
   await sql`CREATE TABLE IF NOT EXISTS control_retornables (id SERIAL PRIMARY KEY, pdv_id INTEGER, pedido_id INTEGER, tipo TEXT, entregados INTEGER DEFAULT 0, recibidos INTEGER DEFAULT 0, fecha TEXT, dia TEXT, usuario_id INTEGER, idem TEXT)`;
 
+  // Secreto de sesión estable por base de datos cuando no se configuró JWT_SECRET.
+  // Así las sesiones sobreviven a los reinicios sin usar una clave pública conocida.
+  // El INSERT ... ON CONFLICT evita claves distintas si dos instancias arrancan a la vez.
+  if (!JWT_SECRET) {
+    let s = await getConfig('jwt_secret');
+    if (!s) {
+      await sql`INSERT INTO config (clave,valor) VALUES ('jwt_secret',${crypto.randomBytes(48).toString('hex')}) ON CONFLICT (clave) DO NOTHING`;
+      s = await getConfig('jwt_secret');
+    }
+    JWT_SECRET = s;
+  }
+
   // Migración de bases creadas con versiones anteriores (conserva los datos)
   if ((await getConfig('schema_v')) !== SCHEMA_V) {
     const stmts = [
@@ -222,14 +250,36 @@ async function initDB() {
       sql`ALTER TABLE pdvs DROP COLUMN IF EXISTS limite_cestas`, sql`ALTER TABLE pdvs DROP COLUMN IF EXISTS limite_botellas`,
       sql`ALTER TABLE activos_comodato DROP COLUMN IF EXISTS temperatura_actual`, sql`ALTER TABLE activos_comodato DROP COLUMN IF EXISTS temp_min`, sql`ALTER TABLE activos_comodato DROP COLUMN IF EXISTS temp_max`,
       sql`DROP TABLE IF EXISTS cadena_frio`,
-      sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS proveedor_id INTEGER`, sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS costo_usd DOUBLE PRECISION`, sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS documento TEXT`
+      sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS proveedor_id INTEGER`, sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS costo_usd DOUBLE PRECISION`, sql`ALTER TABLE lotes ADD COLUMN IF NOT EXISTS documento TEXT`,
+      // Índices para las consultas más frecuentes (KPIs, cuentas por cobrar, inventario)
+      sql`CREATE INDEX IF NOT EXISTS idx_pedidos_dia ON pedidos (dia)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_pedidos_pdv ON pedidos (pdv_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_pedidos_usuario ON pedidos (usuario_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_pedidos_estado ON pedidos (estado)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_pedido_items_pedido ON pedido_items (pedido_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_pedido_pagos_pedido ON pedido_pagos (pedido_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_cobranzas_pdv ON cobranzas (pdv_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_cobranzas_dia ON cobranzas (dia)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_visitas_pdv ON visitas (pdv_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_visitas_dia ON visitas (dia)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_lotes_producto ON lotes (producto_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_lotes_vencimiento ON lotes (fecha_vencimiento)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_mov_stock_producto ON movimientos_stock (producto_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_mov_stock_fecha ON movimientos_stock (fecha)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_red_pdv ON red_auditorias (pdv_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_retornables_pdv ON control_retornables (pdv_id)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_bitacora_fecha ON bitacora (fecha)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_mermas_dia ON mermas (dia)`,
+      sql`CREATE INDEX IF NOT EXISTS idx_liquidaciones_dia ON liquidaciones (dia)`
     ];
     for (const q of stmts) await q;
     await setConfig('schema_v', SCHEMA_V);
   }
 
-  const check = await sql`SELECT COUNT(*) AS c FROM usuarios`;
-  if (parseInt(check.rows[0].c) === 0) {
+  const check = await sql`SELECT COUNT(*)::int AS c FROM usuarios`;
+  // Solo una instancia siembra los datos de demostración (ver reclamarTarea).
+  if (check.rows[0].c === 0 && await reclamarTarea('seed_demo')) {
+    try {
     const a = bcrypt.hashSync('admin123', 10), m = bcrypt.hashSync('maria123', 10), p = bcrypt.hashSync('pedro123', 10);
     await sql`INSERT INTO usuarios (nombre,usuario,password_hash,rol) VALUES ('Gerente','admin',${a},'Gerente'),('María','maria',${m},'Supervisor'),('Pedro','pedro',${p},'Preventista')`;
     await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0F766E'),('Bella Vista','#B45309'),('Sur','#1D4ED8')`;
@@ -254,9 +304,11 @@ async function initDB() {
       await setConfig('fisc_' + k, v);
     try { await actualizarTasa(); }
     catch (e) { console.warn('No se pudo obtener la tasa BCV inicial:', e.message); await setConfig('tasa_bcv', 0); await setConfig('tasa_fuente', 'Pendiente'); }
+    } catch (e) { await liberarTarea('seed_demo'); throw e; }
   }
   // Inventario de demostración si aún no hay lotes
-  if (parseInt((await sql`SELECT COUNT(*) AS c FROM lotes`).rows[0].c) === 0) {
+  if ((await sql`SELECT COUNT(*)::int AS c FROM lotes`).rows[0].c === 0 && await reclamarTarea('seed_lotes')) {
+    try {
     const d = hoy(), now = new Date().toISOString();
     const provs = (await sql`SELECT id FROM proveedores ORDER BY id`).rows, costos = { 'REF-2L': 1.10, 'AGU-C12': 4.0, 'JUG-1L': 0.85 };
     for (const p of (await sql`SELECT id, codigo FROM productos ORDER BY id`).rows) {
@@ -268,15 +320,41 @@ async function initDB() {
         await sql`INSERT INTO movimientos_stock (producto_id,lote_id,tipo,cantidad,referencia,fecha) VALUES (${p.id},${l.id},'Entrada',${q},'Inventario inicial',${now})`;
       }
     }
+    } catch (e) { await liberarTarea('seed_lotes'); throw e; }
   }
 }
 
 let ready = null;
+
+// ---------- Diagnóstico (público, sin datos sensibles) ----------
+app.get('/api/health', async (req, res) => {
+  const out = { ok: false, app: 'Rutix SIG-FMCG', hora: new Date().toISOString() };
+  try {
+    if (!ready) ready = initDB();
+    await ready;   // verifica conexión, crea el esquema si es la primera vez
+    out.ok = true;
+    out.base_datos = { conectada: true, esquema: (await getConfig('schema_v')) || null };
+    res.json(out);
+  } catch (e) {
+    ready = null;
+    const falta = /POSTGRES_URL|connectionString|missing_connection_string/i.test(String(e.message));
+    out.base_datos = { conectada: !falta, error: e.message };
+    if (falta) out.ayuda = 'Conecte una base PostgreSQL al proyecto (Vercel → Storage → Postgres, o Neon) y defina POSTGRES_URL.';
+    res.status(503).json(out);
+  }
+});
+
 app.use('/api', (req, res, next) => {
   if (!ready) ready = initDB();
   ready.then(() => next()).catch(e => {
     ready = null; console.error('initDB:', e);
-    res.status(500).json({ error: 'Error de base de datos: ' + e.message + ' (¿conectaste Postgres en Vercel, Storage?)' });
+    const falta = /POSTGRES_URL|connectionString|missing_connection_string/i.test(String(e.message));
+    if (falta) return res.status(503).json({
+      error: 'La base de datos no está conectada',
+      detalle: 'Defina la variable POSTGRES_URL (o DATABASE_URL) con la cadena de conexión de PostgreSQL.',
+      ayuda: 'En Vercel: Storage → Create Database → Postgres, conéctela a este proyecto y vuelva a desplegar. Consulte el README.'
+    });
+    res.status(500).json({ error: 'Error de base de datos: ' + e.message });
   });
 });
 
@@ -1066,5 +1144,15 @@ app.put('/api/usuarios/:id', auth, rol('Gerente'), h(async (req, res) => {
   await log(req.user, 'Usuario modificado', u.usuario + (password ? ' (clave restablecida)' : '')); res.json({ ok: true });
 }));
 app.get('/api/bitacora', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => res.json((await sql`SELECT * FROM bitacora ORDER BY id DESC LIMIT 200`).rows)));
+
+// ---------- Respuestas JSON para rutas inexistentes y errores de solicitud ----------
+app.use('/api', (req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
+app.use((err, req, res, next) => {
+  if (res.headersSent) return next(err);
+  if (err && err.type === 'entity.parse.failed') return res.status(400).json({ error: 'El cuerpo de la solicitud no es JSON válido' });
+  if (err && err.type === 'entity.too.large') return res.status(413).json({ error: 'La solicitud es demasiado grande' });
+  console.error(err);
+  res.status((err && err.status) || 500).json({ error: (err && err.status) ? err.message : 'Error interno del servidor' });
+});
 
 module.exports = app;

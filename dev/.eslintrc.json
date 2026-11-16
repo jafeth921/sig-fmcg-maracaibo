@@ -1,0 +1,19 @@
+{
+  "env": { "browser": true, "es2022": true },
+  "parserOptions": { "ecmaVersion": 2022, "sourceType": "script" },
+  "globals": { "L": "readonly", "Chart": "readonly", "jspdf": "readonly" },
+  "rules": {
+    "no-undef": "error",
+    "no-unused-vars": "warn",
+    "no-dupe-keys": "error",
+    "no-redeclare": "warn",
+    "no-fallthrough": "error",
+    "no-unreachable": "error",
+    "no-constant-condition": "warn",
+    "no-empty": "warn",
+    "no-cond-assign": "error",
+    "no-self-assign": "error",
+    "no-dupe-args": "error",
+    "no-func-assign": "error"
+  }
+}
