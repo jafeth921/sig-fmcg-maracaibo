@@ -53,6 +53,9 @@ npm run test:api    # igual, contra un servidor ya iniciado en :3000
 npm run test:ui     # recorre las 18 vistas en Chromium y reporta errores JS
 npm run test:roles  # menú por rol, permisos y pedido en vista móvil (390x844)
 npm run check       # verifica referencias del HTML (ids, funciones, endpoints)
+
+# Verificación de solo lectura contra el sitio publicado
+npm run test:prod -- https://su-proyecto.vercel.app
 ```
 
 Para las pruebas de interfaz, instale el navegador una vez y deje el servidor local

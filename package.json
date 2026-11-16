@@ -11,6 +11,7 @@
     "test:api": "node dev/smoke.js",
     "test:ui": "node dev/ui-audit.js",
     "test:roles": "node dev/ui-roles.js",
+    "test:prod": "node dev/prod-check.js",
     "check": "node dev/check-refs.js"
   },
   "engines": {
