@@ -146,9 +146,9 @@ details.adv .field{margin:12px 0 0}
 .btn.lg{padding:14px 26px;min-height:52px;font-size:.95rem;border-radius:12px}
 .btn.glow{background:linear-gradient(135deg,#14B8A6,#0F766E);box-shadow:0 10px 30px rgba(20,184,166,.35)}.btn.glow:hover{background:linear-gradient(135deg,#2DD4BF,#0F766E);box-shadow:0 14px 36px rgba(20,184,166,.45);transform:translateY(-1px)}
 .btn.outline{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff}.btn.outline:hover{background:rgba(255,255,255,.08);border-color:rgba(94,234,212,.5)}
-.ld-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:38px;max-width:560px}
-.ld-stats>div{padding:13px 15px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
-.ld-stats b{display:block;font-size:1.15rem;color:#5EEAD4;font-weight:800;letter-spacing:-.01em}.ld-stats span{font-size:.72rem;line-height:1.35;color:#8FA0BA;display:block;margin-top:3px}
+.ld-stats{display:flex;gap:14px 22px;margin-top:32px;flex-wrap:wrap;max-width:560px}
+.ld-stats>div{display:flex;align-items:center;gap:8px;font-size:.8rem;color:#B6C2D6}
+.ld-stats>div::before{content:'✓';width:18px;height:18px;border-radius:50%;background:rgba(94,234,212,.16);color:#5EEAD4;display:inline-flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex:none}
 .ld-art{position:relative;aspect-ratio:1/1;max-width:470px;width:100%;margin-left:auto}
 .ld-art::before{content:'';position:absolute;inset:12% 8%;background:radial-gradient(circle,rgba(20,184,166,.24),transparent 68%);filter:blur(14px);pointer-events:none}
 .ld-art svg.map{position:absolute;inset:0;width:100%;height:100%}
@@ -159,10 +159,6 @@ details.adv .field{margin:12px 0 0}
 @keyframes live{50%{opacity:.45}}
 .ld-node{position:absolute;font-size:.66rem;font-weight:700;color:#D8F3EE;background:rgba(7,13,24,.78);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:4px 8px;pointer-events:none;box-shadow:0 5px 14px rgba(0,0,0,.25)}
 .ld-node.n1{left:8%;bottom:13%}.ld-node.n2{left:43%;top:48%}.ld-node.n3{right:4%;top:15%;color:#FDE3AF;border-color:rgba(245,194,107,.35)}
-.ld-card{position:absolute;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px;padding:12px 16px;font-size:.78rem;color:#B6C2D6;box-shadow:0 12px 40px rgba(0,0,0,.35);animation:float 6s ease-in-out infinite}
-.ld-card b{display:block;font-size:1.25rem;color:#fff;margin-top:2px}
-.ld-card.a{top:6%;left:0}.ld-card.b{top:38%;right:-2%;animation-delay:-2s}.ld-card.c{bottom:6%;left:8%;animation-delay:-4s}
-@keyframes float{0%,100%{transform:translateY(0)}50%{transform:translateY(-9px)}}
 .route-line{stroke-dasharray:9 9;animation:dash 2.4s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-36}}
 .ld-sec{padding:70px 0}
@@ -177,16 +173,13 @@ details.adv .field{margin:12px 0 0}
 .ld-sec.modulos .sub{margin:18px auto 52px;font-size:1rem}
 .ld-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
 .ld-feat{position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:204px;padding:28px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.09);border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.18);transition:transform .22s,box-shadow .22s,border-color .22s,background .22s}
-.ld-feat::before{content:attr(data-n);position:absolute;right:18px;top:12px;font-size:2.5rem;font-weight:800;line-height:1;color:rgba(255,255,255,.055);letter-spacing:-.04em;pointer-events:none}
 .ld-feat::after{content:'';position:absolute;right:-42px;top:-42px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.16),transparent 70%);pointer-events:none}
 .ld-feat:hover{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border-color:rgba(94,234,212,.45);box-shadow:0 26px 54px rgba(0,0,0,.32);transform:translateY(-6px)}
-.ld-feat:hover::before{color:rgba(94,234,212,.14)}
 .ld-ico{width:46px;height:46px;border-radius:13px;background:rgba(20,184,166,.16);color:#5EEAD4;display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:inset 0 0 0 1px rgba(94,234,212,.16)}
 .ld-ico svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ld-feat h3{font-size:1.08rem;color:#fff;margin-bottom:10px}.ld-feat p{font-size:.88rem;line-height:1.65;color:#9FB0C8;margin-top:auto}
 .ld-tag{display:inline-block;margin-bottom:12px;padding:5px 11px;border-radius:999px;background:rgba(245,194,107,.14);border:1px solid rgba(245,194,107,.3);color:#F5C26B;font-size:.7rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
 .ld-feat.hero{grid-column:span 2;display:grid;grid-template-columns:1.12fr .88fr;gap:26px;align-items:center;min-height:262px;padding:32px;background:linear-gradient(130deg,rgba(20,184,166,.17),rgba(11,59,58,.42) 60%,rgba(7,13,24,.35));border-color:rgba(94,234,212,.24)}
-.ld-feat.hero::before{display:none}
 .ld-feat.hero h3{font-size:1.38rem;line-height:1.25;max-width:400px}.ld-feat.hero p{font-size:.92rem;max-width:450px;margin:0}
 .ld-flow{display:flex;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap}
 .ld-flow span{padding:6px 11px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#D8F3EE;font-size:.74rem;font-weight:600}
@@ -194,7 +187,6 @@ details.adv .field{margin:12px 0 0}
 .ld-hero-mini{position:relative;min-height:186px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(7,13,24,.5);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
 .ld-hero-mini svg{position:absolute;inset:0;width:100%;height:100%}
 .ld-mini-chip{position:absolute;left:14px;bottom:12px;padding:7px 11px;border-radius:9px;background:rgba(7,13,24,.78);border:1px solid rgba(255,255,255,.14);font-size:.72rem;color:#B6C2D6}
-.ld-mini-chip b{color:#fff;font-size:1rem;margin-left:6px}
 .ld-impact{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
 .ld-impact>div{padding:20px 22px;border-radius:14px;background:rgba(20,184,166,.06);border:1px solid rgba(94,234,212,.18)}
 .ld-impact b{display:block;color:#fff;font-size:1.02rem;margin-bottom:6px}.ld-impact span{font-size:.82rem;line-height:1.55;color:#9FB0C8}
@@ -331,7 +323,7 @@ body.sb-collapsed .main{margin-left:0}
   .map-tools{top:8px;right:8px}.legend{max-width:calc(100% - 20px)}
   .ld-links a{display:none}.ld-wrap{padding:0 18px}.ld-sec{padding:48px 0}
 }
-@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{grid-template-columns:1fr;gap:8px}.ld-card.b{right:0}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}.ld-foot{flex-direction:column;text-align:center;justify-content:center}.ld-foot-links{justify-content:center}.ld-band .btn{display:block;margin:8px auto;width:100%;max-width:300px}.view-head{align-items:flex-start}}
+@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{gap:10px 16px}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}.ld-foot{flex-direction:column;text-align:center;justify-content:center}.ld-foot-links{justify-content:center}.ld-band .btn{display:block;margin:8px auto;width:100%;max-width:300px}.view-head{align-items:flex-start}}
 @media (max-width:560px){.g5,.g4{grid-template-columns:1fr 1fr}.kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}.topbar h4{font-size:1rem}.fgrid{grid-template-columns:1fr 1fr}.modal-b{padding:16px}.modal-h{padding:16px}}
 @media (max-width:380px){.g5,.g4{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -377,9 +369,9 @@ body.sb-collapsed .main{margin-left:0}
         <a class="btn outline lg" href="#ld-modulos">Conocer los módulos</a>
       </div>
       <div class="ld-stats">
-        <div><b>USD + BCV</b><span>Doble moneda en cada operación</span></div>
-        <div><b>7</b><span>Formas de pago combinables</span></div>
-        <div><b>PDF</b><span>Comprobante validado</span></div>
+        <div>Pedido y cobro unidos</div>
+        <div>Inventario al día</div>
+        <div>Comprobantes listos</div>
       </div>
     </div>
     <div class="ld-art" aria-hidden="true">
@@ -395,9 +387,6 @@ body.sb-collapsed .main{margin-left:0}
       <div class="ld-node n1">Cliente visitado</div>
       <div class="ld-node n2">Check-in</div>
       <div class="ld-node n3">Entrega</div>
-      <div class="ld-card a">Productos en anaquel<b>94%</b></div>
-      <div class="ld-card b">Entregas a tiempo del mes<b>96%</b></div>
-      <div class="ld-card c">Tasa BCV aplicada<b>Bs / USD</b></div>
     </div>
   </section>
 
@@ -407,7 +396,7 @@ body.sb-collapsed .main{margin-left:0}
       <h2>Todo lo que mueve su distribución</h2>
       <p class="sub">Cada módulo trabaja con los mismos datos: lo que se vende, se descuenta del inventario, se entrega, se cobra y se concilia. Así todo el equipo ve la misma información, sin repetir trabajo ni perder el historial.</p>
       <div class="ld-grid">
-        <article class="ld-feat hero" data-n="00">
+        <article class="ld-feat hero">
           <div>
             <span class="ld-tag">Una sola operación</span>
             <h3>De la visita del vendedor al dinero cobrado, sin saltos</h3>
@@ -420,18 +409,18 @@ body.sb-collapsed .main{margin-left:0}
               <path class="route-line" d="M30 118 C80 118 72 62 130 60 S190 30 228 34" stroke="#5EEAD4" stroke-width="3" stroke-linecap="round"/>
               <circle cx="30" cy="118" r="7" fill="#fff"/><circle cx="130" cy="60" r="7" fill="#5EEAD4"/><circle cx="228" cy="34" r="10" fill="#F5C26B"/>
             </svg>
-            <div class="ld-mini-chip">Rutas del día <b>12</b></div>
+            <div class="ld-mini-chip">Rutas organizadas</div>
           </div>
         </article>
-        <article class="ld-feat" data-n="01"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg></div><h3>Preventa y pedidos</h3><p>Pedidos con promociones, venta sugerida, IVA por producto y límite de pedidos por cliente y período.</p></article>
-        <article class="ld-feat" data-n="02"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida de lo que vence primero, alertas de stock bajo y control de vencimientos.</p></article>
-        <article class="ld-feat" data-n="03"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Rutas y entregas a tiempo</h3><p>Rutas según la capacidad del camión y los tiempos estimados. Vea qué pedidos llegaron en la fecha prometida y cuáles completos.</p></article>
-        <article class="ld-feat" data-n="04"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Geolocalización de visitas</h3><p>Check-in validado por cercanía al local, mapa por zonas y filtros para organizar su territorio.</p></article>
-        <article class="ld-feat" data-n="05"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.8-1 1.4-2.5 1.8-2.5.8-2.5 1.9S10.5 16 12 16s2.5-.7 2.5-1.7"/></svg></div><h3>Cobranza y crédito</h3><p>Efectivo, Zelle, Pago Móvil, transferencia, punto de venta y crédito, con IGTF calculado en divisas.</p></article>
-        <article class="ld-feat" data-n="06"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><h3>Cierre de caja y comprobantes</h3><p>Cuadre por moneda con historial y PDF. Comprobante de cada pedido con RIF, IVA e identificador verificados.</p></article>
-        <article class="ld-feat" data-n="07"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Productos en anaquel</h3><p>Conteo de frentes propios y de la competencia con fotografía, para ver si sus productos están presentes en cada cliente.</p></article>
-        <article class="ld-feat" data-n="08"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con el porcentaje real de envases que vuelven.</p></article>
-        <article class="ld-feat" data-n="09"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>Control y auditoría</h3><p>Roles de acceso, bitácora de cada acción y parámetros fiscales configurables por el gerente.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg></div><h3>Preventa y pedidos</h3><p>Pedidos con promociones, venta sugerida, IVA por producto y límite de pedidos por cliente y período.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida de lo que vence primero, alertas de stock bajo y control de vencimientos.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Rutas y entregas a tiempo</h3><p>Rutas según la capacidad del camión y los tiempos estimados. Vea qué pedidos llegaron en la fecha prometida y cuáles completos.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Geolocalización de visitas</h3><p>Check-in validado por cercanía al local, mapa por zonas y filtros para organizar su territorio.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.8-1 1.4-2.5 1.8-2.5.8-2.5 1.9S10.5 16 12 16s2.5-.7 2.5-1.7"/></svg></div><h3>Cobranza y crédito</h3><p>Efectivo, Zelle, Pago Móvil, transferencia, punto de venta y crédito, con IGTF calculado en divisas.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><h3>Cierre de caja y comprobantes</h3><p>Cuadre por moneda con historial y PDF. Comprobante de cada pedido con RIF, IVA e identificador verificados.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Productos en anaquel</h3><p>Conteo de frentes propios y de la competencia con fotografía, para ver si sus productos están presentes en cada cliente.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con el porcentaje real de envases que vuelven.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>Control y auditoría</h3><p>Roles de acceso, bitácora de cada acción y parámetros fiscales configurables por el gerente.</p></article>
       </div>
       <div class="ld-impact">
         <div><b>Un solo registro</b><span>Lo que se vende descuenta inventario y se convierte en entrega y cobro.</span></div>
@@ -1561,8 +1550,9 @@ const etiquetasVentas = {
     ctx.save(); ctx.font = '600 11px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
     meta.data.forEach((bar, i) => {
       const val = +chart.data.datasets[0].data[i] || 0;
-      ctx.fillStyle = val > 0 ? '#0F766E' : '#94A3B8';
-      ctx.fillText(val > 0 ? usd(val) : 'Sin ventas', bar.x, Math.max(bar.y - 7, chartArea.top + 12));
+      if (val <= 0) return;                       // las zonas sin ventas se dejan limpias; el detalle está en el tooltip
+      ctx.fillStyle = '#0F766E';
+      ctx.fillText(usd(val), bar.x, Math.max(bar.y - 7, chartArea.top + 12));
     });
     ctx.restore();
   }

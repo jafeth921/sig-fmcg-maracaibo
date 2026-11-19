@@ -70,6 +70,14 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - **Accesibilidad:** enlace para saltar al contenido, etiquetas aria en la navegación y
   apoyo de `text-wrap: balance` en los títulos.
 
+## Menos ruido visual
+
+- Se quitaron los porcentajes decorativos de la portada (94 %, 96 %), el número de formas
+  de pago y la numeración de los módulos. Los beneficios ahora se leen como frases cortas.
+- El mapa de la portada conserva solo etiquetas de palabras: cliente, check-in y entrega.
+- Las gráficas solo muestran el valor sobre las barras con ventas; las zonas en cero ya no
+  repiten "Sin ventas". El detalle sigue disponible al pasar el cursor y en el resumen.
+
 ## Verificación
 
 - **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,
