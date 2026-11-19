@@ -50,10 +50,25 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - **Períodos:** filtro de Hoy / Semana / Mes / Trimestre / Año en ventas por zona y nueva
   escala mensual en cantidades vendidas, con etiquetas de eje y fechas del período.
 - **Mapa:** se ajusta la vista antes de cargar los mapas (evita peticiones canceladas), hay
-  proveedor de respaldo si falla el principal y avisos claros si no hay ubicaciones.
+  proveedor de respaldo solo si no carga ningún mapa, y avisos claros si no hay ubicaciones.
 - **Diseño:** barra de navegación fija con sombra al desplazarse, y sección "Todo lo que
   mueve su distribución" ampliada con una tarjeta destacada, más profundidad y un resumen
   de beneficios.
+
+## Segunda pasada de diseño
+
+- **Portada:** barra fina de progreso al desplazarse, insignia de "Ruta activa", etiquetas
+  en los puntos del mapa, animación suave en el destino y tarjetas de datos más legibles.
+- **Módulos:** encabezados con etiqueta de sección, tarjetas numeradas del 01 al 09, más
+  contraste al pasar el cursor y una sección final con dos llamadas a la acción.
+- **Proceso:** cada paso indica cuándo ocurre (en el cliente, en la ruta, al entregar, al
+  final del día) y el pie de página incluye enlaces de navegación.
+- **Acceso:** insignia de "Acceso al sistema" y mejor presentación del recuadro de
+  credenciales de demostración.
+- **Dashboard:** encabezado con fecha actual y botón "Actualizar datos", tarjetas con
+  elevación al pasar el cursor y ancho máximo para evitar estiramientos en pantallas grandes.
+- **Accesibilidad:** enlace para saltar al contenido, etiquetas aria en la navegación y
+  apoyo de `text-wrap: balance` en los títulos.
 
 ## Verificación
 

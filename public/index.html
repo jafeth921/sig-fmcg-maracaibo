@@ -42,6 +42,9 @@ button,input,select,a,summary{touch-action:manipulation}
 #loadbar.on{opacity:1}
 #loadbar::after{content:'';position:absolute;inset:0;width:40%;background:linear-gradient(90deg,transparent,#2DD4BF,transparent);animation:lb 1s infinite}
 @keyframes lb{from{transform:translateX(-100%)}to{transform:translateX(260%)}}
+#scrollProgress{position:fixed;top:0;left:0;height:3px;width:0;z-index:100002;background:linear-gradient(90deg,#5EEAD4,#F5C26B);box-shadow:0 0 12px rgba(94,234,212,.7);pointer-events:none;transition:width .08s linear}
+.skip-link{position:absolute;left:-9999px;top:12px;z-index:100003;background:#fff;color:#0B3B3A;padding:10px 16px;border-radius:9px;font-weight:700;text-decoration:none;box-shadow:0 8px 24px rgba(0,0,0,.25)}
+.skip-link:focus{left:12px}
 #offline{position:fixed;left:0;right:0;bottom:0;z-index:100001;background:var(--bad);color:#fff;text-align:center;font-weight:600;font-size:.84rem;padding:10px 14px calc(10px + var(--sab));transform:translateY(110%);transition:.25s}
 #offline.show{transform:none}
 
@@ -52,7 +55,8 @@ button,input,select,a,summary{touch-action:manipulation}
 .card-title{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;font-weight:700;font-size:.95rem;margin-bottom:16px;padding-bottom:12px;border-bottom:1px solid var(--line)}
 .card-title small{font-weight:500;color:var(--muted)}
 .card-title .acts{display:flex;gap:8px;flex-wrap:wrap}
-.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;position:relative;overflow:hidden}
+.kpi{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px 18px;position:relative;overflow:hidden;transition:transform .18s,box-shadow .18s}
+.kpi:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(15,23,42,.1)}
 .kpi::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px;background:var(--primary)}
 .kpi.gold::before{background:var(--gold)}.kpi.red::before{background:var(--bad)}.kpi.navy::before{background:var(--navy)}.kpi.blue::before{background:var(--info)}
 .kpi-lbl{font-size:.68rem;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);font-weight:700}
@@ -134,17 +138,27 @@ details.adv .field{margin:12px 0 0}
 .ld-links a{color:#A9B6CC;text-decoration:none;font-weight:500}.ld-links a:hover{color:#fff}
 .ld-hero{display:grid;grid-template-columns:1.1fr .9fr;gap:48px;align-items:center;padding:72px 0 56px}
 .ld-pill{display:inline-flex;align-items:center;gap:8px;padding:6px 14px;border:1px solid rgba(94,234,212,.35);background:rgba(20,184,166,.12);color:#5EEAD4;border-radius:999px;font-size:.78rem;font-weight:600;margin-bottom:22px}
-.ld-hero h1{font-size:clamp(2.1rem,5.2vw,3.7rem);line-height:1.04;font-weight:800;letter-spacing:-.025em;color:#fff}
+.ld-pill::before{content:'';width:7px;height:7px;border-radius:50%;background:#5EEAD4;box-shadow:0 0 0 4px rgba(94,234,212,.18)}
+.ld-hero h1{font-size:clamp(2.1rem,5.2vw,3.7rem);line-height:1.04;font-weight:800;letter-spacing:-.025em;color:#fff;text-wrap:balance}
 .ld-hero h1 em{font-style:normal;background:linear-gradient(90deg,#5EEAD4,#F5C26B);-webkit-background-clip:text;background-clip:text;color:transparent}
 .ld-hero p.lead{margin:22px 0 30px;font-size:1.08rem;line-height:1.65;color:#B6C2D6;max-width:540px}
 .ld-cta{display:flex;gap:12px;flex-wrap:wrap}
 .btn.lg{padding:14px 26px;min-height:52px;font-size:.95rem;border-radius:12px}
-.btn.glow{background:linear-gradient(135deg,#14B8A6,#0F766E);box-shadow:0 10px 30px rgba(20,184,166,.35)}.btn.glow:hover{background:linear-gradient(135deg,#2DD4BF,#0F766E)}
-.btn.outline{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff}.btn.outline:hover{background:rgba(255,255,255,.08)}
-.ld-stats{display:flex;gap:34px;margin-top:42px;flex-wrap:wrap}
-.ld-stats b{display:block;font-size:1.6rem;color:#fff;font-weight:800}.ld-stats span{font-size:.8rem;color:#8FA0BA}
+.btn.glow{background:linear-gradient(135deg,#14B8A6,#0F766E);box-shadow:0 10px 30px rgba(20,184,166,.35)}.btn.glow:hover{background:linear-gradient(135deg,#2DD4BF,#0F766E);box-shadow:0 14px 36px rgba(20,184,166,.45);transform:translateY(-1px)}
+.btn.outline{background:transparent;border:1px solid rgba(255,255,255,.25);color:#fff}.btn.outline:hover{background:rgba(255,255,255,.08);border-color:rgba(94,234,212,.5)}
+.ld-stats{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:38px;max-width:560px}
+.ld-stats>div{padding:13px 15px;border-radius:12px;background:rgba(255,255,255,.045);border:1px solid rgba(255,255,255,.09)}
+.ld-stats b{display:block;font-size:1.15rem;color:#5EEAD4;font-weight:800;letter-spacing:-.01em}.ld-stats span{font-size:.72rem;line-height:1.35;color:#8FA0BA;display:block;margin-top:3px}
 .ld-art{position:relative;aspect-ratio:1/1;max-width:470px;width:100%;margin-left:auto}
+.ld-art::before{content:'';position:absolute;inset:12% 8%;background:radial-gradient(circle,rgba(20,184,166,.24),transparent 68%);filter:blur(14px);pointer-events:none}
 .ld-art svg.map{position:absolute;inset:0;width:100%;height:100%}
+.ld-ping{transform-box:fill-box;transform-origin:center;animation:ping 2.4s ease-out infinite}
+@keyframes ping{0%{transform:scale(.85);opacity:.85}100%{transform:scale(1.9);opacity:0}}
+.ld-live{position:absolute;top:6%;right:4%;display:flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;background:rgba(7,13,24,.82);border:1px solid rgba(94,234,212,.32);color:#D8F3EE;font-size:.68rem;font-weight:700;letter-spacing:.2px;box-shadow:0 8px 22px rgba(0,0,0,.3)}
+.ld-live i{width:7px;height:7px;border-radius:50%;background:#34D399;box-shadow:0 0 0 4px rgba(52,211,153,.16);animation:live 1.8s ease-in-out infinite}
+@keyframes live{50%{opacity:.45}}
+.ld-node{position:absolute;font-size:.66rem;font-weight:700;color:#D8F3EE;background:rgba(7,13,24,.78);border:1px solid rgba(255,255,255,.12);border-radius:7px;padding:4px 8px;pointer-events:none;box-shadow:0 5px 14px rgba(0,0,0,.25)}
+.ld-node.n1{left:8%;bottom:13%}.ld-node.n2{left:43%;top:48%}.ld-node.n3{right:4%;top:15%;color:#FDE3AF;border-color:rgba(245,194,107,.35)}
 .ld-card{position:absolute;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-radius:14px;padding:12px 16px;font-size:.78rem;color:#B6C2D6;box-shadow:0 12px 40px rgba(0,0,0,.35);animation:float 6s ease-in-out infinite}
 .ld-card b{display:block;font-size:1.25rem;color:#fff;margin-top:2px}
 .ld-card.a{top:6%;left:0}.ld-card.b{top:38%;right:-2%;animation-delay:-2s}.ld-card.c{bottom:6%;left:8%;animation-delay:-4s}
@@ -152,21 +166,27 @@ details.adv .field{margin:12px 0 0}
 .route-line{stroke-dasharray:9 9;animation:dash 2.4s linear infinite}
 @keyframes dash{to{stroke-dashoffset:-36}}
 .ld-sec{padding:70px 0}
-.ld-sec h2{font-size:clamp(1.6rem,3.2vw,2.3rem);font-weight:800;letter-spacing:-.02em;color:#fff;text-align:center}
-.ld-sec .sub{text-align:center;color:#9FB0C8;max-width:620px;margin:14px auto 44px;line-height:1.6}
+.ld-eyebrow{display:inline-flex;align-items:center;gap:10px;color:#5EEAD4;font-size:.7rem;font-weight:800;letter-spacing:2px;text-transform:uppercase;margin-bottom:14px}
+.ld-eyebrow::before{content:'';width:24px;height:1px;background:currentColor}
+.ld-eyebrow.center{justify-content:center}
+.ld-sec h2{font-size:clamp(1.6rem,3.2vw,2.3rem);font-weight:800;letter-spacing:-.02em;color:#fff;text-align:center;text-wrap:balance}
+.ld-sec .sub{text-align:center;color:#9FB0C8;max-width:640px;margin:14px auto 44px;line-height:1.6}
 .ld-sec.modulos{padding:96px 0 104px;position:relative}
 .ld-sec.modulos::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 380px at 6% 14%,rgba(20,184,166,.12),transparent 65%),radial-gradient(620px 360px at 94% 86%,rgba(245,194,107,.09),transparent 65%);pointer-events:none}
 .ld-sec.modulos .ld-wrap{position:relative}
 .ld-sec.modulos .sub{margin:18px auto 52px;font-size:1rem}
 .ld-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.ld-feat{position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:198px;padding:28px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.09);border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.18);transition:transform .22s,box-shadow .22s,border-color .22s,background .22s}
+.ld-feat{position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:204px;padding:28px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.09);border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.18);transition:transform .22s,box-shadow .22s,border-color .22s,background .22s}
+.ld-feat::before{content:attr(data-n);position:absolute;right:18px;top:12px;font-size:2.5rem;font-weight:800;line-height:1;color:rgba(255,255,255,.055);letter-spacing:-.04em;pointer-events:none}
 .ld-feat::after{content:'';position:absolute;right:-42px;top:-42px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.16),transparent 70%);pointer-events:none}
 .ld-feat:hover{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border-color:rgba(94,234,212,.45);box-shadow:0 26px 54px rgba(0,0,0,.32);transform:translateY(-6px)}
+.ld-feat:hover::before{color:rgba(94,234,212,.14)}
 .ld-ico{width:46px;height:46px;border-radius:13px;background:rgba(20,184,166,.16);color:#5EEAD4;display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:inset 0 0 0 1px rgba(94,234,212,.16)}
 .ld-ico svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .ld-feat h3{font-size:1.08rem;color:#fff;margin-bottom:10px}.ld-feat p{font-size:.88rem;line-height:1.65;color:#9FB0C8;margin-top:auto}
 .ld-tag{display:inline-block;margin-bottom:12px;padding:5px 11px;border-radius:999px;background:rgba(245,194,107,.14);border:1px solid rgba(245,194,107,.3);color:#F5C26B;font-size:.7rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
 .ld-feat.hero{grid-column:span 2;display:grid;grid-template-columns:1.12fr .88fr;gap:26px;align-items:center;min-height:262px;padding:32px;background:linear-gradient(130deg,rgba(20,184,166,.17),rgba(11,59,58,.42) 60%,rgba(7,13,24,.35));border-color:rgba(94,234,212,.24)}
+.ld-feat.hero::before{display:none}
 .ld-feat.hero h3{font-size:1.38rem;line-height:1.25;max-width:400px}.ld-feat.hero p{font-size:.92rem;max-width:450px;margin:0}
 .ld-flow{display:flex;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap}
 .ld-flow span{padding:6px 11px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#D8F3EE;font-size:.74rem;font-weight:600}
@@ -178,28 +198,46 @@ details.adv .field{margin:12px 0 0}
 .ld-impact{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
 .ld-impact>div{padding:20px 22px;border-radius:14px;background:rgba(20,184,166,.06);border:1px solid rgba(94,234,212,.18)}
 .ld-impact b{display:block;color:#fff;font-size:1.02rem;margin-bottom:6px}.ld-impact span{font-size:.82rem;line-height:1.55;color:#9FB0C8}
-.ld-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
-.ld-step{position:relative;padding:22px;border-radius:16px;background:linear-gradient(160deg,rgba(20,184,166,.12),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.09)}
-.ld-step::before{counter-increment:s;content:counter(s);display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#0B1220;font-weight:800;margin-bottom:14px}
+.ld-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s;position:relative}
+.ld-step{position:relative;z-index:1;padding:24px 22px;border-radius:16px;background:linear-gradient(160deg,rgba(20,184,166,.12),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.09);transition:transform .2s,border-color .2s,background .2s}
+.ld-step:hover{transform:translateY(-4px);border-color:rgba(94,234,212,.35);background:linear-gradient(160deg,rgba(20,184,166,.18),rgba(255,255,255,.05))}
+.ld-step::before{counter-increment:s;content:counter(s);display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#0B1220;font-weight:800;margin-bottom:14px;box-shadow:0 6px 16px rgba(245,194,107,.24)}
 .ld-step h3{color:#fff;font-size:1rem;margin-bottom:6px}.ld-step p{font-size:.86rem;color:#9FB0C8;line-height:1.55}
-.ld-band{margin:30px 0 0;padding:44px 30px;border-radius:22px;text-align:center;background:linear-gradient(135deg,#0F766E,#0B3B3A);border:1px solid rgba(94,234,212,.25)}
-.ld-band h2{font-size:clamp(1.4rem,3vw,2rem)}.ld-band p{color:#BFEFE7;margin:10px 0 24px}
-.ld-foot{padding:34px 0 calc(34px + var(--sab));color:#7C8CA6;font-size:.8rem;text-align:center;border-top:1px solid rgba(255,255,255,.06);margin-top:60px}
+.ld-step .ld-step-tag{display:inline-block;margin-top:12px;font-size:.67rem;font-weight:700;color:#5EEAD4;letter-spacing:.4px;text-transform:uppercase}
+.ld-band{margin:30px 0 0;padding:48px 30px;border-radius:22px;text-align:center;background:linear-gradient(135deg,#0F766E,#0B3B3A);border:1px solid rgba(94,234,212,.25);position:relative;overflow:hidden}
+.ld-band::before,.ld-band::after{content:'';position:absolute;border-radius:50%;border:1px solid rgba(255,255,255,.09);pointer-events:none}
+.ld-band::before{width:280px;height:280px;left:-110px;top:-150px}.ld-band::after{width:360px;height:360px;right:-140px;bottom:-240px}
+.ld-band>*{position:relative;z-index:1}
+.ld-band h2{font-size:clamp(1.4rem,3vw,2rem)}.ld-band p{color:#BFEFE7;margin:10px auto 24px;max-width:540px}
+.ld-band .btn{margin:0 5px}
+.ld-band small{display:block;color:rgba(191,239,231,.72);margin-top:16px;font-size:.73rem}
+.ld-foot{padding:34px 0 calc(34px + var(--sab));color:#7C8CA6;font-size:.8rem;border-top:1px solid rgba(255,255,255,.06);margin-top:60px;display:flex;justify-content:space-between;align-items:center;gap:18px;flex-wrap:wrap;text-align:left}
+.ld-foot-links{display:flex;gap:18px;flex-wrap:wrap}
+.ld-foot a,.ld-foot button{color:inherit;text-decoration:none;background:none;border:0;padding:0;font:inherit;cursor:pointer;font-weight:600}
+.ld-foot a:hover,.ld-foot button:hover{color:#5EEAD4}
+.ld-brand-foot{display:flex;align-items:center;gap:10px;color:#A9B6CC;font-weight:700}
+.ld-brand-foot .logo{width:28px;height:28px}
 
 /* ===== 4. Login ===== */
 #login{position:fixed;inset:0;overflow:auto;-webkit-overflow-scrolling:touch;display:none;padding:calc(20px + var(--sat)) 20px calc(20px + var(--sab));z-index:9999;background:radial-gradient(1200px 600px at 10% 0%,#13584f 0,transparent 60%),linear-gradient(135deg,#0B1220,#0F2A33)}
 .login-box{margin:auto;display:grid;grid-template-columns:1.05fr 1fr;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 40px 90px rgba(0,0,0,.45);max-width:920px;width:100%}
-.login-left{padding:48px 42px;color:#fff;background:linear-gradient(160deg,#0F766E,#0B3B3A)}
+.login-left{padding:48px 42px;color:#fff;background:linear-gradient(160deg,#0F766E,#0B3B3A);position:relative;overflow:hidden}
+.login-left::after{content:'';position:absolute;width:320px;height:320px;right:-150px;bottom:-170px;border-radius:50%;border:1px solid rgba(255,255,255,.12);box-shadow:0 0 0 60px rgba(255,255,255,.03),0 0 0 120px rgba(255,255,255,.02);pointer-events:none}
+.login-left>*{position:relative;z-index:1}
 .login-left .logo{width:52px;height:52px;margin-bottom:22px}
 .login-left h1{font-size:1.65rem;font-weight:800;line-height:1.2}
 .login-left p{opacity:.85;margin:10px 0 26px;line-height:1.5}
+.login-badge{display:inline-flex;align-items:center;gap:7px;margin-bottom:18px;padding:5px 11px;border-radius:999px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);font-size:.68rem;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:#D8F3EE}
+.login-badge i{width:6px;height:6px;border-radius:50%;background:#34D399}
 .feat{display:flex;gap:10px;align-items:center;margin:11px 0;font-size:.88rem;opacity:.95}
-.feat i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none}
+.feat i{width:6px;height:6px;border-radius:50%;background:var(--accent);flex:none;box-shadow:0 0 0 4px rgba(245,194,107,.16)}
 .login-right{padding:48px 42px}
 .login-right h2{font-size:1.5rem;font-weight:800}
 .login-right .sub{color:var(--muted);margin:6px 0 24px}
 .back{background:none;border:0;color:var(--muted);font-weight:600;font-size:.82rem;cursor:pointer;padding:0 0 18px;display:block}.back:hover{color:var(--primary)}
-.demo{margin-top:20px;padding:14px;border-radius:10px;background:var(--primary-l);color:var(--primary-d);font-size:.78rem;line-height:1.7}
+.demo{margin-top:20px;padding:14px 16px;border-radius:10px;background:var(--primary-l);color:var(--primary-d);font-size:.78rem;line-height:1.7;border:1px solid rgba(15,118,110,.14)}
+.demo b{display:flex;align-items:center;gap:8px;margin-bottom:4px}
+.demo b::before{content:'';width:7px;height:7px;border-radius:50%;background:var(--primary)}
 .pw{position:relative}.pw button{position:absolute;right:6px;top:50%;transform:translateY(-50%);background:none;border:0;color:var(--primary);font-weight:700;font-size:.76rem;cursor:pointer;padding:8px}
 .pw input{padding-right:70px}
 
@@ -232,7 +270,10 @@ body.sb-collapsed .main{margin-left:0}
 .rate .val{font-weight:800;font-size:.92rem;white-space:nowrap}.rate .meta{font-size:.7rem;color:var(--muted);white-space:nowrap}
 .rate.stale{border-color:#F2C27A;background:var(--gold-l)}.rate.none{border-color:#F0B4B4;background:var(--bad-l)}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:0;cursor:pointer;flex:none;font-size:.95rem}
-.content{padding:22px calc(26px + var(--sar)) calc(40px + var(--sab)) calc(26px + var(--sal))}
+.content{padding:22px calc(26px + var(--sar)) calc(40px + var(--sab)) calc(26px + var(--sal));max-width:1640px;margin:0 auto}
+.view-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
+.view-head h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.view-head p{font-size:.82rem;color:var(--muted);margin-top:4px;text-transform:capitalize}
 .view{display:none}.view.active{display:block;animation:fd .22s ease}
 @keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 .grid{display:grid;gap:16px;margin-bottom:16px}.grid>*{min-width:0}
@@ -290,7 +331,7 @@ body.sb-collapsed .main{margin-left:0}
   .map-tools{top:8px;right:8px}.legend{max-width:calc(100% - 20px)}
   .ld-links a{display:none}.ld-wrap{padding:0 18px}.ld-sec{padding:48px 0}
 }
-@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{gap:22px}.ld-card.b{right:0}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}}
+@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{grid-template-columns:1fr;gap:8px}.ld-card.b{right:0}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}.ld-foot{flex-direction:column;text-align:center;justify-content:center}.ld-foot-links{justify-content:center}.ld-band .btn{display:block;margin:8px auto;width:100%;max-width:300px}.view-head{align-items:flex-start}}
 @media (max-width:560px){.g5,.g4{grid-template-columns:1fr 1fr}.kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}.topbar h4{font-size:1rem}.fgrid{grid-template-columns:1fr 1fr}.modal-b{padding:16px}.modal-h{padding:16px}}
 @media (max-width:380px){.g5,.g4{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -312,6 +353,8 @@ body.sb-collapsed .main{margin-left:0}
 </svg>
 
 <div id="loadbar"></div>
+<div id="scrollProgress" aria-hidden="true"></div>
+<a class="skip-link" href="#ld-modulos">Saltar a los módulos</a>
 <div id="offline" role="alert">Sin conexión a internet. Los cambios no se guardarán hasta que se restablezca.</div>
 
 <!-- ================= BIENVENIDA ================= -->
@@ -320,7 +363,7 @@ body.sb-collapsed .main{margin-left:0}
   <header class="ld-nav" id="ldNav">
     <div class="ld-wrap">
       <div class="ld-brand"><svg class="logo"><use href="#rutix"/></svg>Rutix</div>
-      <nav class="ld-links"><a href="#ld-modulos">Módulos</a><a href="#ld-flujo">Cómo funciona</a><button class="btn glow sm" onclick="mostrarLogin()">Ingresar</button></nav>
+      <nav class="ld-links" aria-label="Navegación principal"><a href="#ld-modulos">Módulos</a><a href="#ld-flujo">Cómo funciona</a><button class="btn glow sm" onclick="mostrarLogin()">Ingresar</button></nav>
     </div>
   </header>
 
@@ -345,8 +388,13 @@ body.sb-collapsed .main{margin-left:0}
         <g stroke="rgba(255,255,255,.07)"><path d="M10 110h380M10 200h380M10 290h380M110 10v380M200 10v380M290 10v380"/></g>
         <path class="route-line" d="M60 320 C130 320 110 220 190 215 S250 130 320 90" stroke="#5EEAD4" stroke-width="4" stroke-linecap="round"/>
         <circle cx="60" cy="320" r="11" fill="#fff"/><circle cx="190" cy="215" r="9" fill="#5EEAD4"/><circle cx="262" cy="165" r="9" fill="#5EEAD4"/>
+        <circle class="ld-ping" cx="320" cy="90" r="17" fill="none" stroke="#F5C26B" stroke-width="2"/>
         <circle cx="320" cy="90" r="17" fill="#F5C26B"/><circle cx="320" cy="90" r="6.5" fill="#0B1220"/>
       </svg>
+      <div class="ld-live"><i></i>Ruta activa</div>
+      <div class="ld-node n1">Cliente visitado</div>
+      <div class="ld-node n2">Check-in</div>
+      <div class="ld-node n3">Entrega</div>
       <div class="ld-card a">Productos en anaquel<b>94%</b></div>
       <div class="ld-card b">Entregas a tiempo del mes<b>96%</b></div>
       <div class="ld-card c">Tasa BCV aplicada<b>Bs / USD</b></div>
@@ -355,10 +403,11 @@ body.sb-collapsed .main{margin-left:0}
 
   <section class="ld-sec modulos" id="ld-modulos">
     <div class="ld-wrap">
+      <span class="ld-eyebrow center">Módulos</span>
       <h2>Todo lo que mueve su distribución</h2>
       <p class="sub">Cada módulo trabaja con los mismos datos: lo que se vende, se descuenta del inventario, se entrega, se cobra y se concilia. Así todo el equipo ve la misma información, sin repetir trabajo ni perder el historial.</p>
       <div class="ld-grid">
-        <article class="ld-feat hero">
+        <article class="ld-feat hero" data-n="00">
           <div>
             <span class="ld-tag">Una sola operación</span>
             <h3>De la visita del vendedor al dinero cobrado, sin saltos</h3>
@@ -374,15 +423,15 @@ body.sb-collapsed .main{margin-left:0}
             <div class="ld-mini-chip">Rutas del día <b>12</b></div>
           </div>
         </article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg></div><h3>Preventa y pedidos</h3><p>Pedidos con promociones, venta sugerida, IVA por producto y límite de pedidos por cliente y período.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida de lo que vence primero, alertas de stock bajo y control de vencimientos.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Rutas y entregas a tiempo</h3><p>Rutas según la capacidad del camión y los tiempos estimados. Vea qué pedidos llegaron en la fecha prometida y cuáles completos.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Geolocalización de visitas</h3><p>Check-in validado por cercanía al local, mapa por zonas y filtros para organizar su territorio.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.8-1 1.4-2.5 1.8-2.5.8-2.5 1.9S10.5 16 12 16s2.5-.7 2.5-1.7"/></svg></div><h3>Cobranza y crédito</h3><p>Efectivo, Zelle, Pago Móvil, transferencia, punto de venta y crédito, con IGTF calculado en divisas.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><h3>Cierre de caja y comprobantes</h3><p>Cuadre por moneda con historial y PDF. Comprobante de cada pedido con RIF, IVA e identificador verificados.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Productos en anaquel</h3><p>Conteo de frentes propios y de la competencia con fotografía, para ver si sus productos están presentes en cada cliente.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con el porcentaje real de envases que vuelven.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>Control y auditoría</h3><p>Roles de acceso, bitácora de cada acción y parámetros fiscales configurables por el gerente.</p></article>
+        <article class="ld-feat" data-n="01"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg></div><h3>Preventa y pedidos</h3><p>Pedidos con promociones, venta sugerida, IVA por producto y límite de pedidos por cliente y período.</p></article>
+        <article class="ld-feat" data-n="02"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida de lo que vence primero, alertas de stock bajo y control de vencimientos.</p></article>
+        <article class="ld-feat" data-n="03"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Rutas y entregas a tiempo</h3><p>Rutas según la capacidad del camión y los tiempos estimados. Vea qué pedidos llegaron en la fecha prometida y cuáles completos.</p></article>
+        <article class="ld-feat" data-n="04"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Geolocalización de visitas</h3><p>Check-in validado por cercanía al local, mapa por zonas y filtros para organizar su territorio.</p></article>
+        <article class="ld-feat" data-n="05"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.8-1 1.4-2.5 1.8-2.5.8-2.5 1.9S10.5 16 12 16s2.5-.7 2.5-1.7"/></svg></div><h3>Cobranza y crédito</h3><p>Efectivo, Zelle, Pago Móvil, transferencia, punto de venta y crédito, con IGTF calculado en divisas.</p></article>
+        <article class="ld-feat" data-n="06"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><h3>Cierre de caja y comprobantes</h3><p>Cuadre por moneda con historial y PDF. Comprobante de cada pedido con RIF, IVA e identificador verificados.</p></article>
+        <article class="ld-feat" data-n="07"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Productos en anaquel</h3><p>Conteo de frentes propios y de la competencia con fotografía, para ver si sus productos están presentes en cada cliente.</p></article>
+        <article class="ld-feat" data-n="08"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con el porcentaje real de envases que vuelven.</p></article>
+        <article class="ld-feat" data-n="09"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>Control y auditoría</h3><p>Roles de acceso, bitácora de cada acción y parámetros fiscales configurables por el gerente.</p></article>
       </div>
       <div class="ld-impact">
         <div><b>Un solo registro</b><span>Lo que se vende descuenta inventario y se convierte en entrega y cobro.</span></div>
@@ -394,22 +443,29 @@ body.sb-collapsed .main{margin-left:0}
 
   <section class="ld-sec" id="ld-flujo" style="padding-top:20px">
     <div class="ld-wrap">
+      <span class="ld-eyebrow center">Cómo funciona</span>
       <h2>Un flujo, de punta a punta</h2>
       <p class="sub">Cuatro pasos que cubren la jornada completa del equipo comercial y logístico.</p>
       <div class="ld-steps">
-        <div class="ld-step"><h3>Preventa</h3><p>El vendedor visita, toma el pedido y el sistema reserva el inventario.</p></div>
-        <div class="ld-step"><h3>Despacho</h3><p>Se arma la ruta según la capacidad del camión y se registra cada entrega.</p></div>
-        <div class="ld-step"><h3>Cobro</h3><p>Pagos en bolívares o divisas, combinados o a crédito, con comprobante en PDF.</p></div>
-        <div class="ld-step"><h3>Cierre</h3><p>Cuadre de caja por moneda, diferencias justificadas e historial para auditoría.</p></div>
+        <div class="ld-step"><h3>Preventa</h3><p>El vendedor visita, toma el pedido y el sistema reserva el inventario.</p><span class="ld-step-tag">En el cliente</span></div>
+        <div class="ld-step"><h3>Despacho</h3><p>Se arma la ruta según la capacidad del camión y se registra cada entrega.</p><span class="ld-step-tag">En la ruta</span></div>
+        <div class="ld-step"><h3>Cobro</h3><p>Pagos en bolívares o divisas, combinados o a crédito, con comprobante en PDF.</p><span class="ld-step-tag">Al entregar</span></div>
+        <div class="ld-step"><h3>Cierre</h3><p>Cuadre de caja por moneda, diferencias justificadas e historial para auditoría.</p><span class="ld-step-tag">Al final del día</span></div>
       </div>
       <div class="ld-band">
         <h2>Listo para operar</h2>
-        <p>Ingrese con su usuario y continúe donde quedó su equipo.</p>
+        <p>Ingrese con su usuario y continúe donde quedó su equipo. La información de hoy y el historial de siempre, en el mismo lugar.</p>
         <button class="btn lg" style="background:#fff;color:#0B3B3A" onclick="mostrarLogin()">Ingresar al sistema</button>
+        <a class="btn lg outline" href="#ld-modulos" style="border-color:rgba(255,255,255,.55)">Ver los módulos</a>
+        <small>Sin instalación · Funciona en celular, tableta y computadora</small>
       </div>
     </div>
   </section>
-  <footer class="ld-foot ld-wrap">Rutix · Sistema de gestión para distribución · Maracaibo, Venezuela</footer>
+  <footer class="ld-foot ld-wrap">
+    <div class="ld-brand-foot"><svg class="logo"><use href="#rutix"/></svg><span>Rutix · Maracaibo, Venezuela</span></div>
+    <nav class="ld-foot-links" aria-label="Enlaces del pie de página"><a href="#ld-modulos">Módulos</a><a href="#ld-flujo">Cómo funciona</a><button onclick="mostrarLogin()">Ingresar</button></nav>
+    <span>Gestión para distribución de consumo masivo</span>
+  </footer>
 </div>
 
 <!-- ================= LOGIN ================= -->
@@ -417,6 +473,7 @@ body.sb-collapsed .main{margin-left:0}
   <div class="login-box">
     <div class="login-left">
       <svg class="logo"><use href="#rutix"/></svg>
+      <span class="login-badge"><i></i>Acceso al sistema</span>
       <h1>Bienvenido a Rutix</h1>
       <p>Su operación de distribución, en un solo lugar.</p>
       <div class="feat"><i></i>Precios en USD con tasa BCV automática</div>
@@ -500,6 +557,10 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- DASHBOARD -->
       <div id="view-dashboard" class="view active">
+        <div class="view-head">
+          <div><h1>Resumen de hoy</h1><p id="dashFecha">Cargando fecha…</p></div>
+          <button class="btn ghost sm" onclick="lock(this,cargarDashboard)">Actualizar datos</button>
+        </div>
         <div class="grid g4">
           <div class="kpi navy"><div class="kpi-lbl">Ventas del día (USD)</div><div class="kpi-val num" id="kVentasUsd">$ 0,00</div><div class="kpi-sub num" id="kVentasBs">Bs 0,00</div></div>
           <div class="kpi gold"><div class="kpi-lbl">Cuentas por cobrar</div><div class="kpi-val num" id="kCxc">$ 0,00</div><div class="kpi-sub num" id="kCxcBs">Bs 0,00</div></div>
@@ -1521,7 +1582,12 @@ async function cargarVentasZona() {
       tooltip: { callbacks: { label: c => `${usd(c.parsed.y)} · ${bs(toBs(c.parsed.y))} · ${v[c.dataIndex].pedidos} pedido(s)` } } },
       scales: { y: { beginAtZero: true, suggestedMax: sugerido, grid: { color: '#EEF1F5' }, ticks: { callback: x => '$ ' + nf.format(x), maxTicksLimit: 6 }, title: { display: true, text: 'Ventas en USD', color: '#64748B', font: { size: 10, weight: '600' } } }, x: { grid: { display: false } } } } });
 }
-async function cargarDashboard() { renderSeg(); await Promise.all([cargarKPIs(), cargarSerie(), cargarVentasZona()]); }
+async function cargarDashboard() {
+  const f = $('dashFecha');
+  if (f) f.textContent = new Intl.DateTimeFormat('es-VE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(new Date());
+  renderSeg();
+  await Promise.all([cargarKPIs(), cargarSerie(), cargarVentasZona()]);
+}
 registrarVista('dashboard', 'Dashboard gerencial', cargarDashboard);
 
 // ===== Puntos de venta =====
@@ -1543,16 +1609,24 @@ registrarVista('pdvs', 'Puntos de venta', renderPDVs);
 const TILE_PRINCIPAL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 const TILE_ALTERNATIVO = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
 function agregarMapaBase(mapa, avisar) {
-  let fallos = 0, alternativo = false;
-  const capa = L.tileLayer(TILE_PRINCIPAL, { attribution: '© OpenStreetMap', maxZoom: 19 });
-  capa.on('tileerror', () => {
-    if (alternativo || ++fallos < 3) return;
-    alternativo = true;
-    mapa.removeLayer(capa);
+  let cargadas = 0, temporizador = null, activo = true, usandoAlternativo = false;
+  const principal = L.tileLayer(TILE_PRINCIPAL, { attribution: '© OpenStreetMap', maxZoom: 19 });
+  const activarAlternativo = () => {
+    if (usandoAlternativo || !activo || cargadas > 0) { temporizador = null; return; }
+    usandoAlternativo = true; temporizador = null;
+    mapa.removeLayer(principal);
     L.tileLayer(TILE_ALTERNATIVO, { attribution: '© OpenStreetMap · © CARTO', maxZoom: 19 }).addTo(mapa);
     if (avisar) $('mapLegend')?.insertAdjacentHTML('beforeend', '<span class="map-aviso">Usando mapa alternativo</span>');
+  };
+  principal.on('tileload', () => { cargadas++; if (temporizador) { clearTimeout(temporizador); temporizador = null; } });
+  // Solo se cambia de proveedor si no carga ningún mapa tras 2.5 s. Así no se activa
+  // por peticiones canceladas al cambiar de vista o al cerrar la página.
+  principal.on('tileerror', () => {
+    if (usandoAlternativo || cargadas > 0 || temporizador) return;
+    temporizador = setTimeout(activarAlternativo, 2500);
   });
-  capa.addTo(mapa);
+  mapa.once('unload', () => { activo = false; if (temporizador) clearTimeout(temporizador); });
+  principal.addTo(mapa);
 }
 function initMiniMapa(lat, lng) {
   if (typeof L === 'undefined') { $('pdvMap').innerHTML = '<div class="empty">El mapa no está disponible. Vuelva a cargar la página.</div>'; return; }
@@ -2201,6 +2275,12 @@ function actualizarBarras() {
   const y = window.scrollY || document.documentElement.scrollTop || 0;
   $('ldNav')?.classList.toggle('scrolled', y > 12);
   document.querySelector('.topbar')?.classList.toggle('scrolled', y > 12);
+  const prog = $('scrollProgress');
+  if (prog) {
+    const activo = $('landing').style.display !== 'none';
+    const max = document.documentElement.scrollHeight - innerHeight;
+    prog.style.width = activo && max > 0 ? Math.min(100, (y / max) * 100) + '%' : '0';
+  }
 }
 addEventListener('scroll', actualizarBarras, { passive: true });
 actualizarBarras();
