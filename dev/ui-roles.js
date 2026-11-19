@@ -57,11 +57,14 @@ const USUARIOS = [
 
     for (const { v } of permitidas) {
       const antes = errores.length;
+      await page.evaluate(() => { const t = document.querySelector('#toast'); if (t) t.innerHTML = ''; });
       if (u.movil) await page.evaluate(id => showView(id), v);
       else await page.click(`a[data-view="${v}"]`);
       await page.waitForTimeout(1000);
       const activa = await page.$eval(`#view-${v}`, el => el.classList.contains('active')).catch(() => false);
       if (!activa) fallar(`la vista ${v} no se activó`);
+      const avisosError = await page.$$eval('#toast .toast.error', ts => ts.map(t => t.innerText.replace(/\n/g, ' · ')));
+      avisosError.forEach(a => fallar(`${v}: aviso de error visible: ${a}`));
       errores.slice(antes).forEach(e => fallar(`${v}: ${e}`));
       if (v === 'dashboard' || (u.movil && v === 'pedido')) {
         await page.screenshot({ path: path.join(OUT, `rol-${u.usuario}-${v}.png`), fullPage: false });

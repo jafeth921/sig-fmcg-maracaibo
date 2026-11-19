@@ -41,7 +41,8 @@ function check(nombre, r, esperado = 200, validar) {
     '/api/config', '/api/tasa', '/api/zonas', '/api/productos', '/api/productos?todos=1',
     '/api/promociones', '/api/pdvs', '/api/inventario', '/api/inventario/movimientos',
     '/api/proveedores', '/api/entregas', '/api/cobranza', '/api/kpis',
-    '/api/ventas-zona?periodo=mes', '/api/ventas-serie?escala=semanal', '/api/retornables',
+    '/api/ventas-zona?periodo=mes', '/api/ventas-zona?periodo=semana', '/api/ventas-zona?periodo=anio',
+    '/api/ventas-serie?escala=semanal', '/api/ventas-serie?escala=mensual', '/api/retornables',
     '/api/red', '/api/comodatos', '/api/mermas', '/api/liquidaciones/resumen',
     '/api/liquidaciones', '/api/usuarios', '/api/bitacora', '/api/visitas', '/api/empresa'
   ];
@@ -53,6 +54,13 @@ function check(nombre, r, esperado = 200, validar) {
 
   const pdvs = (await req('GET', '/api/pdvs', undefined, T)).data;
   check('hay puntos de venta cargados', { status: 200, data: pdvs }, 200, d => Array.isArray(d) && d.length > 0);
+
+  const vz = (await req('GET', '/api/ventas-zona?periodo=mes', undefined, T)).data;
+  check('ventas por zona devuelve zonas y rango de fechas', { status: 200, data: vz }, 200,
+    d => Array.isArray(d.zonas) && d.zonas.length > 0 && /^\d{4}-\d{2}-\d{2}$/.test(d.desde) && /^\d{4}-\d{2}-\d{2}$/.test(d.hasta));
+  const mensual = (await req('GET', '/api/ventas-serie?escala=mensual', undefined, T)).data;
+  check('serie mensual trae meses y totales', { status: 200, data: mensual }, 200,
+    d => Array.isArray(d.periodos) && d.periodos.length === 6 && d.unidades.length === 6 && d.usd.length === 6);
 
   console.log(`\n== Resultado: ${ok} OK, ${fail} fallos ==`);
   process.exit(fail ? 1 : 0);

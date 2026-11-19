@@ -1,7 +1,7 @@
 # Rutix · SIG-FMCG Maracaibo
 
 Sistema de gestión para distribuidoras de consumo masivo: preventa, inventario por
-lotes, entregas con OTIF, cobranza multimoneda, cierre de caja y comprobantes en PDF.
+lotes, entregas a tiempo, cobranza multimoneda, cierre de caja y comprobantes en PDF.
 Precios en USD con conversión automática a la tasa BCV.
 
 - **Aplicación:** `public/index.html` (una sola página, sin compilación).
@@ -120,11 +120,11 @@ conexión (con `sslmode=require`) en `POSTGRES_URL` o `DATABASE_URL` y redesplie
 
 | Módulo | Descripción |
 |--------|-------------|
-| Dashboard | KPIs de ventas, cuentas por cobrar, OTIF, RED, retornabilidad y alertas. |
+| Dashboard | KPIs de ventas, cuentas por cobrar, entregas a tiempo, productos en anaquel, retornabilidad y alertas. |
 | Puntos de venta | RIF validado (módulo 11), zonas, canal, límites de crédito y pedidos. |
 | Mapa y visitas | Check-in validado por geocerca y registro de visitas. |
 | Tomar pedido | Promociones por volumen y vencimiento, venta sugerida, IVA e IGTF. |
-| Entregas y OTIF | Entrega total/parcial, devolución de faltantes al stock y puntualidad. |
+| Entregas a tiempo | Entrega total/parcial, devolución de faltantes al stock y puntualidad. |
 | Ruteo | Vecino más cercano + 2-opt, capacidad del camión y tiempos estimados. |
 | Inventario | Lotes, FIFO, vencimientos, ajustes, movimientos y stock mínimo. |
 | Proveedores | RIF, contactos, compras y entradas de mercancía. |

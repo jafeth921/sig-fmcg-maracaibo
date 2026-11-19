@@ -833,7 +833,7 @@ app.get('/api/pedidos/:id/comprobante', auth, h(async (req, res) => {
   });
 }));
 
-// ---------- Entregas y OTIF ----------
+// ---------- Entregas a tiempo ----------
 app.get('/api/entregas', auth, h(async (req, res) => {
   const cols = async rows => { for (const pe of rows) pe.items = (await sql`SELECT pi.*, pr.nombre, pr.peso_kg FROM pedido_items pi JOIN productos pr ON pi.producto_id=pr.id WHERE pi.pedido_id=${pe.id} ORDER BY pi.id`).rows; return rows; };
   const pendientes = await cols((await sql`SELECT pe.id, pe.pdv_id, pe.fecha, pe.dia, pe.total, pe.estado, pe.fecha_prometida, p.nombre AS pdv_nombre, p.rif FROM pedidos pe JOIN pdvs p ON p.id=pe.pdv_id WHERE pe.estado IN ('Confirmado','En ruta') ORDER BY pe.fecha_prometida, pe.id LIMIT 100`).rows);
@@ -939,6 +939,7 @@ app.get('/api/ventas-zona', auth, h(async (req, res) => {
 // Cantidades vendidas por escala temporal (datos reales; los períodos sin ventas aparecen en cero)
 function inicioPeriodo(escala, dia) {
   if (escala === 'semanal') return periodoDesde(dia, 'Semanal');
+  if (escala === 'mensual') return dia.slice(0, 7) + '-01';
   if (escala === 'trimestral') { const [y, m] = dia.split('-').map(Number); return `${y}-${String(Math.floor((m - 1) / 3) * 3 + 1).padStart(2, '0')}-01`; }
   if (escala === 'anual') return dia.slice(0, 4) + '-01-01';
   return dia;
@@ -948,12 +949,13 @@ function periodoAnterior(escala, ini) {
   if (escala === 'semanal') return addDias(ini, -7);
   const [y, m] = ini.split('-').map(Number);
   if (escala === 'anual') return `${y - 1}-01-01`;
+  if (escala === 'mensual') return new Date(Date.UTC(y, m - 2, 1)).toISOString().slice(0, 10);
   const t = new Date(Date.UTC(y, m - 1 - 3, 1)); return t.toISOString().slice(0, 10);
 }
 app.get('/api/ventas-serie', auth, h(async (req, res) => {
-  const escala = ['diario', 'semanal', 'trimestral', 'anual'].includes(req.query.escala) ? req.query.escala : 'diario';
+  const escala = ['diario', 'semanal', 'mensual', 'trimestral', 'anual'].includes(req.query.escala) ? req.query.escala : 'diario';
   const zona = isInt(req.query.zona_id, 1, 1e9) ? +req.query.zona_id : null;
-  const cuantos = { diario: 30, semanal: 12, trimestral: 8, anual: 5 }[escala], trunc = { diario: 'day', semanal: 'week', trimestral: 'quarter', anual: 'year' }[escala];
+  const cuantos = { diario: 30, semanal: 12, mensual: 6, trimestral: 8, anual: 5 }[escala], trunc = { diario: 'day', semanal: 'week', mensual: 'month', trimestral: 'quarter', anual: 'year' }[escala];
   const periodos = []; let cur = inicioPeriodo(escala, hoy());
   for (let i = 0; i < cuantos; i++) { periodos.unshift(cur); cur = periodoAnterior(escala, cur); }
   const rows = (await sql`SELECT to_char(date_trunc(${trunc}, pe.dia::date), 'YYYY-MM-DD') AS periodo, SUM(pi.cantidad)::int AS unidades, SUM(pi.subtotal)::float AS usd, COUNT(DISTINCT pe.id)::int AS pedidos

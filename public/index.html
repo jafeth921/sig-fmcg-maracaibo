@@ -122,10 +122,11 @@ details.adv .field{margin:12px 0 0}
 .payrow{display:grid;grid-template-columns:1.2fr 1fr 1fr auto;gap:8px;align-items:end;margin-bottom:10px}
 
 /* ===== 3. Landing ===== */
-#landing{position:relative;min-height:100vh;background:#070D18;color:#E6EDF7;overflow-x:hidden}
+#landing{position:relative;min-height:100vh;background:#070D18;color:#E6EDF7;overflow-x:hidden;overflow-x:clip}
 .ld-bg{position:absolute;inset:0;background:radial-gradient(900px 520px at 88% -8%,rgba(20,184,166,.30),transparent 60%),radial-gradient(700px 420px at -5% 28%,rgba(245,194,107,.13),transparent 60%);pointer-events:none}
 .ld-wrap{position:relative;max-width:1180px;margin:0 auto;padding:0 24px}
-.ld-nav{position:sticky;top:0;z-index:20;background:rgba(7,13,24,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06)}
+.ld-nav{position:sticky;top:0;z-index:60;background:rgba(7,13,24,.72);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.06);transition:background .25s,box-shadow .25s,border-color .25s}
+.ld-nav.scrolled{background:rgba(7,13,24,.96);border-bottom-color:rgba(94,234,212,.22);box-shadow:0 10px 32px rgba(0,0,0,.42)}
 .ld-nav .ld-wrap{display:flex;align-items:center;justify-content:space-between;height:68px;padding-top:var(--sat)}
 .ld-brand{display:flex;align-items:center;gap:11px;font-weight:800;font-size:1.15rem;letter-spacing:-.01em;color:#fff}
 .ld-brand .logo{width:36px;height:36px}
@@ -153,12 +154,30 @@ details.adv .field{margin:12px 0 0}
 .ld-sec{padding:70px 0}
 .ld-sec h2{font-size:clamp(1.6rem,3.2vw,2.3rem);font-weight:800;letter-spacing:-.02em;color:#fff;text-align:center}
 .ld-sec .sub{text-align:center;color:#9FB0C8;max-width:620px;margin:14px auto 44px;line-height:1.6}
-.ld-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.ld-feat{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:16px;padding:24px;transition:.2s}
-.ld-feat:hover{background:rgba(255,255,255,.07);border-color:rgba(94,234,212,.35);transform:translateY(-3px)}
-.ld-ico{width:42px;height:42px;border-radius:12px;background:rgba(20,184,166,.16);color:#5EEAD4;display:flex;align-items:center;justify-content:center;margin-bottom:16px}
-.ld-ico svg{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
-.ld-feat h3{font-size:1.02rem;color:#fff;margin-bottom:8px}.ld-feat p{font-size:.88rem;line-height:1.6;color:#9FB0C8}
+.ld-sec.modulos{padding:96px 0 104px;position:relative}
+.ld-sec.modulos::before{content:'';position:absolute;inset:0;background:radial-gradient(700px 380px at 6% 14%,rgba(20,184,166,.12),transparent 65%),radial-gradient(620px 360px at 94% 86%,rgba(245,194,107,.09),transparent 65%);pointer-events:none}
+.ld-sec.modulos .ld-wrap{position:relative}
+.ld-sec.modulos .sub{margin:18px auto 52px;font-size:1rem}
+.ld-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+.ld-feat{position:relative;overflow:hidden;display:flex;flex-direction:column;min-height:198px;padding:28px;background:linear-gradient(160deg,rgba(255,255,255,.07),rgba(255,255,255,.025));border:1px solid rgba(255,255,255,.09);border-radius:18px;box-shadow:0 16px 40px rgba(0,0,0,.18);transition:transform .22s,box-shadow .22s,border-color .22s,background .22s}
+.ld-feat::after{content:'';position:absolute;right:-42px;top:-42px;width:140px;height:140px;border-radius:50%;background:radial-gradient(circle,rgba(94,234,212,.16),transparent 70%);pointer-events:none}
+.ld-feat:hover{background:linear-gradient(160deg,rgba(255,255,255,.1),rgba(255,255,255,.04));border-color:rgba(94,234,212,.45);box-shadow:0 26px 54px rgba(0,0,0,.32);transform:translateY(-6px)}
+.ld-ico{width:46px;height:46px;border-radius:13px;background:rgba(20,184,166,.16);color:#5EEAD4;display:flex;align-items:center;justify-content:center;margin-bottom:18px;box-shadow:inset 0 0 0 1px rgba(94,234,212,.16)}
+.ld-ico svg{width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.ld-feat h3{font-size:1.08rem;color:#fff;margin-bottom:10px}.ld-feat p{font-size:.88rem;line-height:1.65;color:#9FB0C8;margin-top:auto}
+.ld-tag{display:inline-block;margin-bottom:12px;padding:5px 11px;border-radius:999px;background:rgba(245,194,107,.14);border:1px solid rgba(245,194,107,.3);color:#F5C26B;font-size:.7rem;font-weight:700;letter-spacing:.4px;text-transform:uppercase}
+.ld-feat.hero{grid-column:span 2;display:grid;grid-template-columns:1.12fr .88fr;gap:26px;align-items:center;min-height:262px;padding:32px;background:linear-gradient(130deg,rgba(20,184,166,.17),rgba(11,59,58,.42) 60%,rgba(7,13,24,.35));border-color:rgba(94,234,212,.24)}
+.ld-feat.hero h3{font-size:1.38rem;line-height:1.25;max-width:400px}.ld-feat.hero p{font-size:.92rem;max-width:450px;margin:0}
+.ld-flow{display:flex;align-items:center;gap:8px;margin-top:20px;flex-wrap:wrap}
+.ld-flow span{padding:6px 11px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#D8F3EE;font-size:.74rem;font-weight:600}
+.ld-flow i{width:18px;height:1px;background:rgba(94,234,212,.55);position:relative}.ld-flow i::after{content:'';position:absolute;right:0;top:-2px;border-left:5px solid rgba(94,234,212,.8);border-top:2.5px solid transparent;border-bottom:2.5px solid transparent}
+.ld-hero-mini{position:relative;min-height:186px;border-radius:14px;border:1px solid rgba(255,255,255,.1);background:rgba(7,13,24,.5);overflow:hidden;box-shadow:inset 0 1px 0 rgba(255,255,255,.05)}
+.ld-hero-mini svg{position:absolute;inset:0;width:100%;height:100%}
+.ld-mini-chip{position:absolute;left:14px;bottom:12px;padding:7px 11px;border-radius:9px;background:rgba(7,13,24,.78);border:1px solid rgba(255,255,255,.14);font-size:.72rem;color:#B6C2D6}
+.ld-mini-chip b{color:#fff;font-size:1rem;margin-left:6px}
+.ld-impact{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:24px}
+.ld-impact>div{padding:20px 22px;border-radius:14px;background:rgba(20,184,166,.06);border:1px solid rgba(94,234,212,.18)}
+.ld-impact b{display:block;color:#fff;font-size:1.02rem;margin-bottom:6px}.ld-impact span{font-size:.82rem;line-height:1.55;color:#9FB0C8}
 .ld-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;counter-reset:s}
 .ld-step{position:relative;padding:22px;border-radius:16px;background:linear-gradient(160deg,rgba(20,184,166,.12),rgba(255,255,255,.03));border:1px solid rgba(255,255,255,.09)}
 .ld-step::before{counter-increment:s;content:counter(s);display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;background:var(--accent);color:#0B1220;font-weight:800;margin-bottom:14px}
@@ -201,7 +220,8 @@ details.adv .field{margin:12px 0 0}
 .main{margin-left:var(--sbw);min-height:100vh;min-height:100dvh;transition:margin .25s ease}
 body.sb-collapsed .sidebar{transform:translateX(-100%)}
 body.sb-collapsed .main{margin-left:0}
-.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(10px + var(--sat)) calc(24px + var(--sar)) 10px calc(24px + var(--sal));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(10px + var(--sat)) calc(24px + var(--sar)) 10px calc(24px + var(--sal));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;transition:box-shadow .2s}
+.topbar.scrolled{box-shadow:0 8px 24px rgba(15,23,42,.09)}
 .tl{display:flex;align-items:center;gap:12px;min-width:0}
 .topbar h4{font-size:1.1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .icon-btn{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex:none;padding:0}
@@ -221,13 +241,14 @@ body.sb-collapsed .main{margin-left:0}
 .s83{grid-template-columns:minmax(0,2fr) minmax(0,1fr)}.s57{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
 
 /* ===== 6. Mapa, toast y modales ===== */
-.map-wrap{position:relative;isolation:isolate;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background:#E8ECEF}
+.map-wrap{position:relative;isolation:isolate;border-radius:var(--radius);overflow:hidden;border:1px solid var(--line);background-color:#E8ECEF;background-image:linear-gradient(rgba(148,163,184,.12) 1px,transparent 1px),linear-gradient(90deg,rgba(148,163,184,.12) 1px,transparent 1px);background-size:32px 32px}
 #map{height:clamp(340px,64vh,640px);width:100%;z-index:0;position:relative}
 @supports (height:1dvh){#map{height:clamp(340px,64dvh,640px)}}
 #pdvMap{height:220px;border-radius:10px;border:1px solid var(--line);isolation:isolate;position:relative;z-index:0}
 .map-tools{position:absolute;top:10px;right:10px;z-index:1001;display:flex;flex-direction:column;gap:6px}.map-tools .btn{box-shadow:0 2px 8px rgba(15,23,42,.18)}
 .legend{position:absolute;left:10px;bottom:10px;z-index:1001;background:rgba(255,255,255,.95);border-radius:10px;padding:8px 10px;font-size:.74rem;box-shadow:0 2px 8px rgba(15,23,42,.18);max-width:70%;display:flex;gap:10px;flex-wrap:wrap}
 .legend i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:middle}
+.legend .map-aviso{color:var(--warn);font-weight:600}
 .map-wrap.full{position:fixed;inset:0;z-index:200;border-radius:0;border:0}.map-wrap.full #map{height:100%}
 .leaflet-popup-content{font-size:.82rem;line-height:1.5}.leaflet-container{font-family:inherit}
 #toast{position:fixed;top:calc(14px + var(--sat));right:14px;z-index:99999;display:flex;flex-direction:column;gap:10px;pointer-events:none}
@@ -245,7 +266,7 @@ body.sb-collapsed .main{margin-left:0}
 
 /* ===== 7. Responsive ===== */
 @media (max-width:1100px){.g5,.g4{grid-template-columns:repeat(2,minmax(0,1fr))}.g3{grid-template-columns:1fr 1fr}.s83,.s57{grid-template-columns:1fr}
-  .ld-hero{grid-template-columns:1fr;padding-top:48px}.ld-art{margin:0 auto;max-width:400px}.ld-grid{grid-template-columns:repeat(2,1fr)}.ld-steps{grid-template-columns:repeat(2,1fr)}}
+  .ld-hero{grid-template-columns:1fr;padding-top:48px}.ld-art{margin:0 auto;max-width:400px}.ld-grid{grid-template-columns:repeat(2,1fr)}.ld-steps{grid-template-columns:repeat(2,1fr)}.ld-sec.modulos{padding:72px 0 78px}.ld-impact{grid-template-columns:1fr}}
 @media (max-width:900px){
   .sidebar{transform:translateX(-100%);width:min(84vw,310px)}
   .sidebar.open{transform:none!important;box-shadow:12px 0 40px rgba(0,0,0,.4)}
@@ -269,7 +290,7 @@ body.sb-collapsed .main{margin-left:0}
   .map-tools{top:8px;right:8px}.legend{max-width:calc(100% - 20px)}
   .ld-links a{display:none}.ld-wrap{padding:0 18px}.ld-sec{padding:48px 0}
 }
-@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{gap:22px}.ld-card.b{right:0}}
+@media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{gap:22px}.ld-card.b{right:0}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}}
 @media (max-width:560px){.g5,.g4{grid-template-columns:1fr 1fr}.kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}.topbar h4{font-size:1rem}.fgrid{grid-template-columns:1fr 1fr}.modal-b{padding:16px}.modal-h{padding:16px}}
 @media (max-width:380px){.g5,.g4{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -296,7 +317,7 @@ body.sb-collapsed .main{margin-left:0}
 <!-- ================= BIENVENIDA ================= -->
 <div id="landing">
   <div class="ld-bg"></div>
-  <header class="ld-nav">
+  <header class="ld-nav" id="ldNav">
     <div class="ld-wrap">
       <div class="ld-brand"><svg class="logo"><use href="#rutix"/></svg>Rutix</div>
       <nav class="ld-links"><a href="#ld-modulos">Módulos</a><a href="#ld-flujo">Cómo funciona</a><button class="btn glow sm" onclick="mostrarLogin()">Ingresar</button></nav>
@@ -326,26 +347,47 @@ body.sb-collapsed .main{margin-left:0}
         <circle cx="60" cy="320" r="11" fill="#fff"/><circle cx="190" cy="215" r="9" fill="#5EEAD4"/><circle cx="262" cy="165" r="9" fill="#5EEAD4"/>
         <circle cx="320" cy="90" r="17" fill="#F5C26B"/><circle cx="320" cy="90" r="6.5" fill="#0B1220"/>
       </svg>
-      <div class="ld-card a">Cumplimiento de red<b>94%</b></div>
-      <div class="ld-card b">OTIF del mes<b>96%</b></div>
+      <div class="ld-card a">Productos en anaquel<b>94%</b></div>
+      <div class="ld-card b">Entregas a tiempo del mes<b>96%</b></div>
       <div class="ld-card c">Tasa BCV aplicada<b>Bs / USD</b></div>
     </div>
   </section>
 
-  <section class="ld-sec" id="ld-modulos">
+  <section class="ld-sec modulos" id="ld-modulos">
     <div class="ld-wrap">
       <h2>Todo lo que mueve su distribución</h2>
-      <p class="sub">Cada módulo trabaja con los mismos datos: lo que se vende, se descuenta del inventario, se entrega, se cobra y se concilia.</p>
+      <p class="sub">Cada módulo trabaja con los mismos datos: lo que se vende, se descuenta del inventario, se entrega, se cobra y se concilia. Así todo el equipo ve la misma información, sin repetir trabajo ni perder el historial.</p>
       <div class="ld-grid">
+        <article class="ld-feat hero">
+          <div>
+            <span class="ld-tag">Una sola operación</span>
+            <h3>De la visita del vendedor al dinero cobrado, sin saltos</h3>
+            <p>El pedido nace en el celular, descuenta el inventario, se organiza en la ruta, se entrega y se cobra. Cada paso queda unido al anterior para que pueda revisar lo que pasó en cualquier momento.</p>
+            <div class="ld-flow"><span>Pedido</span><i></i><span>Entrega</span><i></i><span>Cobro</span><i></i><span>Cierre</span></div>
+          </div>
+          <div class="ld-hero-mini" aria-hidden="true">
+            <svg viewBox="0 0 260 150" fill="none">
+              <g stroke="rgba(255,255,255,.07)"><path d="M0 38h260M0 76h260M0 114h260M52 0v150M130 0v150M208 0v150"/></g>
+              <path class="route-line" d="M30 118 C80 118 72 62 130 60 S190 30 228 34" stroke="#5EEAD4" stroke-width="3" stroke-linecap="round"/>
+              <circle cx="30" cy="118" r="7" fill="#fff"/><circle cx="130" cy="60" r="7" fill="#5EEAD4"/><circle cx="228" cy="34" r="10" fill="#F5C26B"/>
+            </svg>
+            <div class="ld-mini-chip">Rutas del día <b>12</b></div>
+          </div>
+        </article>
         <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="9" cy="20" r="1.5"/><circle cx="18" cy="20" r="1.5"/><path d="M2 3h3l2.5 12h11L21 7H6"/></svg></div><h3>Preventa y pedidos</h3><p>Pedidos con promociones, venta sugerida, IVA por producto y límite de pedidos por cliente y período.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida de lo que vence primero, alertas de stock bajo y control de vencimientos.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Rutas y entregas a tiempo</h3><p>Rutas según la capacidad del camión y los tiempos estimados. Vea qué pedidos llegaron en la fecha prometida y cuáles completos.</p></article>
         <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 21s7-6.2 7-11a7 7 0 1 0-14 0c0 4.8 7 11 7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></div><h3>Geolocalización de visitas</h3><p>Check-in validado por cercanía al local, mapa por zonas y filtros para organizar su territorio.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M3 7l9-4 9 4v10l-9 4-9-4z"/><path d="M3 7l9 4 9-4M12 11v10"/></svg></div><h3>Inventario por lotes</h3><p>Entradas por proveedor con su RIF, salida FIFO, alertas de stock bajo y control de vencimientos para vender primero lo que vence antes.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M2 6h11v10H2zM13 10h5l3 3v3h-8"/><circle cx="7" cy="18" r="2"/><circle cx="17" cy="18" r="2"/></svg></div><h3>Entregas, ruteo y OTIF</h3><p>Rutas con capacidad del camión y tiempos estimados. Mida cuántas entregas llegan a tiempo y completas.</p></article>
         <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v10M9.5 9.5c0-1 1-1.7 2.5-1.7s2.5.7 2.5 1.8-1 1.4-2.5 1.8-2.5.8-2.5 1.9S10.5 16 12 16s2.5-.7 2.5-1.7"/></svg></div><h3>Cobranza y crédito</h3><p>Efectivo, Zelle, Pago Móvil, transferencia, punto de venta y crédito, con IGTF calculado en divisas.</p></article>
         <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></svg></div><h3>Cierre de caja y comprobantes</h3><p>Cuadre por moneda con historial y PDF. Comprobante de cada pedido con RIF, IVA e identificador verificados.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Cumplimiento de red</h3><p>Auditoría de anaquel con conteo de frentes y fotografía para medir la ejecución en el punto de venta.</p></article>
-        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con índice de retornabilidad real.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 5h16v14H4z"/><path d="M8 12l3 3 5-6"/></svg></div><h3>Productos en anaquel</h3><p>Conteo de frentes propios y de la competencia con fotografía, para ver si sus productos están presentes en cada cliente.</p></article>
+        <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M4 12a8 8 0 0 1 14-5l2 2M20 12a8 8 0 0 1-14 5l-2-2"/><path d="M20 4v5h-5M4 20v-5h5"/></svg></div><h3>Envases retornables</h3><p>Registro de lo entregado y lo recibido por cliente, con el porcentaje real de envases que vuelven.</p></article>
         <article class="ld-feat"><div class="ld-ico"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"/><path d="M9 12l2 2 4-4"/></svg></div><h3>Control y auditoría</h3><p>Roles de acceso, bitácora de cada acción y parámetros fiscales configurables por el gerente.</p></article>
+      </div>
+      <div class="ld-impact">
+        <div><b>Un solo registro</b><span>Lo que se vende descuenta inventario y se convierte en entrega y cobro.</span></div>
+        <div><b>Historial completo</b><span>Cada cambio queda guardado con usuario, fecha y motivo.</span></div>
+        <div><b>Monedas claras</b><span>Precios en dólares y conversión a la tasa BCV del día en cada comprobante.</span></div>
       </div>
     </div>
   </section>
@@ -379,7 +421,7 @@ body.sb-collapsed .main{margin-left:0}
       <p>Su operación de distribución, en un solo lugar.</p>
       <div class="feat"><i></i>Precios en USD con tasa BCV automática</div>
       <div class="feat"><i></i>Cobro multimoneda con IVA e IGTF</div>
-      <div class="feat"><i></i>Inventario por lotes y entregas con OTIF</div>
+      <div class="feat"><i></i>Inventario por lotes y entregas a tiempo</div>
       <div class="feat"><i></i>Cierre de caja y comprobantes en PDF</div>
     </div>
     <div class="login-right">
@@ -406,7 +448,7 @@ body.sb-collapsed .main{margin-left:0}
       <a data-view="mapa" onclick="showView('mapa',this)">Mapa y geolocalización</a>
       <a data-view="pedido" onclick="showView('pedido',this)">Tomar pedido</a>
       <div class="sb-group">Logística</div>
-      <a data-view="entregas" onclick="showView('entregas',this)">Entregas y OTIF</a>
+      <a data-view="entregas" onclick="showView('entregas',this)">Entregas a tiempo</a>
       <a data-view="vrp" onclick="showView('vrp',this)">Ruteo de entregas</a>
       <a data-view="inventario" onclick="showView('inventario',this)">Inventario</a>
       <a data-view="proveedores" data-roles="Gerente,Supervisor" onclick="showView('proveedores',this)">Proveedores</a>
@@ -415,7 +457,7 @@ body.sb-collapsed .main{margin-left:0}
       <a data-view="cierre" onclick="showView('cierre',this)">Cierre de caja</a>
       <div class="sb-group">Control</div>
       <a data-view="retornables" onclick="showView('retornables',this)">Envases retornables</a>
-      <a data-view="red" onclick="showView('red',this)">Auditoría de red</a>
+      <a data-view="red" onclick="showView('red',this)">Auditoría de anaquel</a>
       <a data-view="comodato" onclick="showView('comodato',this)">Activos en comodato</a>
       <a data-view="mermas" onclick="showView('mermas',this)">Mermas</a>
       <div class="sb-group" data-roles="Gerente,Supervisor">Administración</div>
@@ -465,19 +507,23 @@ body.sb-collapsed .main{margin-left:0}
           <div class="kpi red"><div class="kpi-lbl">Inventario en alerta</div><div class="kpi-val num" id="kAlertaInv">0</div><div class="kpi-sub" id="kAlertaInvSub">Sin alertas</div></div>
         </div>
         <div class="grid g3">
-          <div class="kpi"><div class="kpi-lbl">Cumplimiento de red</div><div class="kpi-val num" id="kRED">-</div><span class="pill mute" id="kREDM">Meta superior a 90%</span></div>
-          <div class="kpi"><div class="kpi-lbl">OTIF (a tiempo y completo)</div><div class="kpi-val num" id="kOTIF">-</div><span class="pill mute" id="kOTIFM">Meta superior a 92%</span></div>
+          <div class="kpi"><div class="kpi-lbl">Productos en anaquel</div><div class="kpi-val num" id="kRED">-</div><span class="pill mute" id="kREDM">Meta superior a 90%</span></div>
+          <div class="kpi"><div class="kpi-lbl">Entregas a tiempo</div><div class="kpi-val num" id="kOTIF">-</div><span class="pill mute" id="kOTIFM">Meta superior a 92%</span></div>
           <div class="kpi"><div class="kpi-lbl">Retornabilidad</div><div class="kpi-val num" id="kRet">-</div><span class="pill mute" id="kRetM">Meta superior a 98%</span></div>
         </div>
         <div class="grid s83">
           <div class="card">
             <div class="card-title">Cantidades vendidas <span class="acts"><div class="seg" id="segEscala" role="group" aria-label="Escala temporal"></div></span></div>
-            <div class="toolbar" style="margin-bottom:10px"><select id="dashZona" onchange="cargarSerie()" aria-label="Filtrar por zona"></select><button class="btn ghost sm" data-roles="Gerente,Supervisor" onclick="abrirZonas()">Gestionar zonas</button><small class="hint" id="serieInfo"></small></div>
+            <div class="toolbar" style="margin-bottom:10px"><select id="dashZona" onchange="cargarSerie()" aria-label="Filtrar por zona"></select><button class="btn ghost sm" data-roles="Gerente,Supervisor" onclick="abrirZonas()">Gestionar zonas</button><small class="hint" id="serieInfo" style="margin:0"></small></div>
             <div class="chart-box"><canvas id="chartSerie"></canvas></div>
           </div>
           <div class="card"><div class="card-title">Alertas</div><div id="alertasList"></div></div>
         </div>
-        <div class="card"><div class="card-title">Ventas por zona <small>Acumulado en USD</small></div><div class="chart-box" style="height:230px"><canvas id="chartZ"></canvas></div></div>
+        <div class="card">
+          <div class="card-title">Ventas por zona <span class="acts"><select id="zonasPeriodo" onchange="S.periodoZona=this.value;cargarVentasZona()" aria-label="Período de ventas por zona" style="width:auto;min-width:140px;min-height:34px;padding:6px 30px 6px 10px;font-size:.78rem"><option value="hoy">Hoy</option><option value="semana">Esta semana</option><option value="mes" selected>Este mes</option><option value="trimestre">Trimestre</option><option value="anio">Año</option></select></span></div>
+          <div class="hint" id="zonasInfo" style="margin:-6px 0 12px"></div>
+          <div class="chart-box" style="height:250px"><canvas id="chartZ"></canvas></div>
+        </div>
       </div>
 
       <!-- PDVS -->
@@ -553,7 +599,7 @@ body.sb-collapsed .main{margin-left:0}
       <div id="view-entregas" class="view">
         <div class="grid g3">
           <div class="kpi blue"><div class="kpi-lbl">Pedidos por entregar</div><div class="kpi-val num" id="eN">0</div></div>
-          <div class="kpi"><div class="kpi-lbl">OTIF de los últimos 30 días</div><div class="kpi-val num" id="eOtif">-</div><div class="kpi-sub" id="eOtifSub"></div></div>
+          <div class="kpi"><div class="kpi-lbl">Entregas a tiempo (30 días)</div><div class="kpi-val num" id="eOtif">-</div><div class="kpi-sub" id="eOtifSub"></div></div>
           <div class="kpi gold"><div class="kpi-lbl">Vencidos para entregar</div><div class="kpi-val num" id="eTarde">0</div><div class="kpi-sub">Fecha prometida ya pasó</div></div>
         </div>
         <div class="card"><div class="card-title">Pedidos pendientes de entrega</div><div class="scroll"><table class="table"><thead><tr><th>Pedido</th><th>Cliente (RIF)</th><th>Prometido</th><th class="r">Total USD</th><th>Estado</th><th></th></tr></thead><tbody id="tblEntregas"></tbody></table></div></div>
@@ -668,7 +714,7 @@ body.sb-collapsed .main{margin-left:0}
       <div id="view-red" class="view">
         <div class="grid g2">
           <div class="card">
-            <div class="card-title">Nueva auditoría de red</div>
+            <div class="card-title">Nueva auditoría de anaquel</div>
             <div class="field"><label for="selPDVRed">Cliente</label><select id="selPDVRed"></select></div>
             <div class="fgrid">
               <div class="field"><label for="redAsig">Frentes asignados</label><input type="number" id="redAsig" min="1" step="1" inputmode="numeric" oninput="previewRED()"></div>
@@ -1398,13 +1444,19 @@ async function recargarPDVs() { S.pdvs = await api('/pdvs'); poblarSelects(); re
 async function recargarZonas() { S.zonas = await api('/zonas'); poblarSelects(); renderPDVs(); if (S.map) refreshMarkers(); }
 
 // ===== Dashboard =====
-const ESCALAS = [['diario', 'Diario'], ['semanal', 'Semanal'], ['trimestral', 'Trimestral'], ['anual', 'Anual']];
-S.escala = 'diario';
+const ESCALAS = [['diario', 'Diario'], ['semanal', 'Semanal'], ['mensual', 'Mensual'], ['trimestral', 'Trimestral'], ['anual', 'Anual']];
+const PERIODOS_ZONA = { hoy: 'Hoy', semana: 'esta semana', mes: 'este mes', trimestre: 'este trimestre', anio: 'este año' };
+S.escala = 'mensual';
+S.periodoZona = 'mes';
 function renderSeg() { $('segEscala').innerHTML = ESCALAS.map(([k, l]) => `<button class="${S.escala === k ? 'on' : ''}" onclick="cambiarEscala('${k}')">${l}</button>`).join(''); }
 function cambiarEscala(k) { S.escala = k; renderSeg(); cargarSerie(); }
 function etiquetaPeriodo(esc_, p) {
   const [y, m, d] = p.split('-');
-  return esc_ === 'diario' ? `${d}/${m}` : esc_ === 'semanal' ? `Sem ${d}/${m}` : esc_ === 'trimestral' ? `T${Math.floor((+m - 1) / 3) + 1} ${y}` : y;
+  if (esc_ === 'diario') return `${d}/${m}`;
+  if (esc_ === 'semanal') return `Sem ${d}/${m}`;
+  if (esc_ === 'mensual') return new Intl.DateTimeFormat('es-VE', { month: 'short', timeZone: 'UTC' }).format(new Date(Date.UTC(+y, +m - 1, 1))).replace('.', '');
+  if (esc_ === 'trimestral') return `T${Math.floor((+m - 1) / 3) + 1} ${y}`;
+  return y;
 }
 function setMeta(id, val, min) {
   const el = $(id), c = colorOk(val, min); el.className = 'pill ' + c;
@@ -1422,7 +1474,7 @@ async function cargarKPIs() {
   if (k.stockBajo) al.push({ t: 'bad', m: `${k.stockBajo} producto(s) con stock bajo`, s: 'Revise el inventario' });
   if (k.vencidos) al.push({ t: 'bad', m: `${k.vencidos} unidades vencidas`, s: 'Registre la merma por vencimiento' });
   if (k.porVencer) al.push({ t: 'warn', m: `${k.porVencer} unidades vencen en 30 días`, s: 'Se ofrecen primero (FIFO) con descuento' });
-  if (k.pendientesEntrega) al.push({ t: 'info', m: `${k.pendientesEntrega} pedido(s) por entregar`, s: 'Entregas y OTIF' });
+  if (k.pendientesEntrega) al.push({ t: 'info', m: `${k.pendientesEntrega} pedido(s) por entregar`, s: 'Entregas a tiempo' });
   const sinRif = S.pdvs.filter(p => !rifValido(p.rif)).length;
   if (sinRif) al.push({ t: 'warn', m: `${sinRif} cliente(s) sin RIF válido`, s: 'No podrán recibir comprobante' });
   if (!al.length) al.push({ t: 'ok', m: 'Sin alertas', s: 'Operación normal' });
@@ -1431,18 +1483,43 @@ async function cargarKPIs() {
 async function cargarSerie() {
   const zona = $('dashZona').value, d = await api(`/ventas-serie?escala=${S.escala}${zona ? '&zona_id=' + zona : ''}`);
   const total = d.unidades.reduce((a, b) => a + b, 0), usdT = d.usd.reduce((a, b) => a + b, 0);
-  $('serieInfo').textContent = `${total} unidades · ${usd(usdT)} (base sin IVA) en el período mostrado`;
+  const ini = d.periodos[0], fin = d.periodos[d.periodos.length - 1];
+  $('serieInfo').textContent = `${fechaCorta(ini)} al ${fechaCorta(fin)} · ${total} und · ${usd(usdT)} sin IVA${S.escala === 'mensual' ? ' · mes en curso' : ''}`;
   if (S.chartSerie) S.chartSerie.destroy();
+  const tituloEje = { diario: 'Unidades por día', semanal: 'Unidades por semana', mensual: 'Unidades por mes', trimestral: 'Unidades por trimestre', anual: 'Unidades por año' }[S.escala];
   S.chartSerie = new Chart($('chartSerie'), { type: 'bar',
-    data: { labels: d.periodos.map(p => etiquetaPeriodo(S.escala, p)), datasets: [{ label: 'Unidades', data: d.unidades, backgroundColor: '#0F766E', borderRadius: 5, maxBarThickness: 38 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
+    data: { labels: d.periodos.map(p => etiquetaPeriodo(S.escala, p)), datasets: [{ label: 'Unidades', data: d.unidades, backgroundColor: '#0F766E', borderRadius: 5, maxBarThickness: 38, minBarLength: 4 }] },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { intersect: false, mode: 'index' }, plugins: { legend: { display: false },
       tooltip: { callbacks: { label: c => `${c.parsed.y} unidades`, afterLabel: c => `${usd(d.usd[c.dataIndex])} · ${d.pedidos[c.dataIndex]} pedido(s)` } } },
-      scales: { y: { beginAtZero: true, ticks: { precision: 0 }, grid: { color: '#EEF1F5' } }, x: { grid: { display: false } } } } });
+      scales: { y: { beginAtZero: true, ticks: { precision: 0, maxTicksLimit: 6 }, grid: { color: '#EEF1F5' }, title: { display: true, text: tituloEje, color: '#64748B', font: { size: 10, weight: '600' } } }, x: { grid: { display: false }, title: { display: true, text: 'Período', color: '#64748B', font: { size: 10, weight: '600' } } } } } });
 }
+const etiquetasVentas = {
+  id: 'etiquetasVentas',
+  afterDatasetsDraw(chart) {
+    const { ctx, chartArea } = chart, meta = chart.getDatasetMeta(0);
+    ctx.save(); ctx.font = '600 11px Inter, sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'bottom';
+    meta.data.forEach((bar, i) => {
+      const val = +chart.data.datasets[0].data[i] || 0;
+      ctx.fillStyle = val > 0 ? '#0F766E' : '#94A3B8';
+      ctx.fillText(val > 0 ? usd(val) : 'Sin ventas', bar.x, Math.max(bar.y - 7, chartArea.top + 12));
+    });
+    ctx.restore();
+  }
+};
 async function cargarVentasZona() {
-  const v = await api('/ventas-zona'); if (S.chartZ) S.chartZ.destroy();
-  S.chartZ = new Chart($('chartZ'), { type: 'bar', data: { labels: v.map(x => x.nombre), datasets: [{ data: v.map(x => +x.total), backgroundColor: v.map(x => x.color), borderRadius: 6, maxBarThickness: 56 }] },
-    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false }, tooltip: { callbacks: { label: c => usd(c.parsed.y) + '  /  ' + bs(toBs(c.parsed.y)) } } }, scales: { y: { beginAtZero: true, grid: { color: '#EEF1F5' }, ticks: { callback: v => '$ ' + v } }, x: { grid: { display: false } } } } });
+  const d = await api(`/ventas-zona?periodo=${S.periodoZona}`);
+  const v = Array.isArray(d) ? d : d.zonas || [];               // la API devuelve { periodo, desde, hasta, zonas }
+  const total = v.reduce((s, z) => s + (+z.total || 0), 0), pedidos = v.reduce((s, z) => s + (+z.pedidos || 0), 0);
+  $('zonasInfo').textContent = `${PERIODOS_ZONA[S.periodoZona] || 'Período'} · del ${fechaCorta(d.desde)} al ${fechaCorta(d.hasta)} · ${usd(total)} en ${pedidos} pedido(s). Montos reales registrados, sin IVA.`;
+  if (S.chartZ) S.chartZ.destroy();
+  const max = Math.max(0, ...v.map(z => +z.total || 0));
+  const sugerido = max >= 1000 ? Math.ceil(max / 500) * 500 : max >= 100 ? Math.ceil(max / 50) * 50 : max >= 10 ? Math.ceil(max / 10) * 10 : Math.max(10, Math.ceil(max * 1.5));
+  S.chartZ = new Chart($('chartZ'), { type: 'bar',
+    data: { labels: v.map(z => z.nombre), datasets: [{ label: 'Ventas', data: v.map(z => +z.total || 0), backgroundColor: v.map(z => z.color), borderRadius: 7, maxBarThickness: 58, minBarLength: 6 }] },
+    plugins: [etiquetasVentas],
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false },
+      tooltip: { callbacks: { label: c => `${usd(c.parsed.y)} · ${bs(toBs(c.parsed.y))} · ${v[c.dataIndex].pedidos} pedido(s)` } } },
+      scales: { y: { beginAtZero: true, suggestedMax: sugerido, grid: { color: '#EEF1F5' }, ticks: { callback: x => '$ ' + nf.format(x), maxTicksLimit: 6 }, title: { display: true, text: 'Ventas en USD', color: '#64748B', font: { size: 10, weight: '600' } } }, x: { grid: { display: false } } } } });
 }
 async function cargarDashboard() { renderSeg(); await Promise.all([cargarKPIs(), cargarSerie(), cargarVentasZona()]); }
 registrarVista('dashboard', 'Dashboard gerencial', cargarDashboard);
@@ -1462,10 +1539,26 @@ const exportarPDVs = () => descargarCSV('puntos_de_venta', ['RIF', 'Nombre', 'Ra
   S.pdvs.map(p => [p.rif, p.nombre, p.razon_social, p.zona_nombre, p.canal, p.limite_credito, p.limite_pedidos, p.periodo_limite]));
 registrarVista('pdvs', 'Puntos de venta', renderPDVs);
 
+// Mapa base con respaldo: si el proveedor principal falla, se usa otro en lugar de dejar el mapa en blanco.
+const TILE_PRINCIPAL = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+const TILE_ALTERNATIVO = 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png';
+function agregarMapaBase(mapa, avisar) {
+  let fallos = 0, alternativo = false;
+  const capa = L.tileLayer(TILE_PRINCIPAL, { attribution: '© OpenStreetMap', maxZoom: 19 });
+  capa.on('tileerror', () => {
+    if (alternativo || ++fallos < 3) return;
+    alternativo = true;
+    mapa.removeLayer(capa);
+    L.tileLayer(TILE_ALTERNATIVO, { attribution: '© OpenStreetMap · © CARTO', maxZoom: 19 }).addTo(mapa);
+    if (avisar) $('mapLegend')?.insertAdjacentHTML('beforeend', '<span class="map-aviso">Usando mapa alternativo</span>');
+  });
+  capa.addTo(mapa);
+}
 function initMiniMapa(lat, lng) {
+  if (typeof L === 'undefined') { $('pdvMap').innerHTML = '<div class="empty">El mapa no está disponible. Vuelva a cargar la página.</div>'; return; }
   if (!S.miniMap) {
     S.miniMap = L.map('pdvMap', { tap: true }).setView([10.654, -71.63], 13);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(S.miniMap);
+    agregarMapaBase(S.miniMap, false);
     S.miniMap.on('click', e => fijarUbicacion(e.latlng.lat, e.latlng.lng));
   }
   setTimeout(() => {
@@ -1475,7 +1568,7 @@ function initMiniMapa(lat, lng) {
     else { $('pUbic').textContent = 'Toque el mapa para ubicar el local'; fitMiniMapa(); }
   }, 220);
 }
-function fitMiniMapa() { const pts = S.pdvs.filter(p => p.lat != null).map(p => [p.lat, p.lng]); if (pts.length) S.miniMap.fitBounds(pts, { padding: [30, 30], maxZoom: 14 }); }
+function fitMiniMapa() { if (!S.miniMap) return; const pts = S.pdvs.filter(p => p.lat != null).map(p => [p.lat, p.lng]); if (pts.length) S.miniMap.fitBounds(pts, { padding: [30, 30], maxZoom: 14 }); }
 function fijarUbicacion(lat, lng) {
   $('pLat').value = (+lat).toFixed(6); $('pLng').value = (+lng).toFixed(6);
   if (S.miniMarker) S.miniMarker.setLatLng([lat, lng]); else S.miniMarker = L.marker([lat, lng], { draggable: true }).addTo(S.miniMap).on('dragend', e => fijarUbicacion(e.target.getLatLng().lat, e.target.getLatLng().lng));
@@ -1514,8 +1607,13 @@ async function eliminarPDV(id) {
 // ===== Mapa y geolocalización =====
 function initMap() {
   if (S.map) return;
-  S.map = L.map('map', { scrollWheelZoom: false, tap: true }).setView([10.654, -71.63], 13);
-  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OpenStreetMap', maxZoom: 19 }).addTo(S.map);
+  if (typeof L === 'undefined') { $('map').innerHTML = '<div class="empty" style="padding-top:120px">El mapa no está disponible. Vuelva a cargar la página.</div>'; return; }
+  S.map = L.map('map', { scrollWheelZoom: false, tap: true });
+  // Se ajusta la vista antes de pedir los mapas para no descargar dos zonas distintas.
+  const puntos = pdvsZona($('filtroZonaMapa').value).filter(p => p.lat != null).map(p => [p.lat, p.lng]);
+  if (puntos.length) S.map.fitBounds(puntos, { padding: [40, 40], maxZoom: 15 });
+  else S.map.setView([10.654, -71.63], 13);
+  agregarMapaBase(S.map, true);
   S.markers = L.layerGroup().addTo(S.map); S.meLayer = L.layerGroup().addTo(S.map);
   refreshMarkers();
   S.map.on('click', () => S.map.scrollWheelZoom.enable()); $('map').addEventListener('mouseleave', () => S.map.scrollWheelZoom.disable());
@@ -1525,7 +1623,13 @@ function initMap() {
   S.map.on('locationerror', () => toast('No se pudo obtener su ubicación', 'Revise el permiso de ubicación del navegador', 'warn'));
 }
 const mapaRedimensionar = () => { if (S.map) S.map.invalidateSize(); };
-function fitMap() { if (!S.map) return; const pts = pdvsZona($('filtroZonaMapa').value).filter(p => p.lat != null).map(p => [p.lat, p.lng]); if (pts.length) S.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 }); }
+function fitMap() {
+  if (!S.map) return;
+  const pts = pdvsZona($('filtroZonaMapa').value).filter(p => p.lat != null).map(p => [p.lat, p.lng]);
+  $('mapLegend')?.querySelector('.map-aviso-vacio')?.remove();
+  if (pts.length) S.map.fitBounds(pts, { padding: [40, 40], maxZoom: 15 });
+  else $('mapLegend')?.insertAdjacentHTML('beforeend', '<span class="map-aviso map-aviso-vacio">Esta zona aún no tiene clientes con ubicación registrada</span>');
+}
 const ubicarme = () => S.map && S.map.locate({ setView: true, maxZoom: 16, enableHighAccuracy: true, timeout: 10000 });
 function mapaCompleto() { const on = $('mapWrap').classList.toggle('full'); $('btnFull').textContent = on ? 'Cerrar' : 'Ampliar'; syncLock(); setTimeout(mapaRedimensionar, 120); }
 function refreshMarkers() {
@@ -1700,10 +1804,10 @@ registrarVista('cobranza', 'Cobranza y crédito', cargarCobranza);
 // MÓDULO: operacion
 // =====================================================================
 /* Rutix · operación
-   Entregas y OTIF, ruteo, inventario por lotes, productos y promociones, envases retornables,
+   Entregas a tiempo, ruteo, inventario por lotes, productos y promociones, envases retornables,
    auditoría de red, activos en comodato y mermas. */
 
-// ===== Entregas y OTIF =====
+// ===== Entregas a tiempo =====
 const pillEstado = e => `<span class="pill ${e === 'Entregado' ? 'ok' : e === 'Rechazado' ? 'bad' : e === 'Entregado parcial' ? 'warn' : e === 'En ruta' ? 'info' : 'mute'}">${esc(e)}</span>`;
 async function cargarEntregas() {
   const [e, k] = await Promise.all([api('/entregas'), api('/kpis')]); S.entregas = e;
@@ -1733,7 +1837,7 @@ async function guardarEntrega() {
   try { const r = await post(`/pedidos/${S.entregaId}/entrega`, { items }); closeModal('modalEntrega'); toast('Entrega registrada', `${r.estado}${r.a_tiempo ? '' : ' · fuera de plazo'}`); cargarEntregas(); }
   catch (e) { toast('No se pudo registrar', e.message, 'error'); }
 }
-registrarVista('entregas', 'Entregas y OTIF', cargarEntregas);
+registrarVista('entregas', 'Entregas a tiempo', cargarEntregas);
 
 // ===== Ruteo =====
 function renderVRPChecks() {
@@ -1904,13 +2008,13 @@ async function registrarDevolucion() {
 }
 registrarVista('retornables', 'Envases retornables', renderRetornables);
 
-// ===== Auditoría de red =====
+// ===== Auditoría de anaquel =====
 let fotoRED = null;
 function previewRED() {
   const a = +$('redAsig').value, p = +$('redProp').value, c = +$('redComp').value;
   if (!(a > 0) || $('redProp').value === '') { $('redPrev').innerHTML = ''; return; }
   const cumpl = Math.min(100, p / a * 100), share = p + c ? p / (p + c) * 100 : 0, col = cumpl >= 90 ? '#15803D' : cumpl >= 75 ? '#B45309' : '#B91C1C';
-  $('redPrev').innerHTML = `<div class="note ${cumpl >= 90 ? 'ok' : 'warn'}"><b style="font-size:1.4rem;color:${col}">${cumpl.toFixed(0)}%</b> cumplimiento de red · <b>${share.toFixed(0)}%</b> de participación en el anaquel<div class="bar" style="margin-top:8px"><i style="width:${share}%;background:${col}"></i></div></div>`;
+  $('redPrev').innerHTML = `<div class="note ${cumpl >= 90 ? 'ok' : 'warn'}"><b style="font-size:1.4rem;color:${col}">${cumpl.toFixed(0)}%</b> de sus frentes instalados · <b>${share.toFixed(0)}%</b> del anaquel es suyo<div class="bar" style="margin-top:8px"><i style="width:${share}%;background:${col}"></i></div></div>`;
 }
 function comprimirImagen(file, max = 900) {
   return new Promise((res, rej) => {
@@ -1931,7 +2035,7 @@ async function guardarRED() {
   if (!validar([['selPDVRed', R.req('Seleccione un cliente')], ['redAsig', R.int(1, 10000)], ['redProp', R.int(0, 10000)], ['redComp', R.int(0, 10000)]], $('view-red'))) return;
   try {
     const r = await post('/red', { pdv_id: +$('selPDVRed').value, asignados: +$('redAsig').value, propios: +$('redProp').value, competencia: +$('redComp').value, foto: fotoRED, observaciones: $('redObs').value.trim() });
-    toast('Auditoría guardada', `Cumplimiento de red ${r.cumplimiento_pct}%`); fotoRED = null; $('fotoPrev').innerHTML = ''; $('fotoIn').value = ''; ['redAsig', 'redProp', 'redComp', 'redObs'].forEach(i => $(i).value = ''); $('redPrev').innerHTML = ''; cargarRedHist();
+    toast('Auditoría guardada', `Sus frentes instalados: ${r.cumplimiento_pct}%`); fotoRED = null; $('fotoPrev').innerHTML = ''; $('fotoIn').value = ''; ['redAsig', 'redProp', 'redComp', 'redObs'].forEach(i => $(i).value = ''); $('redPrev').innerHTML = ''; cargarRedHist();
   } catch (e) { toast('No se pudo guardar', e.message, 'error'); }
 }
 async function cargarRedHist() {
@@ -1940,7 +2044,7 @@ async function cargarRedHist() {
     <div style="text-align:right"><span class="pill ${colorOk(x.cumplimiento_pct, 90) === 'ok' ? 'ok' : x.cumplimiento_pct >= 75 ? 'warn' : 'bad'}">${Math.round(x.cumplimiento_pct)}%</span>${x.tiene_foto ? `<br><button class="btn ghost sm" style="margin-top:6px" onclick="verFotoRED(${x.id})">Ver foto</button>` : ''}</div></div>`).join('') : '<div class="empty">Sin auditorías</div>';
 }
 async function verFotoRED(id) { try { const r = await api(`/red/${id}/foto`); $('fotoGrande').innerHTML = `<img src="${esc(r.foto)}" alt="Fotografía de la auditoría" style="max-width:100%;border-radius:10px">`; openModal('modalFoto'); } catch (e) { toast('Error', e.message, 'error'); } }
-registrarVista('red', 'Auditoría de red', cargarRedHist);
+registrarVista('red', 'Auditoría de anaquel', cargarRedHist);
 
 // ===== Activos en comodato =====
 async function cargarComodatos() {
@@ -2091,6 +2195,15 @@ registrarVista('empresa', 'Empresa y fiscal', cargarEmpresa);
 // ===== Bienvenida y login =====
 function mostrarLogin() { $('landing').style.display = 'none'; $('login').style.display = 'flex'; window.scrollTo(0, 0); setTimeout(() => $('lu').focus(), 60); }
 function mostrarLanding() { $('login').style.display = 'none'; $('landing').style.display = 'block'; window.scrollTo(0, 0); }
+
+// Barras fijas: la navegación acompaña al desplazarse y gana sombra al bajar.
+function actualizarBarras() {
+  const y = window.scrollY || document.documentElement.scrollTop || 0;
+  $('ldNav')?.classList.toggle('scrolled', y > 12);
+  document.querySelector('.topbar')?.classList.toggle('scrolled', y > 12);
+}
+addEventListener('scroll', actualizarBarras, { passive: true });
+actualizarBarras();
 
 // ===== Inicio de la aplicación =====
 function mostrarErrorArranque(msg) {

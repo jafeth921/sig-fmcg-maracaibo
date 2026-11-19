@@ -36,9 +36,24 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - Cierre ordenado del servidor local para no corromper la base embebida (PGlite).
 - Modo de base en memoria (`npm run dev -- --mem`).
 - Scripts: `npm run dev`, `npm start`, `npm test`, `npm run test:api`, `npm run test:ui`,
-  `npm run test:roles`, `npm run check`.
+  `npm run test:roles`, `npm run test:prod`, `npm run check`.
 - Documentación completa en `README.md`, plantilla `.env.example`, `.gitignore` y flujo de
   integración continua en `.github/workflows/ci.yml`.
+
+## Ajustes de interfaz y redacción
+
+- **Lenguaje claro:** se eliminó "OTIF" (ahora **Entregas a tiempo**) y "Cumplimiento de red"
+  (ahora **Productos en anaquel**) en menús, KPIs, landing y documentación.
+- **Error de la gráfica corregido:** `Ventas por zona` esperaba un arreglo pero la API
+  devuelve `{ periodo, desde, hasta, zonas }`. Ahora lee `zonas`, muestra el rango de fechas,
+  el total del período, el valor de cada barra y "Sin ventas" en las zonas en cero.
+- **Períodos:** filtro de Hoy / Semana / Mes / Trimestre / Año en ventas por zona y nueva
+  escala mensual en cantidades vendidas, con etiquetas de eje y fechas del período.
+- **Mapa:** se ajusta la vista antes de cargar los mapas (evita peticiones canceladas), hay
+  proveedor de respaldo si falla el principal y avisos claros si no hay ubicaciones.
+- **Diseño:** barra de navegación fija con sombra al desplazarse, y sección "Todo lo que
+  mueve su distribución" ampliada con una tarjeta destacada, más profundidad y un resumen
+  de beneficios.
 
 ## Verificación
 
