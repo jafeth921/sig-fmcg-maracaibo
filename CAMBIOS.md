@@ -78,6 +78,13 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - Las gráficas solo muestran el valor sobre las barras con ventas; las zonas en cero ya no
   repiten "Sin ventas". El detalle sigue disponible al pasar el cursor y en el resumen.
 
+## Menos módulos en la portada
+
+- Los diez bloques de funciones se agruparon en cuatro áreas: **Ventas y pedidos**,
+  **Inventario y entregas**, **Cobro y cierre** y **Seguimiento y control**.
+- Todas las funciones siguen disponibles en el sistema; solo cambia la forma de
+  presentarlas en la portada, que ahora se recorre en dos filas en lugar de cuatro.
+
 ## Verificación
 
 - **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,
