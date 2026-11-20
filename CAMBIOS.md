@@ -105,6 +105,31 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - El título del inicio cambia según el perfil: *Resumen general*, *Resumen de operación*
   o *Mi jornada*. El menú sigue mostrando solo las opciones permitidas para cada rol.
 
+## RIF, ayuda y coherencia de flujo
+
+- **RIF:** la máscara ya no borra lo escrito. Acepta guiones, espacios y minúsculas,
+  coloca los guiones de forma predecible y muestra errores concretos: letra inicial,
+  cantidad de dígitos o dígito verificador. El mismo texto se usa en el servidor.
+- **Ayuda contextual:** se añadieron pistas cortas y un botón `?` en RIF, razón social,
+  crédito, nivel comercial, ubicación y radio de check-in. El radio ahora dice
+  claramente que controla la distancia permitida para registrar la visita.
+- **Nivel comercial:** los puntos de venta tienen nivel **Detalle**, **Mini mayorista**,
+  **Mayorista** o **Supermercado / súper mayorista**, con rangos sugeridos de crédito
+  (hasta 500, 2.000, 8.000 y 25.000 USD). El nivel se sugiere según el canal, se puede
+  ajustar y un monto fuera de rango pide confirmación. Tope absoluto: 100.000 USD.
+- **Condiciones comerciales:** se muestran como información del local; no se aplican
+  descuentos automáticos por nivel porque el negocio aún no ha definido esa regla.
+- **Venta sugerida:** cada producto explica por qué aparece (rotación, reposición,
+  próximo a vencer o canal) y se puede agregar de uno en uno o todos a la vez. Queda
+  claro que solo se suma al pedido y que no factura ni cobra hasta confirmar.
+- **Pasos visibles:** los formularios y vistas indican **Paso 1 · Registrar local**,
+  **Paso 2 · Tomar pedido para surtir** y **Paso 3 · Entregar y cobrar**. Desde el pedido
+  hay un acceso directo para registrar un local nuevo.
+- **Operación y Logística:** el menú separa registro/operación, logística, finanzas y
+  control. Las vistas explican quién gestiona cada etapa: Gerente/Supervisor mantienen
+  proveedores y entradas; el Preventista consulta existencias. Cada lote sigue mostrando
+  el proveedor y su RIF.
+
 ## Verificación
 
 - **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,

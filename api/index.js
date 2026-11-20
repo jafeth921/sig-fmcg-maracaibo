@@ -33,6 +33,14 @@ const METODOS = [
 const MET = Object.fromEntries(METODOS.map(m => [m.nombre, m]));
 const ROLES = ['Gerente', 'Supervisor', 'Preventista'];
 const CANALES = ['Abasto/Bodega', 'Supermercado', 'Panadería', 'Mayorista'];
+const NIVELES_CLIENTE = [
+  { nombre: 'Detalle', max: 500 },
+  { nombre: 'Mini mayorista', max: 2000 },
+  { nombre: 'Mayorista', max: 8000 },
+  { nombre: 'Supermercado / súper mayorista', max: 25000 }
+];
+const NIVEL_POR_CANAL = { 'Abasto/Bodega': 'Detalle', 'Panadería': 'Detalle', 'Mayorista': 'Mayorista', 'Supermercado': 'Supermercado / súper mayorista' };
+const CREDITO_MAX = 100000;
 const CAUSAS = ['Rotura', 'Vencimiento', 'Falla de empaque', 'Daño en transporte'];
 const PERIODOS = ['Diario', 'Semanal', 'Mensual'];
 const ALICUOTAS = ['G', 'R', 'E'];   // General, Reducida, Exento
@@ -90,21 +98,36 @@ function digitoRIF(letra, cuerpo) {
   const d = [RIF_LETRA[letra], ...String(cuerpo).split('').map(Number)];
   return ((11 - d.reduce((a, x, i) => a + x * RIF_PESOS[i], 0) % 11) % 11) % 10;
 }
-function rifValido(s) {
-  const n = normalizarRIF(s); if (!n) return false;
-  const [l, c, dv] = n.split('-'); return digitoRIF(l, c) === +dv;
+function rifError(s) {
+  const t = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!t) return 'Ingrese el RIF. Ejemplo: J-12345678-9';
+  if (!/[VEJPG]/.test(t[0])) return 'El RIF debe empezar con V, E, J, P o G. Ejemplo: J-12345678-9';
+  if (t.length < 10) return 'Faltan dígitos: use letra, 8 dígitos y verificador. Ejemplo: J-12345678-9';
+  if (t.length > 10) return 'Sobran caracteres: use letra, 8 dígitos y verificador. Ejemplo: J-12345678-9';
+  const m = /^([VEJPG])(\d{8})(\d)$/.exec(t);
+  if (!m) return 'Formato inválido. Use J-12345678-9 (letra, 8 dígitos y verificador)';
+  return digitoRIF(m[1], m[2]) === +m[3] ? null : 'El dígito verificador no coincide. Revise el último número.';
 }
+function rifValido(s) { return !rifError(s); }
 const rifDe = (l, c8) => `${l}-${c8}-${digitoRIF(l, c8)}`;
 
+function nivelPDV(d) {
+  if (d.nivel_cliente) return NIVELES_CLIENTE.find(n => n.nombre === d.nivel_cliente)?.nombre || null;
+  return NIVEL_POR_CANAL[d.canal] || null;
+}
 function validarPDV(d) {
-  if (!rifValido(d.rif)) return 'RIF inválido. Use el formato J-12345678-9 (letra V, E, J, P o G, 8 dígitos y dígito verificador correcto)';
+  const errorRIF = rifError(d.rif); if (errorRIF) return errorRIF;
   const n = String(d.nombre || '').trim();
   if (n.length < 2 || n.length > 120) return 'El nombre debe tener entre 2 y 120 caracteres';
   if (!isInt(d.zona_id, 1, 1e9)) return 'Seleccione una zona';
   if (!CANALES.includes(d.canal)) return 'Canal no válido';
+  const nivelNombre = nivelPDV(d); if (!nivelNombre) return 'Nivel comercial no válido';
   if (!isNum(d.lat, -90, 90) || !isNum(d.lng, -180, 180)) return 'Ubique el local en el mapa o use su ubicación actual';
-  if (!isInt(d.geofence_radio_m, 10, 1000)) return 'El radio de geofence debe estar entre 10 y 1000 m';
-  if (!isNum(d.limite_credito == null ? 0 : d.limite_credito, 0, 1e7)) return 'Límite de crédito inválido';
+  if (!isInt(d.geofence_radio_m, 10, 1000)) return 'El radio de check-in debe estar entre 10 y 1000 m';
+  const credito = d.limite_credito == null ? 0 : d.limite_credito;
+  if (!isNum(credito, 0, CREDITO_MAX)) return `Límite de crédito inválido (máximo ${CREDITO_MAX.toLocaleString('es-VE')} USD)`;
+  const nivel = NIVELES_CLIENTE.find(x => x.nombre === nivelNombre);
+  if (+credito > nivel.max && !d.credito_fuera_rango) return `Para ${nivel.nombre} el rango sugerido llega a ${nivel.max} USD. Confirme la autorización o baje el monto.`;
   if (!isInt(d.limite_pedidos, 1, 500)) return 'El límite de pedidos debe estar entre 1 y 500';
   if (!PERIODOS.includes(d.periodo_limite)) return 'Período del límite no válido';
   return null;
@@ -199,6 +222,8 @@ async function initDB() {
   await sql`CREATE TABLE IF NOT EXISTS usuarios (id SERIAL PRIMARY KEY, nombre TEXT, cedula TEXT, usuario TEXT UNIQUE, password_hash TEXT, rol TEXT, zona_id INTEGER, activo INTEGER DEFAULT 1)`;
   await sql`CREATE TABLE IF NOT EXISTS zonas (id SERIAL PRIMARY KEY, nombre TEXT UNIQUE, color TEXT)`;
   await sql`CREATE TABLE IF NOT EXISTS pdvs (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, rif TEXT, razon_social TEXT, nombre TEXT, direccion TEXT, zona_id INTEGER, lat DOUBLE PRECISION, lng DOUBLE PRECISION, geofence_radio_m INTEGER DEFAULT 50, limite_credito DOUBLE PRECISION DEFAULT 0, limite_pedidos INTEGER DEFAULT 5, periodo_limite TEXT DEFAULT 'Semanal', canal TEXT DEFAULT 'Abasto/Bodega')`;
+  await sql`ALTER TABLE pdvs ADD COLUMN IF NOT EXISTS nivel_cliente TEXT`;
+  await sql`UPDATE pdvs SET nivel_cliente = CASE WHEN canal='Mayorista' THEN 'Mayorista' WHEN canal='Supermercado' THEN 'Supermercado / súper mayorista' ELSE 'Detalle' END WHERE nivel_cliente IS NULL`;
   await sql`CREATE TABLE IF NOT EXISTS productos (id SERIAL PRIMARY KEY, codigo TEXT UNIQUE, nombre TEXT, precio DOUBLE PRECISION, retornable INTEGER DEFAULT 0, tipo_envase TEXT, fecha_vencimiento TEXT, peso_kg DOUBLE PRECISION DEFAULT 1, stock_minimo INTEGER DEFAULT 0, activo INTEGER DEFAULT 1, alicuota TEXT DEFAULT 'G')`;
   await sql`CREATE TABLE IF NOT EXISTS promociones (id SERIAL PRIMARY KEY, nombre TEXT, producto_id INTEGER, tipo TEXT, min_cantidad INTEGER, descuento_pct DOUBLE PRECISION, activa INTEGER DEFAULT 1)`;
   await sql`CREATE TABLE IF NOT EXISTS pedidos (id SERIAL PRIMARY KEY, pdv_id INTEGER, usuario_id INTEGER, fecha TEXT, dia TEXT, subtotal DOUBLE PRECISION DEFAULT 0, descuento DOUBLE PRECISION DEFAULT 0, base_usd DOUBLE PRECISION, iva_usd DOUBLE PRECISION, igtf_usd DOUBLE PRECISION DEFAULT 0, total DOUBLE PRECISION, total_bs DOUBLE PRECISION, tasa DOUBLE PRECISION, estado TEXT DEFAULT 'Confirmado', metodo_pago TEXT, fecha_prometida TEXT, fecha_entrega TEXT, a_tiempo INTEGER, completo INTEGER, faltante_usd DOUBLE PRECISION DEFAULT 0, idem TEXT)`;
@@ -283,10 +308,10 @@ async function initDB() {
     const a = bcrypt.hashSync('admin123', 10), m = bcrypt.hashSync('maria123', 10), p = bcrypt.hashSync('pedro123', 10);
     await sql`INSERT INTO usuarios (nombre,usuario,password_hash,rol) VALUES ('Gerente','admin',${a},'Gerente'),('María','maria',${m},'Supervisor'),('Pedro','pedro',${p},'Preventista')`;
     await sql`INSERT INTO zonas (nombre,color) VALUES ('Centro','#0F766E'),('Bella Vista','#B45309'),('Sur','#1D4ED8')`;
-    await sql`INSERT INTO pdvs (codigo,rif,nombre,zona_id,lat,lng,limite_credito,limite_pedidos,periodo_limite,canal) VALUES
-      ('PDV-0001',${rifDe('J', '30112233')},'Bodega Esperanza',1,10.6427,-71.6125,150,5,'Semanal','Abasto/Bodega'),
-      ('PDV-0002',${rifDe('J', '29876543')},'Panadería Trigal',1,10.6450,-71.6150,100,3,'Semanal','Panadería'),
-      ('PDV-0003',${rifDe('J', '31456789')},'Mayorista Los Haticos',3,10.6070,-71.6330,500,10,'Semanal','Mayorista')`;
+    await sql`INSERT INTO pdvs (codigo,rif,nombre,zona_id,lat,lng,limite_credito,limite_pedidos,periodo_limite,canal,nivel_cliente) VALUES
+      ('PDV-0001',${rifDe('J', '30112233')},'Bodega Esperanza',1,10.6427,-71.6125,150,5,'Semanal','Abasto/Bodega','Detalle'),
+      ('PDV-0002',${rifDe('J', '29876543')},'Panadería Trigal',1,10.6450,-71.6150,100,3,'Semanal','Panadería','Detalle'),
+      ('PDV-0003',${rifDe('J', '31456789')},'Mayorista Los Haticos',3,10.6070,-71.6330,500,10,'Semanal','Mayorista','Mayorista')`;
     await sql`INSERT INTO productos (codigo,nombre,precio,retornable,tipo_envase,peso_kg,stock_minimo,alicuota) VALUES
       ('REF-2L','Refresco 2L',1.80,1,'Botella',2.2,100,'G'),
       ('AGU-C12','Agua Cesta x12',6.50,1,'Cesta',14,50,'G'),
@@ -526,23 +551,23 @@ app.get('/api/pdvs/:id/uso-pedidos', auth, h(async (req, res) => {
   const u = await usoPedidos(+req.params.id, hoy(), p.periodo_limite);
   res.json({ usados: u.usados, limite: p.limite_pedidos, periodo: p.periodo_limite, desde: u.desde });
 }));
-const datosPDV = d => ({ rif: normalizarRIF(d.rif), nombre: String(d.nombre).trim(), razon: String(d.razon_social || '').trim().slice(0, 150) || null, dir: String(d.direccion || '').trim().slice(0, 200) || null });
+const datosPDV = d => ({ rif: normalizarRIF(d.rif), nombre: String(d.nombre).trim(), razon: String(d.razon_social || '').trim().slice(0, 150) || null, dir: String(d.direccion || '').trim().slice(0, 200) || null, nivel: nivelPDV(d) || 'Detalle' });
 app.post('/api/pdvs', auth, h(async (req, res) => {
   const d = req.body || {}, err = validarPDV(d); if (err) throw fail(400, err);
   const x = datosPDV(d);
-  const r = await sql`INSERT INTO pdvs (codigo,rif,razon_social,nombre,direccion,zona_id,lat,lng,geofence_radio_m,limite_credito,limite_pedidos,periodo_limite,canal)
-    VALUES (${'TMP-' + crypto.randomBytes(4).toString('hex')},${x.rif},${x.razon},${x.nombre},${x.dir},${+d.zona_id},${+d.lat},${+d.lng},${+d.geofence_radio_m},${+d.limite_credito || 0},${+d.limite_pedidos},${d.periodo_limite},${d.canal}) RETURNING id`;
+  const r = await sql`INSERT INTO pdvs (codigo,rif,razon_social,nombre,direccion,zona_id,lat,lng,geofence_radio_m,limite_credito,limite_pedidos,periodo_limite,canal,nivel_cliente)
+    VALUES (${'TMP-' + crypto.randomBytes(4).toString('hex')},${x.rif},${x.razon},${x.nombre},${x.dir},${+d.zona_id},${+d.lat},${+d.lng},${+d.geofence_radio_m},${+d.limite_credito || 0},${+d.limite_pedidos},${d.periodo_limite},${d.canal},${x.nivel}) RETURNING id`;
   const id = r.rows[0].id;
   await sql`UPDATE pdvs SET codigo=${'PDV-' + String(id).padStart(4, '0')} WHERE id=${id}`;   // código interno automático (la interfaz muestra el RIF)
-  await log(req.user, 'PDV creado', x.rif + ' ' + x.nombre); res.json({ id });
+  await log(req.user, 'PDV creado', x.rif + ' ' + x.nombre + ' · ' + x.nivel); res.json({ id });
 }));
 app.put('/api/pdvs/:id', auth, h(async (req, res) => {
   const d = req.body || {}, id = +req.params.id, err = validarPDV(d); if (err) throw fail(400, err);
   if (!(await sql`SELECT 1 FROM pdvs WHERE id=${id}`).rows.length) throw fail(404, 'PDV no encontrado');
   const x = datosPDV(d);
   await sql`UPDATE pdvs SET rif=${x.rif}, razon_social=${x.razon}, nombre=${x.nombre}, direccion=${x.dir}, zona_id=${+d.zona_id}, lat=${+d.lat}, lng=${+d.lng}, geofence_radio_m=${+d.geofence_radio_m},
-    limite_credito=${+d.limite_credito || 0}, limite_pedidos=${+d.limite_pedidos}, periodo_limite=${d.periodo_limite}, canal=${d.canal} WHERE id=${id}`;
-  await log(req.user, 'PDV modificado', x.rif + ' ' + x.nombre); res.json({ ok: true });
+    limite_credito=${+d.limite_credito || 0}, limite_pedidos=${+d.limite_pedidos}, periodo_limite=${d.periodo_limite}, canal=${d.canal}, nivel_cliente=${x.nivel} WHERE id=${id}`;
+  await log(req.user, 'PDV modificado', x.rif + ' ' + x.nombre + ' · ' + x.nivel); res.json({ ok: true });
 }));
 app.delete('/api/pdvs/:id', auth, rol('Gerente', 'Supervisor'), h(async (req, res) => {
   const id = +req.params.id;
@@ -632,7 +657,7 @@ app.post('/api/inventario/ajuste', auth, rol('Gerente', 'Supervisor'), h(async (
 // ---------- Proveedores ----------
 const reEmail = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 function validarProveedor(d) {
-  if (!rifValido(d.rif)) return 'RIF inválido. Use el formato J-12345678-9 (letra V, E, J, P o G, 8 dígitos y dígito verificador correcto)';
+  const errorRIF = rifError(d.rif); if (errorRIF) return errorRIF;
   const n = String(d.nombre || '').trim(); if (n.length < 2 || n.length > 120) return 'El nombre debe tener entre 2 y 120 caracteres';
   if (String(d.razon_social || '').length > 150) return 'La razón social es demasiado larga (máximo 150 caracteres)';
   if (String(d.contacto || '').length > 80) return 'El contacto es demasiado largo (máximo 80 caracteres)';
@@ -675,14 +700,27 @@ app.get('/api/proveedores/:id/entradas', auth, rol('Gerente', 'Supervisor'), h(a
 // ---------- Venta sugerida ----------
 app.get('/api/smart-order/:id', auth, h(async (req, res) => {
   const id = +req.params.id, prods = await listarProductos(false), byId = Object.fromEntries(prods.map(p => [p.id, p]));
+  const hoyISO = hoy();
+  const diasA = f => f ? Math.round((new Date(String(f) + 'T12:00:00') - new Date(hoyISO + 'T12:00:00')) / 86400000) : null;
+  const detalleMotivo = (p, origen, n) => {
+    const dias = diasA(p.prox_venc), reposicion = p.stock_minimo > 0 && p.stock <= p.stock_minimo, m = [];
+    if (p.qty_corto > 0) m.push(`Por vencer${dias != null ? ` en ${dias} día(s)` : ''}`);
+    if (reposicion) m.push(`Reposición: hay ${p.stock} u.`);
+    m.push(origen === 'historial' ? `Rotación: ${n} pedido(s)` : 'Típico del canal');
+    return { motivo: m[0], motivos: m, dias_vencimiento: dias, reposicion };
+  };
   const hist = (await sql`SELECT pi.producto_id, pi.cantidad, pe.id AS pedido FROM pedido_items pi JOIN pedidos pe ON pe.id=pi.pedido_id WHERE pe.pdv_id=${id} ORDER BY pe.id DESC LIMIT 80`).rows;
   const orden = [...new Set(hist.map(x => x.pedido))], acc = {};
   for (const x of hist) { const w = 1 / (1 + orden.indexOf(x.pedido)); const a = acc[x.producto_id] || (acc[x.producto_id] = { sw: 0, sq: 0, n: 0 }); a.sw += w; a.sq += w * x.cantidad; a.n++; }
   const out = [];
-  for (const [pid, a] of Object.entries(acc)) { const p = byId[pid]; if (p && p.stock > 0) out.push({ producto_id: +pid, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, Math.round(a.sq / a.sw))), origen: 'historial', frecuencia: a.n, por_vencer: p.qty_corto > 0, stock: p.stock }); }
+  for (const [pid, a] of Object.entries(acc)) {
+    const p = byId[pid]; if (p && p.stock > 0) out.push({ producto_id: +pid, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, Math.round(a.sq / a.sw))), origen: 'historial', frecuencia: a.n, por_vencer: p.qty_corto > 0, stock: p.stock, ...detalleMotivo(p, 'historial', a.n) });
+  }
   const canal = (await sql`SELECT pi.producto_id, ROUND(AVG(pi.cantidad))::int AS q, COUNT(*)::int AS n FROM pedido_items pi JOIN pedidos pe ON pe.id=pi.pedido_id JOIN pdvs pd ON pd.id=pe.pdv_id
     WHERE pd.canal=(SELECT canal FROM pdvs WHERE id=${id}) AND pe.pdv_id<>${id} GROUP BY pi.producto_id ORDER BY n DESC LIMIT 5`).rows;
-  for (const c of canal) { const p = byId[c.producto_id]; if (p && p.stock > 0 && !acc[c.producto_id]) out.push({ producto_id: c.producto_id, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, c.q)), origen: 'canal', frecuencia: c.n, por_vencer: p.qty_corto > 0, stock: p.stock }); }
+  for (const c of canal) {
+    const p = byId[c.producto_id]; if (p && p.stock > 0 && !acc[c.producto_id]) out.push({ producto_id: c.producto_id, nombre: p.nombre, cantidad_sugerida: Math.min(p.stock, Math.max(1, c.q)), origen: 'canal', frecuencia: c.n, por_vencer: p.qty_corto > 0, stock: p.stock, ...detalleMotivo(p, 'canal', c.n) });
+  }
   out.sort((a, b) => (b.por_vencer - a.por_vencer) || (b.frecuencia - a.frecuencia));
   res.json(out.slice(0, 6));
 }));

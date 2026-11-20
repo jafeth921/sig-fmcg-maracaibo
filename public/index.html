@@ -91,6 +91,17 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
 .invalid input:focus,.invalid select:focus{box-shadow:0 0 0 3px rgba(185,28,28,.15)}
 .prod.invalid{border-color:var(--bad)}
 .err{color:var(--bad);font-size:.74rem;margin-top:4px;font-weight:500}
+.help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;border-radius:50%;border:1px solid #CBD3DF;background:#fff;color:var(--muted);font-size:.65rem;font-weight:800;cursor:help;vertical-align:middle;text-transform:none;letter-spacing:0}
+.help:hover{color:var(--primary);border-color:var(--primary)}
+.step-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
+.step-tag.registro{background:var(--info-l);color:var(--info)}
+.step-tag.pedido{background:var(--primary-l);color:var(--primary)}
+.step-tag.entrega{background:var(--gold-l);color:var(--gold)}
+.flujo{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:.78rem;color:var(--muted);margin-bottom:14px}
+.flujo .step-tag{margin:0}.flujo b{color:var(--ink)}.flujo i{font-style:normal;color:#94A3B8}
+.flujo .btn{margin-left:auto}
+.sug-item{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:8px 10px;border-radius:9px;background:rgba(255,255,255,.8);border:1px solid #D7E1F7;margin-bottom:6px}
+.sug-item b{display:block;font-size:.82rem}.sug-item small{display:block;color:var(--muted);font-size:.72rem;margin-top:2px;line-height:1.35}
 .table{width:100%;border-collapse:collapse;font-size:.84rem}
 .scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain}
 .scroll .table{min-width:560px}
@@ -503,24 +514,24 @@ body.sb-collapsed .main{margin-left:0}
   <aside class="sidebar" id="sidebar" aria-label="Menú principal">
     <div class="sb-logo"><svg class="logo"><use href="#rutix"/></svg><div><b>Rutix</b><small>Gestión de distribución</small></div><button class="sb-close" onclick="toggleMenu(false)" aria-label="Cerrar menú">&times;</button></div>
     <nav>
-      <div class="sb-group">Operación</div>
+      <div class="sb-group">Registro y operación</div>
       <a data-view="dashboard" class="active" onclick="showView('dashboard',this)">Dashboard</a>
       <a data-view="pdvs" onclick="showView('pdvs',this)">Puntos de venta</a>
       <a data-view="mapa" onclick="showView('mapa',this)">Mapa y geolocalización</a>
       <a data-view="pedido" onclick="showView('pedido',this)">Tomar pedido</a>
-      <div class="sb-group">Logística</div>
       <a data-view="entregas" onclick="showView('entregas',this)">Entregas a tiempo</a>
       <a data-view="vrp" onclick="showView('vrp',this)">Ruteo de entregas</a>
+      <a data-view="cierre" onclick="showView('cierre',this)">Cierre de caja</a>
+      <div class="sb-group">Logística</div>
       <a data-view="inventario" onclick="showView('inventario',this)">Inventario</a>
       <a data-view="proveedores" data-roles="Gerente,Supervisor" onclick="showView('proveedores',this)">Proveedores</a>
-      <div class="sb-group">Finanzas</div>
-      <a data-view="cobranza" onclick="showView('cobranza',this)">Cobranza y crédito</a>
-      <a data-view="cierre" onclick="showView('cierre',this)">Cierre de caja</a>
-      <div class="sb-group">Control</div>
       <a data-view="retornables" onclick="showView('retornables',this)">Envases retornables</a>
-      <a data-view="red" onclick="showView('red',this)">Auditoría de anaquel</a>
       <a data-view="comodato" onclick="showView('comodato',this)">Activos en comodato</a>
       <a data-view="mermas" onclick="showView('mermas',this)">Mermas</a>
+      <div class="sb-group">Finanzas</div>
+      <a data-view="cobranza" onclick="showView('cobranza',this)">Cobranza y crédito</a>
+      <div class="sb-group">Control</div>
+      <a data-view="red" onclick="showView('red',this)">Auditoría de anaquel</a>
       <div class="sb-group" data-roles="Gerente,Supervisor">Administración</div>
       <a data-view="productos" data-roles="Gerente,Supervisor" onclick="showView('productos',this)">Productos y promociones</a>
       <a data-view="bitacora" data-roles="Gerente,Supervisor" onclick="showView('bitacora',this)">Bitácora de auditoría</a>
@@ -594,11 +605,12 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- PDVS -->
       <div id="view-pdvs" class="view">
+        <div class="flujo"><span class="step-tag registro">Paso 1</span><b>Registrar el local</b><i>›</i><span>Después, tome su pedido desde <b>Tomar pedido</b></span></div>
         <div class="card">
-          <div class="card-title">Puntos de venta <span class="acts"><button class="btn ghost sm" data-roles="Gerente,Supervisor" onclick="abrirZonas()">Zonas</button><button class="btn ghost sm" onclick="exportarPDVs()">Exportar CSV</button><button class="btn sm" onclick="abrirPDV()">Nuevo PDV</button></span></div>
+          <div class="card-title">Puntos de venta <span class="acts"><button class="btn ghost sm" data-roles="Gerente,Supervisor" onclick="abrirZonas()">Zonas</button><button class="btn ghost sm" onclick="exportarPDVs()">Exportar CSV</button><button class="btn sm" onclick="abrirPDV()" aria-label="Nuevo punto de venta">Nuevo PDV</button></span></div>
           <div class="toolbar"><input type="search" id="searchPDV" placeholder="Buscar por RIF, nombre o zona" oninput="renderPDVs()" aria-label="Buscar PDV"><select id="filtroZonaPDV" onchange="renderPDVs()" aria-label="Filtrar por zona"></select></div>
           <div class="scroll"><table class="table">
-            <thead><tr><th>RIF</th><th>Nombre</th><th>Zona</th><th>Canal</th><th class="r">Crédito</th><th>Límite de pedidos</th><th></th></tr></thead>
+            <thead><tr><th>RIF</th><th>Nombre</th><th>Zona</th><th>Canal</th><th>Nivel</th><th class="r">Crédito</th><th>Límite de pedidos</th><th></th></tr></thead>
             <tbody id="tblPDVs"></tbody>
           </table></div>
         </div>
@@ -631,11 +643,12 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- PEDIDO -->
       <div id="view-pedido" class="view">
+        <div class="flujo"><span class="step-tag pedido">Paso 2</span><b>Tomar pedido para surtir</b><i>›</i><span>Después: entrega y cobro</span><button class="btn ghost sm" onclick="showView('pdvs')">¿Local nuevo? Registrarlo</button></div>
         <div class="grid s57">
           <div>
             <div class="card">
-              <div class="card-title">Cliente</div>
-              <div class="field"><select id="selPDV" onchange="cargarPDV()" aria-label="Cliente"></select></div>
+              <div class="card-title">Cliente <small>Local registrado</small></div>
+              <div class="field"><select id="selPDV" onchange="cargarPDV()" aria-label="Cliente"></select><span class="hint">Seleccione el local al que se le tomará el pedido.</span></div>
               <div id="infoPDV"></div><div id="usoPedidos"></div><div id="smartOrder"></div>
             </div>
             <div class="card"><div class="card-title">Promociones activas</div><div id="promosList"></div></div>
@@ -663,6 +676,7 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- ENTREGAS -->
       <div id="view-entregas" class="view">
+        <div class="flujo"><span class="step-tag entrega">Paso 3</span><b>Entregar y cobrar</b><i>›</i><span>Los pedidos confirmados descuentan inventario y llegan aquí.</span></div>
         <div class="grid g3">
           <div class="kpi blue"><div class="kpi-lbl">Pedidos por entregar</div><div class="kpi-val num" id="eN">0</div></div>
           <div class="kpi"><div class="kpi-lbl">Entregas a tiempo (30 días)</div><div class="kpi-val num" id="eOtif">-</div><div class="kpi-sub" id="eOtifSub"></div></div>
@@ -688,6 +702,7 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- INVENTARIO -->
       <div id="view-inventario" class="view">
+        <div class="note info"><b>Cómo se conecta con Proveedores:</b> el proveedor surte la mercancía, Gerente o Supervisor registran la entrada y el lote queda asociado a su RIF. El Preventista consulta estas existencias al tomar pedidos; no registra entradas.</div>
         <div class="grid g3">
           <div class="kpi red"><div class="kpi-lbl">Productos con stock bajo</div><div class="kpi-val num" id="iBajo">0</div></div>
           <div class="kpi gold"><div class="kpi-lbl">Unidades por vencer (30 días)</div><div class="kpi-val num" id="iPorVencer">0</div></div>
@@ -703,6 +718,7 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- PROVEEDORES -->
       <div id="view-proveedores" class="view">
+        <div class="note warn"><b>Responsable de esta etapa:</b> Gerente y Supervisor mantienen los proveedores. Cada entrada de mercancía debe indicar su proveedor; así el lote muestra de dónde viene y las compras quedan resumidas aquí.</div>
         <div class="grid g3">
           <div class="kpi"><div class="kpi-lbl">Proveedores activos</div><div class="kpi-val num" id="pvN">0</div></div>
           <div class="kpi blue"><div class="kpi-lbl">Unidades recibidas</div><div class="kpi-val num" id="pvU">0</div></div>
@@ -876,25 +892,43 @@ body.sb-collapsed .main{margin-left:0}
   <div class="modal-card" role="dialog" aria-modal="true" aria-label="Punto de venta">
     <div class="modal-h" id="pdvTitulo">Punto de venta</div>
     <div class="modal-b">
+      <span class="step-tag registro" id="pdvPaso">Paso 1 · Registrar local</span>
+      <p class="hint" style="margin:0 0 14px">Primero queda registrado el local. Después podrá tomarle pedidos desde <b>Tomar pedido</b>.</p>
       <input type="hidden" id="pId"><input type="hidden" id="pLat"><input type="hidden" id="pLng">
-      <div class="fgrid"><div class="field"><label for="pRif">RIF</label><input type="text" id="pRif" maxlength="12" placeholder="J-12345678-9" oninput="formatearRIFInput(this)" autocapitalize="characters"></div><div class="field"><label for="pNombre">Nombre comercial</label><input type="text" id="pNombre" maxlength="120"></div></div>
-      <div class="fgrid"><div class="field"><label for="pRazon">Razón social</label><input type="text" id="pRazon" maxlength="150"></div><div class="field"><label for="pDireccion">Dirección</label><input type="text" id="pDireccion" maxlength="200"></div></div>
       <div class="fgrid">
-        <div class="field"><label for="pZona">Zona</label><select id="pZona"></select><button class="btn ghost sm" data-roles="Gerente,Supervisor" style="margin-top:6px" onclick="abrirZonas()">Nueva zona</button></div>
-        <div class="field"><label for="pCanal">Canal</label><select id="pCanal"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select></div>
-        <div class="field"><label for="pCredito">Límite de crédito (USD)</label><input type="number" id="pCredito" min="0" step="0.01" inputmode="decimal"></div>
+        <div class="field"><label for="pRif">RIF <span class="help" title="Formato oficial: letra (V, E, J, P o G), 8 dígitos y un verificador. Ejemplo: J-12345678-9" aria-label="Ayuda sobre el formato del RIF">?</span></label>
+          <input type="text" id="pRif" maxlength="12" placeholder="J-12345678-9" oninput="formatearRIFInput(this)" onblur="validarRIFBlur(this)" aria-describedby="pRifAyuda" autocapitalize="characters" autocomplete="off">
+          <span class="hint" id="pRifAyuda">Ejemplo: <b>J-12345678-9</b>. Puede escribirlo con o sin guiones.</span></div>
+        <div class="field"><label for="pNombre">Nombre comercial</label><input type="text" id="pNombre" maxlength="120" aria-describedby="pNombreAyuda"><span class="hint" id="pNombreAyuda">El nombre que reconoce el cliente en la calle.</span></div>
       </div>
       <div class="fgrid">
+        <div class="field"><label for="pRazon">Razón social <span class="help" title="Es el nombre legal registrado ante el SENIAT; puede diferir del nombre comercial." aria-label="Ayuda sobre razón social">?</span></label>
+          <input type="text" id="pRazon" maxlength="150" aria-describedby="pRazonAyuda"><span class="hint" id="pRazonAyuda">Nombre legal o denominación registrada del negocio (el que aparece en el RIF). Ej.: <b>Distribuidora La Esquina, C.A.</b></span></div>
+        <div class="field"><label for="pDireccion">Dirección</label><input type="text" id="pDireccion" maxlength="200"></div>
+      </div>
+      <div class="fgrid">
+        <div class="field"><label for="pZona">Zona</label><select id="pZona"></select><button class="btn ghost sm" data-roles="Gerente,Supervisor" style="margin-top:6px" onclick="abrirZonas()">Nueva zona</button></div>
+        <div class="field"><label for="pCanal">Canal</label><select id="pCanal" onchange="sugerirNivel()"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select><span class="hint">Tipo de local: sugiere el nivel comercial.</span></div>
+        <div class="field"><label for="pNivel">Nivel comercial <span class="help" title="Ordena el crédito sugerido. No cambia precios ni descuentos automáticos." aria-label="Ayuda sobre nivel comercial">?</span></label>
+          <select id="pNivel" onchange="actualizarCredito()"><option>Detalle</option><option>Mini mayorista</option><option>Mayorista</option><option>Supermercado / súper mayorista</option></select><span class="hint" id="pNivelAyuda">Rango sugerido: hasta $ 500,00</span></div>
+      </div>
+      <div class="fgrid">
+        <div class="field"><label for="pCredito">Límite de crédito (USD) <span class="help" title="Tope máximo de deuda abierta permitida para este local. No es un descuento ni una garantía." aria-label="Ayuda sobre límite de crédito">?</span></label>
+          <input type="number" id="pCredito" min="0" max="100000" step="0.01" inputmode="decimal" oninput="actualizarCredito()" aria-describedby="pCreditoAyuda"><span class="hint" id="pCreditoAyuda">Tope de deuda permitida. No es un descuento ni una garantía.</span></div>
         <div class="field"><label for="pLimPed">Límite de pedidos</label><input type="number" id="pLimPed" min="1" max="500" step="1" inputmode="numeric"></div>
         <div class="field"><label for="pPeriodo">Por período</label><select id="pPeriodo"><option>Diario</option><option>Semanal</option><option>Mensual</option></select></div>
       </div>
-      <div class="field" id="fUbic"><label>Ubicación del local</label>
+      <div class="note warn" id="pCreditoAviso" hidden></div>
+      <label class="chk" id="pFueraWrap" hidden style="margin-bottom:14px"><input type="checkbox" id="pFuera"><span>Autorizo un monto fuera del rango sugerido para este nivel.</span></label>
+      <div class="field" id="fUbic"><label>Ubicación del local <span class="help" title="Marque en el mapa dónde está el local. Se usa como referencia de la visita." aria-label="Ayuda sobre ubicación">?</span></label>
         <div id="pdvMap"></div>
         <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="usarMiUbicacionPDV()">Usar mi ubicación actual</button><span class="hint" id="pUbic" style="margin:0">Toque el mapa para ubicar el local</span></div>
+        <span class="hint">El punto en el mapa es la referencia del local para la visita y el check-in.</span>
       </div>
-      <details class="adv"><summary>Opciones avanzadas</summary><div class="field"><label for="pRadio">Radio de validación de visita (m)</label><input type="number" id="pRadio" min="10" max="1000" step="1" inputmode="numeric"><span class="hint">Distancia máxima permitida para registrar un check-in. Por defecto 50 m.</span></div></details>
+      <details class="adv"><summary>Opciones avanzadas</summary><div class="field"><label for="pRadio">Radio de check-in (m) <span class="help" title="Distancia máxima permitida desde el local para registrar la visita. Si está más lejos, el sistema lo avisa." aria-label="Ayuda sobre radio de check-in">?</span></label>
+        <input type="number" id="pRadio" min="10" max="1000" step="1" inputmode="numeric"><span class="hint">Distancia máxima permitida para registrar el check-in de la visita. Si el vendedor está más lejos, el sistema lo avisa y no registra la visita. Por defecto 50 m.</span></div></details>
     </div>
-    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="lock(this,guardarPDV)">Guardar</button></div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="lock(this,guardarPDV)">Guardar local</button></div>
   </div>
 </div>
 
@@ -962,7 +996,7 @@ body.sb-collapsed .main{margin-left:0}
     <div class="modal-h" id="provTitulo">Proveedor</div>
     <div class="modal-b">
       <input type="hidden" id="provId">
-      <div class="fgrid"><div class="field"><label for="provRif">RIF</label><input type="text" id="provRif" maxlength="12" placeholder="J-12345678-9" oninput="formatearRIFInput(this)" autocapitalize="characters"></div><div class="field"><label for="provNombre">Nombre comercial</label><input type="text" id="provNombre" maxlength="120"></div></div>
+      <div class="fgrid"><div class="field"><label for="provRif">RIF</label><input type="text" id="provRif" maxlength="12" placeholder="J-12345678-9" oninput="formatearRIFInput(this)" onblur="validarRIFBlur(this)" autocapitalize="characters"><span class="hint">Ejemplo: J-12345678-9.</span></div><div class="field"><label for="provNombre">Nombre comercial</label><input type="text" id="provNombre" maxlength="120"></div></div>
       <div class="field"><label for="provRazon">Razón social</label><input type="text" id="provRazon" maxlength="150"></div>
       <div class="fgrid"><div class="field"><label for="provContacto">Persona de contacto</label><input type="text" id="provContacto" maxlength="80"></div><div class="field"><label for="provTel">Teléfono</label><input type="text" id="provTel" maxlength="30" inputmode="tel"></div></div>
       <div class="fgrid"><div class="field"><label for="provEmail">Correo electrónico</label><input type="text" id="provEmail" maxlength="120" inputmode="email" autocapitalize="none"></div><div class="field"><label for="provActivo">Estado</label><select id="provActivo"><option value="1">Activo</option><option value="0">Inactivo</option></select></div></div>
@@ -1136,23 +1170,55 @@ function toast(msg, sub = '', type = '') {
   setTimeout(() => d.remove(), type === 'error' ? 6500 : 4200);
 }
 
+// ===== Niveles comerciales y crédito sugerido =====
+const NIVELES_CLIENTE = [
+  { nombre: 'Detalle', max: 500, canales: ['Abasto/Bodega', 'Panadería'] },
+  { nombre: 'Mini mayorista', max: 2000, canales: [] },
+  { nombre: 'Mayorista', max: 8000, canales: ['Mayorista'] },
+  { nombre: 'Supermercado / súper mayorista', max: 25000, canales: ['Supermercado'] }
+];
+const NIVEL_POR_CANAL = { 'Abasto/Bodega': 'Detalle', 'Panadería': 'Detalle', 'Mayorista': 'Mayorista', 'Supermercado': 'Supermercado / súper mayorista' };
+const CREDITO_MAX = 100000;
+const nivelInfo = nombre => NIVELES_CLIENTE.find(x => x.nombre === nombre) || NIVELES_CLIENTE[0];
+
 // ===== RIF (formato J-12345678-9 con dígito verificador, módulo 11) =====
 const RIF_LETRA = { V: 1, E: 2, J: 3, P: 4, G: 5 }, RIF_PESOS = [4, 3, 2, 7, 6, 5, 4, 3, 2];
 function normalizarRIF(s) {
   const t = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, ''), m = /^([VEJPG])(\d{8})(\d)$/.exec(t);
   return m ? `${m[1]}-${m[2]}-${m[3]}` : null;
 }
-function rifValido(s) {
-  const n = normalizarRIF(s); if (!n) return false;
-  const [l, c, dv] = n.split('-'), d = [RIF_LETRA[l], ...c.split('').map(Number)];
-  return ((11 - d.reduce((a, x, i) => a + x * RIF_PESOS[i], 0) % 11) % 11) % 10 === +dv;
+function digitoRIF(letra, cuerpo) {
+  const d = [RIF_LETRA[letra], ...String(cuerpo).split('').map(Number)];
+  return ((11 - d.reduce((a, x, i) => a + x * RIF_PESOS[i], 0) % 11) % 11) % 10;
 }
-function formatearRIFInput(el) {   // escribe el RIF con guiones mientras el usuario teclea
-  const t = el.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
-  if (!t) { el.value = ''; return; }
-  if (!/[VEJPG]/.test(t[0])) { el.value = ''; return; }
-  const dg = t.slice(1).replace(/\D/g, '').slice(0, 9);
-  el.value = t[0] + (dg.length ? '-' + dg.slice(0, 8) : '') + (dg.length > 8 ? '-' + dg.slice(8) : '');
+function rifError(s) {
+  const t = String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (!t) return 'Ingrese el RIF. Ejemplo: J-12345678-9';
+  if (!/[VEJPG]/.test(t[0])) return 'El RIF debe empezar con V, E, J, P o G. Ejemplo: J-12345678-9';
+  if (t.length < 10) return 'Faltan dígitos: use letra, 8 dígitos y verificador. Ejemplo: J-12345678-9';
+  if (t.length > 10) return 'Sobran caracteres: use letra, 8 dígitos y verificador. Ejemplo: J-12345678-9';
+  const m = /^([VEJPG])(\d{8})(\d)$/.exec(t);
+  if (!m) return 'Formato inválido. Use J-12345678-9 (letra, 8 dígitos y verificador)';
+  return digitoRIF(m[1], m[2]) === +m[3] ? null : 'El dígito verificador no coincide. Revise el último número.';
+}
+function rifValido(s) { return !rifError(s); }
+function formatearRIFInput(el) {   // coloca los guiones sin borrar lo que el usuario escribió
+  const limpio = el.value.toUpperCase().replace(/[\s-]/g, '');
+  if (!limpio) { el.value = ''; return; }
+  const letra = limpio[0];
+  if (!/[VEJPG]/.test(letra)) { el.value = limpio; return; }
+  const resto = limpio.slice(1);
+  if (/[^0-9]/.test(resto)) { el.value = letra + '-' + resto; return; }
+  el.value = letra + (resto ? '-' + resto.slice(0, 8) : '') + (resto.length > 8 ? '-' + resto.slice(8) : '');
+}
+function validarRIFBlur(el) {
+  if (!el.value.trim()) return;
+  const error = rifError(el.value), f = el.closest('.field'); if (!f) return;
+  if (error) {
+    f.classList.add('invalid'); let e = f.querySelector('.err');
+    if (!e) { e = document.createElement('div'); e.className = 'err'; f.appendChild(e); }
+    e.textContent = error;
+  } else { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); }
 }
 
 // ===== Validación de formularios =====
@@ -1175,7 +1241,7 @@ const R = {
   int: (min, max) => v => { if (v === '') return 'Campo obligatorio'; const n = Number(v); return Number.isInteger(n) && n >= min && n <= max ? null : `Ingrese un entero entre ${min} y ${max}`; },
   len: (min, max) => v => v.length >= min && v.length <= max ? null : `Debe tener entre ${min} y ${max} caracteres`,
   pat: (re, m) => v => re.test(v) ? null : m,
-  rif: () => v => rifValido(v) ? null : 'RIF inválido. Formato J-12345678-9 con dígito verificador correcto',
+  rif: () => v => rifError(v) || null,
   clave: () => v => /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(v) ? null : 'Mínimo 8 caracteres, con letras y números'
 };
 document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.invalid'); if (f) { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); } });
@@ -1682,12 +1748,12 @@ function renderPDVs() {
   $('tblPDVs').innerHTML = f.length ? f.map(p => `<tr>
     <td><b>${esc(p.rif || 'Sin RIF')}</b>${rifValido(p.rif) ? '' : ' <span class="pill warn">Revisar</span>'}</td><td>${esc(p.nombre)}</td>
     <td><span class="pill" style="background:${esc(p.zona_color)}1F;color:${esc(p.zona_color)}">${esc(p.zona_nombre || 'Sin zona')}</span></td>
-    <td>${esc(p.canal)}</td><td class="r num">${usd(p.limite_credito)}</td><td>${p.limite_pedidos} · ${esc((p.periodo_limite || '').toLowerCase())}</td>
+    <td>${esc(p.canal)}</td><td><span class="pill info">${esc(p.nivel_cliente || NIVEL_POR_CANAL[p.canal] || 'Detalle')}</span></td><td class="r num">${usd(p.limite_credito)}</td><td>${p.limite_pedidos} · ${esc((p.periodo_limite || '').toLowerCase())}</td>
     <td style="white-space:nowrap"><button class="btn ghost sm" onclick="abrirPDV(${p.id})">Editar</button>${canAdmin() ? ` <button class="btn danger sm" onclick="eliminarPDV(${p.id})">Eliminar</button>` : ''}</td></tr>`).join('')
-    : '<tr><td colspan="7"><div class="empty">No se encontraron puntos de venta</div></td></tr>';
+    : '<tr><td colspan="8"><div class="empty">No se encontraron puntos de venta</div></td></tr>';
 }
-const exportarPDVs = () => descargarCSV('puntos_de_venta', ['RIF', 'Nombre', 'Razon social', 'Zona', 'Canal', 'Limite credito USD', 'Limite de pedidos', 'Periodo'],
-  S.pdvs.map(p => [p.rif, p.nombre, p.razon_social, p.zona_nombre, p.canal, p.limite_credito, p.limite_pedidos, p.periodo_limite]));
+const exportarPDVs = () => descargarCSV('puntos_de_venta', ['RIF', 'Nombre', 'Razon social', 'Zona', 'Canal', 'Nivel comercial', 'Limite credito USD', 'Limite de pedidos', 'Periodo'],
+  S.pdvs.map(p => [p.rif, p.nombre, p.razon_social, p.zona_nombre, p.canal, p.nivel_cliente || NIVEL_POR_CANAL[p.canal] || 'Detalle', p.limite_credito, p.limite_pedidos, p.periodo_limite]));
 registrarVista('pdvs', 'Puntos de venta', renderPDVs);
 
 // Mapa base con respaldo: si el proveedor principal falla, se usa otro en lugar de dejar el mapa en blanco.
@@ -1737,23 +1803,43 @@ async function usarMiUbicacionPDV() {
   try { const p = await posicion(); S.miniMap.setView([p.coords.latitude, p.coords.longitude], 17); fijarUbicacion(p.coords.latitude, p.coords.longitude); }
   catch (e) { toast('No se pudo obtener la ubicación', e.message, 'warn'); }
 }
+function sugerirNivel() {
+  $('pNivel').value = NIVEL_POR_CANAL[$('pCanal').value] || 'Detalle';
+  actualizarCredito();
+}
+function actualizarCredito() {
+  const nivel = nivelInfo($('pNivel').value), credito = +String($('pCredito').value).replace(',', '.') || 0;
+  $('pNivelAyuda').textContent = `Rango sugerido: hasta ${usd(nivel.max)}`;
+  const fuera = credito > nivel.max;
+  $('pCreditoAviso').hidden = !fuera; $('pFueraWrap').hidden = !fuera;
+  if (fuera) $('pCreditoAviso').innerHTML = `<b>Crédito fuera del rango sugerido.</b> Para ${esc(nivel.nombre)} se recomienda hasta ${usd(nivel.max)}. Puede continuar si marca la autorización.`;
+  if (!fuera) $('pFuera').checked = false;
+}
 function abrirPDV(id) {
   limpiarErr($('modalPDV')); const f = (k, v) => $(k).value = v, p = id ? S.pdvs.find(x => x.id === id) : null;
   $('pdvTitulo').textContent = p ? 'Editar punto de venta' : 'Nuevo punto de venta';
+  $('pdvPaso').textContent = p ? 'Paso 1 · Datos del local' : 'Paso 1 · Registrar local';
   f('pId', p ? p.id : ''); f('pRif', p ? (p.rif || '') : ''); f('pNombre', p ? p.nombre : ''); f('pRazon', p ? (p.razon_social || '') : ''); f('pDireccion', p ? (p.direccion || '') : '');
-  f('pZona', p ? p.zona_id : (S.zonas[0] ? S.zonas[0].id : '')); f('pCanal', p ? p.canal : 'Abasto/Bodega'); f('pCredito', p ? p.limite_credito : 0);
+  f('pZona', p ? p.zona_id : (S.zonas[0] ? S.zonas[0].id : '')); f('pCanal', p ? p.canal : 'Abasto/Bodega');
+  f('pNivel', p ? (p.nivel_cliente || NIVEL_POR_CANAL[p.canal] || 'Detalle') : 'Detalle'); f('pCredito', p ? p.limite_credito : 0);
   f('pLimPed', p ? p.limite_pedidos : 5); f('pPeriodo', p ? p.periodo_limite : 'Semanal'); f('pRadio', p ? p.geofence_radio_m : 50);
-  f('pLat', p && p.lat != null ? p.lat : ''); f('pLng', p && p.lng != null ? p.lng : '');
+  f('pLat', p && p.lat != null ? p.lat : ''); f('pLng', p && p.lng != null ? p.lng : ''); $('pFuera').checked = false;
+  actualizarCredito();
   openModal('modalPDV'); initMiniMapa(p && p.lat != null ? +p.lat : null, p && p.lng != null ? +p.lng : null);
 }
 async function guardarPDV() {
-  const ok = validar([['pRif', R.rif()], ['pNombre', R.len(2, 120)], ['pZona', R.req('Seleccione o cree una zona')], ['pCredito', R.num(0, 10000000)],
+  const id = $('pId').value, n = k => +String($(k).value).replace(',', '.');
+  const ok = validar([['pRif', R.rif()], ['pNombre', R.len(2, 120)], ['pZona', R.req('Seleccione o cree una zona')], ['pCredito', R.num(0, CREDITO_MAX)],
     ['pLimPed', R.int(1, 500)], ['pRadio', R.int(10, 1000)]], $('modalPDV'));
   if (!ok) return;
   if (!$('pLat').value || !$('pLng').value) { marcar('pUbic', 'Ubique el local en el mapa o use su ubicación actual'); return toast('Falta la ubicación del local', '', 'warn'); }
-  const id = $('pId').value, n = k => +String($(k).value).replace(',', '.');
+  const nivel = nivelInfo($('pNivel').value), credito = n('pCredito');
+  if (credito > nivel.max && !$('pFuera').checked) {
+    marcar('pCredito', `Para ${nivel.nombre} el rango sugerido llega a ${usd(nivel.max)}. Baje el monto o marque la autorización.`);
+    $('pFueraWrap').hidden = false; return toast('Confirme el crédito', '', 'warn');
+  }
   const data = { rif: $('pRif').value.trim(), nombre: $('pNombre').value.trim(), razon_social: $('pRazon').value.trim(), direccion: $('pDireccion').value.trim(), zona_id: +$('pZona').value,
-    canal: $('pCanal').value, limite_credito: n('pCredito'), limite_pedidos: n('pLimPed'), periodo_limite: $('pPeriodo').value, geofence_radio_m: n('pRadio'), lat: n('pLat'), lng: n('pLng') };
+    canal: $('pCanal').value, nivel_cliente: $('pNivel').value, limite_credito: credito, credito_fuera_rango: $('pFuera').checked, limite_pedidos: n('pLimPed'), periodo_limite: $('pPeriodo').value, geofence_radio_m: n('pRadio'), lat: n('pLat'), lng: n('pLng') };
   try { id ? await put('/pdvs/' + id, data) : await post('/pdvs', data); toast('Punto de venta guardado', data.nombre); closeModal('modalPDV'); await recargarPDVs(); }
   catch (e) { toast('No se pudo guardar', e.message, 'error'); }
 }
@@ -1844,10 +1930,19 @@ function renderProductos() {
 function renderPromos() {
   $('promosList').innerHTML = S.promos.length ? S.promos.map(pr => `<div class="note warn"><b>${esc(pr.nombre)}</b><br>${pr.tipo === 'Volumen' ? `Desde ${pr.min_cantidad} unidades: ${pr.descuento_pct}% de descuento` : `${pr.descuento_pct}% de descuento sobre las unidades que vencen en 30 días`}</div>`).join('') : '<div class="empty">Sin promociones activas</div>';
 }
+function motivoSugerencia(x) {
+  const m = [];
+  if (x.por_vencer) m.push(`Por vencer${x.dias_vencimiento != null ? ` en ${x.dias_vencimiento} día(s)` : ''}`);
+  if (x.reposicion) m.push('Reposición');
+  if (x.origen === 'historial') m.push(`Rotación: ${x.frecuencia} pedido(s)`);
+  if (x.origen === 'canal') m.push('Típico del canal');
+  return m.join(' · ') || 'Sugerencia del sistema';
+}
 async function cargarPDV() {
   const p = S.pdvs.find(x => x.id === +$('selPDV').value); USO = null;
   if (!p) { $('infoPDV').innerHTML = ''; $('usoPedidos').innerHTML = ''; $('smartOrder').innerHTML = ''; return; }
-  $('infoPDV').innerHTML = `<div class="note ok"><b>${esc(p.nombre)}</b><br>RIF ${esc(p.rif || 'sin RIF')} · ${esc(p.zona_nombre || '-')} · ${esc(p.canal)}<br>Crédito hasta ${usd(p.limite_credito)}</div>`;
+  const nivel = p.nivel_cliente || NIVEL_POR_CANAL[p.canal] || 'Detalle';
+  $('infoPDV').innerHTML = `<div class="note ok"><b>${esc(p.nombre)}</b><br>RIF ${esc(p.rif || 'sin RIF')} · ${esc(p.zona_nombre || '-')} · ${esc(p.canal)}<br><span class="pill info">Nivel: ${esc(nivel)}</span> Crédito hasta ${usd(p.limite_credito)} · ${p.limite_pedidos} pedido(s) ${esc((p.periodo_limite || '').toLowerCase())}</div>`;
   try {
     USO = await api(`/pdvs/${p.id}/uso-pedidos`); const lleno = USO.usados >= USO.limite, pct = Math.min(100, USO.usados / USO.limite * 100);
     $('usoPedidos').innerHTML = `<div class="note ${lleno ? 'bad' : 'info'}"><b>Pedidos ${USO.periodo.toLowerCase() === 'diario' ? 'de hoy' : USO.periodo.toLowerCase() === 'semanal' ? 'de la semana' : 'del mes'}: ${USO.usados} de ${USO.limite}</b>
@@ -1856,10 +1951,23 @@ async function cargarPDV() {
   } catch (e) { $('usoPedidos').innerHTML = ''; $('btnConfirmar').disabled = false; }
   try {
     const s = await api('/smart-order/' + p.id); S.sugeridos = s;
-    $('smartOrder').innerHTML = s.length ? `<div class="note info"><b>Venta sugerida</b><br>${s.slice(0, 5).map(x => `${esc(x.nombre)}: ${x.cantidad_sugerida} u.${x.por_vencer ? ' (por vencer)' : ''}${x.origen === 'canal' ? ' (popular en el canal)' : ''}`).join('<br>')}<br><button class="btn ghost sm" style="margin-top:8px" onclick="aplicarSugeridos()">Aplicar sugerencia</button></div>` : '';
+    $('smartOrder').innerHTML = s.length ? `<div class="note info">
+      <div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>Venta sugerida</b><span class="pill info">${s.length} productos</span></div>
+      <p class="hint" style="margin:6px 0 10px">Se basa en la rotación de este local, lo que compran locales del mismo canal y lo que está por vencer. Solo suma cantidades al pedido; no factura ni cobra hasta confirmar.</p>
+      ${s.slice(0, 5).map(x => `<div class="sug-item"><div><b>${esc(x.nombre)}</b><small>${esc(x.motivo || motivoSugerencia(x))}</small></div><button class="btn ghost sm" onclick="agregarSugerido(${x.producto_id})">+ ${x.cantidad_sugerida} u.</button></div>`).join('')}
+      <button class="btn ghost sm" style="margin-top:8px" onclick="aplicarSugeridos()">Aplicar todas</button>
+    </div>` : '';
   } catch (e) { $('smartOrder').innerHTML = ''; }
 }
-function aplicarSugeridos() { (S.sugeridos || []).forEach(s => { const el = $('prod_' + s.producto_id); if (el && !el.disabled) el.value = s.cantidad_sugerida; }); calcPedido(); }
+function agregarSugerido(id) {
+  const s = (S.sugeridos || []).find(x => x.producto_id === id); if (!s) return;
+  const el = $('prod_' + id); if (!el || el.disabled) return toast('Producto sin stock', '', 'warn');
+  el.value = s.cantidad_sugerida; calcPedido(); toast('Sugerencia agregada', s.nombre);
+}
+function aplicarSugeridos() {
+  let n = 0; (S.sugeridos || []).forEach(s => { const el = $('prod_' + s.producto_id); if (el && !el.disabled) { el.value = s.cantidad_sugerida; n++; } });
+  calcPedido(); toast('Sugerencias aplicadas', n + ' producto(s)');
+}
 
 // Cálculo idéntico al del servidor: cada línea se redondea a 2 decimales
 function calcPedido() {

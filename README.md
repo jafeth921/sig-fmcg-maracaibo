@@ -123,9 +123,9 @@ conexión (con `sslmode=require`) en `POSTGRES_URL` o `DATABASE_URL` y redesplie
 | Módulo | Descripción |
 |--------|-------------|
 | Dashboard | KPIs de ventas, cuentas por cobrar, entregas a tiempo, productos en anaquel, retornabilidad y alertas. |
-| Puntos de venta | RIF validado (módulo 11), zonas, canal, límites de crédito y pedidos. |
-| Mapa y visitas | Check-in validado por geocerca y registro de visitas. |
-| Tomar pedido | Promociones por volumen y vencimiento, venta sugerida, IVA e IGTF. |
+| Puntos de venta | RIF validado (módulo 11) con ayuda y máscara segura, zonas, canal, nivel comercial con rango de crédito y límites de pedidos. |
+| Mapa y visitas | Check-in validado por radio configurable (50 m por defecto) y registro de visitas. |
+| Tomar pedido | Promociones por volumen y vencimiento, venta sugerida con motivo visible, IVA e IGTF. |
 | Entregas a tiempo | Entrega total/parcial, devolución de faltantes al stock y puntualidad. |
 | Ruteo | Vecino más cercano + 2-opt, capacidad del camión y tiempos estimados. |
 | Inventario | Lotes, FIFO, vencimientos, ajustes, movimientos y stock mínimo. |
@@ -137,6 +137,10 @@ conexión (con `sslmode=require`) en `POSTGRES_URL` o `DATABASE_URL` y redesplie
 | Comodatos | Neveras y exhibidores con mantenimiento. |
 | Mermas | Registro con o sin descuento de inventario. |
 | Administración | Productos, promociones, usuarios, bitácora y parámetros fiscales. |
+
+**Niveles de crédito sugerido:** Detalle hasta 500 USD, Mini mayorista hasta 2.000,
+Mayorista hasta 8.000 y Supermercado / súper mayorista hasta 25.000. El tope absoluto
+es 100.000 USD y un monto fuera del rango requiere confirmación explícita.
 
 ---
 
