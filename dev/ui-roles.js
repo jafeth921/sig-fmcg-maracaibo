@@ -1,5 +1,6 @@
-// Verificación de roles y diseño móvil: inicia sesión con cada usuario, comprueba
-// que el menú muestre solo lo permitido, recorre las vistas y guarda capturas.
+// Verificación de roles y diseño móvil: abre el sistema con cada usuario (el principal
+// entra automáticamente), comprueba que el menú muestre solo lo permitido, recorre
+// las vistas y guarda capturas.
 // Uso: node dev/ui-roles.js [http://localhost:3000]
 const { chromium } = require('playwright');
 const path = require('path');
@@ -28,11 +29,14 @@ const USUARIOS = [
     page.on('console', m => { if (m.type() === 'error') errores.push('console: ' + m.text()); });
 
     console.log(`\n== ${u.usuario} (${u.rol}) · ${u.ancho}x${u.alto} ==`);
+    if (u.usuario !== 'admin') await page.addInitScript(() => localStorage.setItem('rutix.noAuto', '1'));
     await page.goto(BASE, { waitUntil: 'domcontentloaded', timeout: 60000 });
-    await page.getByRole('button', { name: /Ingresar/ }).first().click();
-    await page.fill('#lu', u.usuario);
-    await page.fill('#lp', u.password);
-    await page.click('#btnLogin');
+    if (u.usuario !== 'admin') {
+      await page.waitForSelector('#login', { state: 'visible', timeout: 30000 });
+      await page.fill('#lu', u.usuario);
+      await page.fill('#lp', u.password);
+      await page.click('#btnLogin');
+    }
     await page.waitForSelector('#app', { state: 'visible', timeout: 30000 });
     await page.waitForTimeout(2500);
 

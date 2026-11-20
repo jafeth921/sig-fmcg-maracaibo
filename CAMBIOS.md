@@ -85,6 +85,17 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
 - Todas las funciones siguen disponibles en el sistema; solo cambia la forma de
   presentarlas en la portada, que ahora se recorre en dos filas en lugar de cuatro.
 
+## Ingreso directo
+
+- Al abrir cualquiera de los enlaces, el sistema entra automáticamente como
+  **administrador** y muestra el panel, sin pedir usuario ni contraseña.
+- Si el servidor no responde, aparece el formulario de acceso para poder entrar
+  con las credenciales de demostración.
+- **Cerrar sesión** sigue disponible: muestra el formulario y evita que la página
+  vuelva a entrar sola. Desde ahí se puede usar **Entrar como administrador** o
+  iniciar sesión con otro usuario.
+- Si una sesión expira mientras se trabaja, se renueva sola al recargar.
+
 ## Verificación
 
 - **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,

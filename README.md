@@ -21,7 +21,9 @@ npm run dev
 ```
 
 Abrir <http://localhost:3000>. La primera ejecución crea el esquema, carga datos de
-demostración y descarga la tasa BCV.
+demostración y descarga la tasa BCV. El enlace abre directamente el panel como
+administrador, sin formulario de ingreso. Si cierra sesión aparece el formulario;
+desde ahí puede entrar como administrador o con otro usuario.
 
 **Usuarios de demostración**
 

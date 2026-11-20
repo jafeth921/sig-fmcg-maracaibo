@@ -472,6 +472,7 @@ body.sb-collapsed .main{margin-left:0}
       <div class="field"><label for="lu">Usuario</label><input type="text" id="lu" autocomplete="username" autocapitalize="none" autocorrect="off" spellcheck="false" enterkeyhint="next"></div>
       <div class="field"><label for="lp">Contraseña</label><div class="pw"><input type="password" id="lp" autocomplete="current-password" enterkeyhint="go" onkeydown="if(event.key==='Enter')lock($('btnLogin'),doLogin)"><button type="button" onclick="verClave()" id="btnVer">Mostrar</button></div></div>
       <button class="btn block" id="btnLogin" style="padding:13px" onclick="lock(this,doLogin)">Ingresar</button>
+      <button class="btn ghost block sm" style="margin-top:10px" onclick="entrarSinContrasena()">Entrar como administrador</button>
       <div class="demo"><b>Usuarios de demostración</b><br>admin / admin123 (Gerente)<br>maria / maria123 (Supervisor)<br>pedro / pedro123 (Preventista)</div>
     </div>
   </div>
@@ -1086,7 +1087,7 @@ async function api(path, opts = {}) {
     let res;
     try { res = await fetch('/api' + path, { ...opts, headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + S.token, ...(opts.headers || {}) } }); }
     catch (e) { throw new Error('No hay conexión con el servidor. Verifique su internet.'); }
-    if (res.status === 401 && !path.startsWith('/me')) { sessionStorage.setItem('aviso', 'Su sesión expiró. Inicie sesión nuevamente.'); logout(); throw new Error('Sesión expirada'); }
+    if (res.status === 401 && !path.startsWith('/me')) { sessionStorage.setItem('aviso', 'Su sesión expiró.'); logout('expirada'); throw new Error('Sesión expirada'); }
     const data = await res.json().catch(() => ({}));
     if (!res.ok) throw Object.assign(new Error(data.mensaje || data.error || 'Error del servidor (' + res.status + ')'), { status: res.status, data });
     return data;
@@ -1229,6 +1230,12 @@ function descargarCSV(nombre, cabecera, filas) {
 }
 
 // ===== Sesión =====
+// Ingreso automático: al abrir el enlace se entra directamente con el usuario de
+// demostración. Si el servidor no responde, se muestra el formulario de acceso.
+const ACCESO_DEMO = { usuario: 'admin', password: 'admin123' };
+const NO_AUTO_KEY = 'rutix.noAuto';
+let _entrandoAuto = false;
+const noAuto = () => { try { return localStorage.getItem(NO_AUTO_KEY) === '1'; } catch (e) { return false; } };
 function verClave() { const i = $('lp'), v = i.type === 'password'; i.type = v ? 'text' : 'password'; $('btnVer').textContent = v ? 'Ocultar' : 'Mostrar'; }
 async function doLogin() {
   if (!validar([['lu', R.req('Ingrese su usuario')], ['lp', R.req('Ingrese su contraseña')]], $('login'))) return;
@@ -1238,16 +1245,51 @@ async function doLogin() {
     if (!res.ok) throw new Error(data.error || 'Error del servidor (' + res.status + ')');
     S.token = data.token; S.user = data.user;
     sessionStorage.setItem('token', S.token); sessionStorage.setItem('user', JSON.stringify(S.user));
+    try { localStorage.removeItem(NO_AUTO_KEY); } catch (e) {}
     $('lp').value = ''; initApp();
   } catch (e) { toast('No se pudo iniciar sesión', e.message.includes('fetch') ? 'Sin conexión con el servidor' : e.message, 'error'); }
 }
-function logout() { sessionStorage.removeItem('token'); sessionStorage.removeItem('user'); location.reload(); }
+async function entrarAutomaticamente() {
+  if (_entrandoAuto) return false;
+  _entrandoAuto = true; busy(1);
+  try {
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ACCESO_DEMO) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error del servidor (' + res.status + ')');
+    S.token = data.token; S.user = data.user;
+    sessionStorage.setItem('token', S.token); sessionStorage.setItem('user', JSON.stringify(S.user));
+    await initApp();
+    return true;
+  } catch (e) {
+    mostrarLogin();
+    toast('No se pudo abrir el sistema', e.message.includes('fetch') ? 'Sin conexión con el servidor' : e.message, 'error');
+    return false;
+  } finally { busy(-1); _entrandoAuto = false; }
+}
+function entrarSinContrasena() {
+  try { localStorage.removeItem(NO_AUTO_KEY); } catch (e) {}
+  entrarAutomaticamente();
+}
+function logout(motivo = 'manual') {
+  sessionStorage.removeItem('token'); sessionStorage.removeItem('user');
+  S.token = null; S.user = null;
+  if (motivo !== 'manual') {
+    // La sesión venció: se recarga la página y el ingreso automático la renueva.
+    try { localStorage.removeItem(NO_AUTO_KEY); } catch (e) {}
+    sessionStorage.removeItem('aviso');
+    location.reload();
+    return;
+  }
+  // Cierre solicitado por la persona: vuelve al formulario y no vuelve a entrar solo.
+  try { localStorage.setItem(NO_AUTO_KEY, '1'); } catch (e) {}
+  location.reload();
+}
 function programarSesion() {
   try {
     const exp = JSON.parse(atob(S.token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))).exp * 1000, ms = exp - Date.now();
-    if (ms <= 0) return logout();
+    if (ms <= 0) return logout('expirada');
     if (ms > 5 * 60000) setTimeout(() => toast('Su sesión vence en 5 minutos', 'Guarde su trabajo y vuelva a iniciar sesión', 'warn'), ms - 5 * 60000);
-    setTimeout(() => { sessionStorage.setItem('aviso', 'Su sesión expiró. Inicie sesión nuevamente.'); logout(); }, ms);
+    setTimeout(() => { sessionStorage.setItem('aviso', 'Su sesión expiró.'); logout('expirada'); }, ms);
   } catch (e) {}
 }
 function abrirPerfil() {
@@ -2302,8 +2344,10 @@ if (!navigator.onLine) $('offline').classList.add('show');
 
 // ===== Arranque =====
 const aviso = sessionStorage.getItem('aviso');
-if (aviso) { sessionStorage.removeItem('aviso'); mostrarLogin(); setTimeout(() => toast(aviso, '', 'warn'), 300); }
+if (aviso) sessionStorage.removeItem('aviso');
 if (S.token && S.user) initApp();
+else if (aviso || !noAuto()) entrarAutomaticamente();  // abre el sistema sin formulario
+else mostrarLogin();
 
 </script>
 </body>

@@ -28,14 +28,10 @@ fs.mkdirSync(OUT, { recursive: true });
   });
 
   await page.goto(BASE, { waitUntil: 'networkidle', timeout: 60000 });
-  await page.screenshot({ path: path.join(OUT, '00-landing.png'), fullPage: false });
-
-  await page.getByRole('button', { name: 'Ingresar al sistema' }).first().click();
-  await page.fill('#lu', 'admin');
-  await page.fill('#lp', 'admin123');
-  await page.click('#btnLogin');
+  // El sistema entra automáticamente al abrir el enlace; no hay formulario que llenar.
   await page.waitForSelector('#app', { state: 'visible', timeout: 30000 });
   await page.waitForTimeout(2500);
+  await page.screenshot({ path: path.join(OUT, '00-inicio.png'), fullPage: false });
   await page.screenshot({ path: path.join(OUT, '01-dashboard.png') });
 
   const vistas = await page.$$eval('a[data-view]', as => as.map(a => ({ v: a.dataset.view, t: a.textContent.trim() })));
