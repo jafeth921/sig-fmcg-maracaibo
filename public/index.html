@@ -1246,7 +1246,7 @@ function showView(id, el) {
   document.querySelectorAll('.sidebar nav a').forEach(a => a.classList.remove('active'));
   $('view-' + id).classList.add('active');
   (el || document.querySelector(`.sidebar nav a[data-view="${id}"]`))?.classList.add('active');
-  $('viewTitle').textContent = v.titulo;
+  $('viewTitle').textContent = id === 'dashboard' ? tituloInicio() : v.titulo;
   if (mobile.matches) toggleMenu(false);
   window.scrollTo({ top: 0 });
   if (v.alMostrar) Promise.resolve().then(() => v.alMostrar()).catch(e => toast('Error', e.message, 'error'));
@@ -2376,6 +2376,10 @@ function mostrarErrorArranque(msg) {
   $('bootErrorMsg').textContent = msg || 'Error desconocido';
   $('bootError').style.display = 'block';
 }
+function tituloInicio() {
+  return S.user?.rol === 'Gerente' ? 'Resumen general'
+    : S.user?.rol === 'Supervisor' ? 'Resumen de operación' : 'Mi jornada';
+}
 async function initApp() {
   $('landing').style.display = 'none'; $('login').style.display = 'none'; $('app').style.display = 'block';
   $('bootError').style.display = 'none';
@@ -2384,6 +2388,7 @@ async function initApp() {
   const claveRol = String(S.user.rol || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
   $('rolChip').textContent = S.user.rol;
   $('rolChip').className = 'rol-chip ' + claveRol;
+  $('viewTitle').textContent = tituloInicio();
   document.querySelectorAll('[data-roles]').forEach(a => { if (!a.dataset.roles.split(',').includes(S.user.rol)) a.style.display = 'none'; });
   resetMenu(); programarSesion();
   try {
@@ -2395,8 +2400,7 @@ async function initApp() {
   }
   renderTasa(); poblarSelects(); renderProductos(); renderPromos(); calcPedido(); onCobMetodo();
   showView('dashboard');
-  $('viewTitle').textContent = S.user.rol === 'Gerente' ? 'Resumen general'
-    : S.user.rol === 'Supervisor' ? 'Resumen de operación' : 'Mi jornada';
+  $('viewTitle').textContent = tituloInicio();
   setInterval(() => { if (!document.hidden && S.vista === 'dashboard') cargarKPIs().catch(() => {}); }, 60000);
   setInterval(async () => { if (document.hidden) return; try { S.tasa = await api('/tasa'); renderTasa(); } catch (e) {} }, 30 * 60000);
 }
