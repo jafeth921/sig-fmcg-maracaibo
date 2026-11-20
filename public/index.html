@@ -262,6 +262,25 @@ body.sb-collapsed .main{margin-left:0}
 .rate .val{font-weight:800;font-size:.92rem;white-space:nowrap}.rate .meta{font-size:.7rem;color:var(--muted);white-space:nowrap}
 .rate.stale{border-color:#F2C27A;background:var(--gold-l)}.rate.none{border-color:#F0B4B4;background:var(--bad-l)}
 .avatar{width:40px;height:40px;border-radius:50%;background:var(--primary);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;border:0;cursor:pointer;flex:none;font-size:.95rem}
+.rol-chip{display:inline-flex;align-items:center;gap:7px;padding:6px 11px;border-radius:999px;border:1px solid var(--line);background:#fff;color:var(--ink);font-size:.76rem;font-weight:800;cursor:pointer;white-space:nowrap;transition:.15s}
+.rol-chip:hover{box-shadow:0 6px 16px rgba(15,23,42,.12);transform:translateY(-1px)}
+.rol-chip::before{content:'';width:8px;height:8px;border-radius:50%;background:currentColor}
+.rol-chip::after{content:'▾';font-size:.65rem;opacity:.7}
+.rol-chip.gerente{color:var(--gold);border-color:#E9C88A;background:var(--gold-l)}
+.rol-chip.supervisor{color:var(--primary);border-color:#9CD8CE;background:var(--primary-l)}
+.rol-chip.preventista{color:var(--info);border-color:#B9C9F5;background:var(--info-l)}
+.perfiles{display:grid;gap:10px}
+.perfil-opcion{display:flex;align-items:center;gap:14px;width:100%;text-align:left;padding:14px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;transition:.15s}
+.perfil-opcion:hover{border-color:var(--primary);background:var(--primary-l);transform:translateY(-1px)}
+.perfil-opcion.activo{border-color:var(--primary);box-shadow:inset 4px 0 var(--primary)}
+.perfil-opcion .perfil-badge{flex:none;width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.82rem}
+.perfil-opcion b{display:block;font-size:.92rem}
+.perfil-opcion small{display:block;color:var(--muted);font-size:.76rem;margin-top:3px;line-height:1.35}
+.perfil-opcion i{margin-left:auto;font-style:normal;font-size:.72rem;font-weight:700;color:var(--primary);white-space:nowrap}
+.perfil-opcion.activo i{color:var(--ok)}
+.rol-gerente{background:var(--gold-l);color:var(--gold)}
+.rol-supervisor{background:var(--primary-l);color:var(--primary)}
+.rol-preventista{background:var(--info-l);color:var(--info)}
 .content{padding:22px calc(26px + var(--sar)) calc(40px + var(--sab)) calc(26px + var(--sal));max-width:1640px;margin:0 auto}
 .view-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
 .view-head h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
@@ -523,6 +542,7 @@ body.sb-collapsed .main{margin-left:0}
           <span id="rateBtns" style="display:none;gap:6px"><button class="btn ghost sm" onclick="lock(this,actualizarTasaBCV)" id="btnRate">Actualizar</button><button class="btn ghost sm" onclick="abrirTasa()">Fijar</button></span>
         </div>
         <span id="userLabel" class="hide-m" style="font-size:.84rem;color:var(--muted)"></span>
+        <button class="rol-chip" id="rolChip" onclick="abrirPerfiles()" aria-label="Ver y cambiar perfil" title="Ver y cambiar perfil">Gerente</button>
         <button class="avatar" id="avatar" onclick="abrirPerfil()" aria-label="Mi perfil">A</button>
       </div>
     </header>
@@ -1007,6 +1027,17 @@ body.sb-collapsed .main{margin-left:0}
   </div>
 </div>
 
+<div class="modal" id="modalPerfiles">
+  <div class="modal-card md" role="dialog" aria-modal="true" aria-label="Perfiles de acceso">
+    <div class="modal-h">Perfiles de acceso</div>
+    <div class="modal-b">
+      <p class="hint" style="margin:0 0 14px">Cambie de perfil para ver qué puede hacer cada rol. No se pide contraseña.</p>
+      <div class="perfiles" id="listaPerfiles"></div>
+    </div>
+    <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPerfiles')">Cerrar</button></div>
+  </div>
+</div>
+
 <div class="modal" id="modalPerfil">
   <div class="modal-card sm" role="dialog" aria-modal="true" aria-label="Mi perfil">
     <div class="modal-h">Mi perfil</div>
@@ -1232,7 +1263,12 @@ function descargarCSV(nombre, cabecera, filas) {
 // ===== Sesión =====
 // Ingreso automático: al abrir el enlace se entra directamente con el usuario de
 // demostración. Si el servidor no responde, se muestra el formulario de acceso.
-const ACCESO_DEMO = { usuario: 'admin', password: 'admin123' };
+const PERFILES = [
+  { usuario: 'admin', password: 'admin123', rol: 'Gerente', clave: 'gerente', desc: 'Configura usuarios, empresa, tasa y ve toda la operación.' },
+  { usuario: 'maria', password: 'maria123', rol: 'Supervisor', clave: 'supervisor', desc: 'Organiza zonas, productos, inventario y revisa la operación.' },
+  { usuario: 'pedro', password: 'pedro123', rol: 'Preventista', clave: 'preventista', desc: 'Visitas, pedidos, entregas y cobros en campo.' }
+];
+const ACCESO_DEMO = PERFILES[0];
 const NO_AUTO_KEY = 'rutix.noAuto';
 let _entrandoAuto = false;
 const noAuto = () => { try { return localStorage.getItem(NO_AUTO_KEY) === '1'; } catch (e) { return false; } };
@@ -1269,6 +1305,28 @@ async function entrarAutomaticamente() {
 function entrarSinContrasena() {
   try { localStorage.removeItem(NO_AUTO_KEY); } catch (e) {}
   entrarAutomaticamente();
+}
+function abrirPerfiles() {
+  const actual = S.user?.rol;
+  $('listaPerfiles').innerHTML = PERFILES.map(p => `
+    <button class="perfil-opcion ${p.rol === actual ? 'activo' : ''}" onclick="cambiarPerfil('${p.usuario}')">
+      <span class="perfil-badge rol-${p.clave}">${p.rol.slice(0, 2).toUpperCase()}</span>
+      <span><b>${esc(p.rol)}</b><small>${esc(p.desc)}</small></span>
+      <i>${p.rol === actual ? 'Activo' : 'Entrar ›'}</i>
+    </button>`).join('');
+  openModal('modalPerfiles');
+}
+async function cambiarPerfil(usuario) {
+  const p = PERFILES.find(x => x.usuario === usuario); if (!p) return;
+  try {
+    const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ usuario: p.usuario, password: p.password }) });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || 'Error del servidor');
+    sessionStorage.setItem('token', data.token);
+    sessionStorage.setItem('user', JSON.stringify(data.user));
+    try { localStorage.removeItem(NO_AUTO_KEY); } catch (e) {}
+    location.reload();
+  } catch (e) { toast('No se pudo cambiar el perfil', e.message, 'error'); }
 }
 function logout(motivo = 'manual') {
   sessionStorage.removeItem('token'); sessionStorage.removeItem('user');
@@ -2321,7 +2379,11 @@ function mostrarErrorArranque(msg) {
 async function initApp() {
   $('landing').style.display = 'none'; $('login').style.display = 'none'; $('app').style.display = 'block';
   $('bootError').style.display = 'none';
-  $('userLabel').textContent = S.user.nombre + ' · ' + S.user.rol; $('avatar').textContent = S.user.nombre[0].toUpperCase();
+  $('userLabel').textContent = S.user.nombre;
+  $('avatar').textContent = S.user.nombre[0].toUpperCase();
+  const claveRol = String(S.user.rol || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  $('rolChip').textContent = S.user.rol;
+  $('rolChip').className = 'rol-chip ' + claveRol;
   document.querySelectorAll('[data-roles]').forEach(a => { if (!a.dataset.roles.split(',').includes(S.user.rol)) a.style.display = 'none'; });
   resetMenu(); programarSesion();
   try {
@@ -2333,6 +2395,8 @@ async function initApp() {
   }
   renderTasa(); poblarSelects(); renderProductos(); renderPromos(); calcPedido(); onCobMetodo();
   showView('dashboard');
+  $('viewTitle').textContent = S.user.rol === 'Gerente' ? 'Resumen general'
+    : S.user.rol === 'Supervisor' ? 'Resumen de operación' : 'Mi jornada';
   setInterval(() => { if (!document.hidden && S.vista === 'dashboard') cargarKPIs().catch(() => {}); }, 60000);
   setInterval(async () => { if (document.hidden) return; try { S.tasa = await api('/tasa'); renderTasa(); } catch (e) {} }, 30 * 60000);
 }

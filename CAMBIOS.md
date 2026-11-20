@@ -96,6 +96,15 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
   iniciar sesión con otro usuario.
 - Si una sesión expira mientras se trabaja, se renueva sola al recargar.
 
+## Diferencia visible entre los tres roles
+
+- La barra superior muestra una **insignia de color** con el perfil activo:
+  dorado para Gerente, verde para Supervisor y azul para Preventista.
+- Al hacer clic en la insignia se abre **Perfiles de acceso**, donde se explica qué
+  hace cada rol y se puede cambiar entre ellos sin contraseña.
+- El título del inicio cambia según el perfil: *Resumen general*, *Resumen de operación*
+  o *Mi jornada*. El menú sigue mostrando solo las opciones permitidas para cada rol.
+
 ## Verificación
 
 - **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,
