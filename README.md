@@ -50,7 +50,7 @@ teselas de OpenStreetMap; el resto funciona sin conexión.
 ## 2. Pruebas
 
 ```bash
-npm test            # levanta un servidor temporal y prueba toda la API (82 casos)
+npm test            # levanta un servidor temporal y prueba toda la API (105 casos)
 npm run test:api    # igual, contra un servidor ya iniciado en :3000
 npm run test:ui     # recorre las 18 vistas en Chromium y reporta errores JS
 npm run test:roles  # menú por rol, permisos y pedido en vista móvil (390x844)
@@ -124,9 +124,9 @@ conexión (con `sslmode=require`) en `POSTGRES_URL` o `DATABASE_URL` y redesplie
 |--------|-------------|
 | Dashboard | KPIs de ventas, cuentas por cobrar, entregas a tiempo, productos en anaquel, retornabilidad y alertas. |
 | Puntos de venta | RIF validado (módulo 11) con ayuda y máscara segura, zonas, canal, nivel comercial con rango de crédito y límites de pedidos. |
-| Mapa y visitas | Check-in validado por radio configurable (50 m por defecto) y registro de visitas. |
-| Tomar pedido | Promociones por volumen y vencimiento, venta sugerida con motivo visible, IVA e IGTF. |
-| Entregas a tiempo | Entrega total/parcial, devolución de faltantes al stock y puntualidad. |
+| Mapa y visitas | Check-in con la ubicación real del dispositivo, validado por radio configurable (50 m por defecto). Ya no existe la opción de simularlo. |
+| Tomar pedido | Promociones por volumen y vencimiento, venta sugerida con motivo visible, IVA e IGTF. El pago se registra aquí. |
+| Entregas a tiempo | Entrega total/parcial con ajuste automático de dinero y stock, devolución de faltantes y puntualidad. |
 | Ruteo | Vecino más cercano + 2-opt, capacidad del camión y tiempos estimados. |
 | Inventario | Lotes, FIFO, vencimientos, ajustes, movimientos y stock mínimo. |
 | Proveedores | RIF, contactos, compras y entradas de mercancía. |
@@ -135,7 +135,7 @@ conexión (con `sslmode=require`) en `POSTGRES_URL` o `DATABASE_URL` y redesplie
 | Retornables | Envases entregados/recibidos e índice de retornabilidad. |
 | Auditoría RED | Conteo de frentes, share y fotografía del anaquel. |
 | Comodatos | Neveras y exhibidores con mantenimiento. |
-| Mermas | Registro con o sin descuento de inventario. |
+| Mermas | Registro con o sin descuento de inventario; solo un Gerente o Supervisor puede descontar stock. |
 | Administración | Productos, promociones, usuarios, bitácora y parámetros fiscales. |
 
 **Niveles de crédito sugerido:** Detalle hasta 500 USD, Mini mayorista hasta 2.000,
@@ -144,7 +144,44 @@ es 100.000 USD y un monto fuera del rango requiere confirmación explícita.
 
 ---
 
-## 5. Estructura
+## 5. Auditoría y versiones
+
+Esta entrega deja **dos versiones**, sin reemplazar la que ya estaba publicada:
+
+| Versión | Cómo identificarla | Ubicación |
+|---------|--------------------|-----------|
+| Anterior (publicada antes de la auditoría) | Etiqueta `version-anterior-c992f71` | ZIP `sig-fmcg-VERSION-ANTERIOR-c992f71.zip` junto al proyecto |
+| Nueva (corregida) | Rama `mejoras-auditoria` | Este código, desplegado en los tres enlaces |
+
+Para volver a la anterior sin borrar nada:
+
+```bash
+git checkout version-anterior-c992f71
+```
+
+**Qué se corrigió en la nueva versión**
+
+- **Dinero:** rechazar o entregar parcialmente ya reversa cobros y cuentas por cobrar. El
+  IGTF se calcula por pago, así que los PDF siguen cuadrando aunque haya varias divisas.
+- **Duplicados:** un check-in o pedido repetido con el mismo identificador devuelve
+  `409` en vez de crear otro registro.
+- **Permisos:** el Preventista ya no puede crear locals, dar mantenimiento ni descontar
+  stock; solo opera lo suyo. Un crédito fuera del rango requiere autorización de Gerente.
+- **Errores:** respuestas 500 ya no muestran detalles internos. Las sesiones se revocan
+  al cambiar la clave.
+- **Interfaz:** pasos 2 y 3 explican que el pago se hace al tomar el pedido; el check-in
+  usa ubicación real; los campos inválidos se anuncian, los modales atrapan el foco y el
+  menú oculto ya no se tabula.
+- **Cabeceras:** se añadió una política de seguridad (CSP) que permite solo los recursos
+  usados por la aplicación.
+
+**Riesgo pendiente solo para datos reales:** el ingreso automático y el selector de
+perfiles se conservan porque son parte de la demostración. Si el sistema llega a manejar
+información real, deben quitarse y exigir usuario y contraseña.
+
+---
+
+## 6. Estructura
 
 ```
 api/index.js          API Express + esquema y datos iniciales
@@ -163,20 +200,24 @@ guarda en `config.schema_v` y las migraciones conservan los datos existentes.
 
 ---
 
-## 6. Seguridad
+## 7. Seguridad
 
-- Contraseñas con bcrypt; sesiones JWT de 8 horas.
+- Contraseñas con bcrypt; sesiones JWT de 8 horas, revocables al cambiar la clave.
 - Bloqueo temporal tras 5 intentos fallidos de inicio de sesión.
-- Roles: Gerente, Supervisor y Preventista, validados en el servidor.
-- Validación de RIF venezolano con dígito verificador.
-- Bitácora de las acciones importantes.
+- Roles: Gerente, Supervisor y Preventista, validados en el servidor, incluso sobre
+  los objetos de cada usuario (no basta con estar autenticado).
+- Validación de RIF venezolano con dígito verificador (módulo 11).
+- Bitácora de las acciones importantes, incluidos créditos fuera de rango.
+- Idempotencia por usuario: repetir una acción no duplica datos.
+- Errores 500 sin mensajes internos; solo el servidor ve el detalle.
+- Política de seguridad (CSP) y cabeceras que impiden incrustar la página en otro sitio.
 - Todas las consultas usan parámetros (sin concatenar SQL).
 - `JWT_SECRET` nunca tiene un valor fijo por defecto: se toma del entorno o se genera
   y guarda por base de datos.
 
 ---
 
-## 7. Problemas frecuentes
+## 8. Problemas frecuentes
 
 **`/api/health` responde 503 y `missing_connection_string`**
 No hay base conectada. Siga los pasos de la sección 3.

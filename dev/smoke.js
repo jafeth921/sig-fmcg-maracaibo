@@ -48,10 +48,31 @@ function check(nombre, r, esperado = 200, validar) {
   check('GET /api/zonas', await req('GET', '/api/zonas', undefined, T), 200, d => d.length >= 3);
   const prods = check('GET /api/productos', await req('GET', '/api/productos', undefined, T), 200, d => d.length >= 3);
   check('GET /api/productos?todos=1', await req('GET', '/api/productos?todos=1', undefined, T), 200);
-  check('GET /api/promociones', await req('GET', '/api/promociones', undefined, T), 200);
+  const promos = check('GET /api/promociones', await req('GET', '/api/promociones', undefined, T), 200);
   const pdvs = check('GET /api/pdvs', await req('GET', '/api/pdvs', undefined, T), 200, d => d.length >= 3);
   check('GET /api/pdvs?zona_id=1', await req('GET', '/api/pdvs?zona_id=1', undefined, T), 200);
-  check('GET /api/inventario', await req('GET', '/api/inventario', undefined, T), 200, d => d.lotes.length > 0);
+  const inv0 = check('GET /api/inventario', await req('GET', '/api/inventario', undefined, T), 200, d => d.lotes.length > 0);
+  // Total esperado calculado desde los datos que ve el usuario, sin leer mensajes de error.
+  const r2s = n => Math.round((n + Number.EPSILON) * 100) / 100;
+  const totalEsperado = items => {
+    const hoyS = new Date().toISOString().slice(0, 10);
+    const limS = new Date(Date.now() + 30 * 86400000).toISOString().slice(0, 10);
+    let base = 0, iva = 0;
+    for (const it of items) {
+      const pr = prods.find(x => x.id === it.producto_id);
+      const sub = r2s(pr.precio * it.cantidad);
+      const activas = (promos || []).filter(x => x.activa !== false);
+      const vol = activas.find(x => x.producto_id === pr.id && x.tipo === 'Volumen' && it.cantidad >= x.min_cantidad);
+      const corto = (inv0.lotes || []).filter(l => l.producto_id === pr.id && l.fecha_vencimiento && l.fecha_vencimiento >= hoyS && l.fecha_vencimiento <= limS)
+        .reduce((s, l) => s + (+l.cantidad_actual || 0), 0);
+      const sd = activas.find(x => x.producto_id === pr.id && x.tipo === 'ShortDate' && corto > 0);
+      const desc = r2s(Math.min(sub, sub * (vol ? vol.descuento_pct : 0) / 100 + (sd ? Math.min(it.cantidad, corto) * pr.precio * sd.descuento_pct / 100 : 0)));
+      const lb = r2s(sub - desc);
+      const pct = pr.alicuota === 'E' ? 0 : pr.alicuota === 'R' ? cfg.fiscal.iva_reducida : cfg.fiscal.iva_general;
+      base += lb; iva += r2s(lb * pct / 100);
+    }
+    return r2s(r2s(base) + r2s(iva));
+  };
   check('GET /api/inventario/movimientos', await req('GET', '/api/inventario/movimientos', undefined, T), 200);
   check('GET /api/proveedores', await req('GET', '/api/proveedores', undefined, T), 200, d => d.length >= 2);
   check('GET /api/entregas', await req('GET', '/api/entregas', undefined, T), 200);
@@ -74,12 +95,25 @@ function check(nombre, r, esperado = 200, validar) {
   check('Preventista no ve bitácora', await req('GET', '/api/bitacora', undefined, p), 403);
   check('Preventista no crea productos', await req('POST', '/api/productos', { codigo: 'X1', nombre: 'X', precio: 1, alicuota: 'G', peso_kg: 1 }, p), 403);
   check('Supervisor no gestiona usuarios', await req('GET', '/api/usuarios', undefined, m), 403);
+  check('Preventista no crea PDV', await req('POST', '/api/pdvs', {
+    rif: pdvs[0].rif, nombre: 'PDV no permitido', zona_id: 1, canal: 'Abasto/Bodega',
+    lat: 10.64, lng: -71.61, geofence_radio_m: 50, limite_pedidos: 5, periodo_limite: 'Semanal'
+  }, p), 403);
+  check('Preventista no descuenta stock por merma', await req('POST', '/api/mermas', {
+    producto_id: prods[0].id, cantidad: 1, causa: 'Rotura'
+  }, p), 403);
+  const cfgP = await req('GET', '/api/config', undefined, p);
+  check('Preventista no ve datos privados de configuración', cfgP, 200,
+    d => d.fiscal.emp_rif && d.fiscal.iva_general === cfg.fiscal.iva_general && d.fiscal.comp_prefijo === undefined);
+  const invP = await req('GET', '/api/inventario', undefined, p);
+  check('Preventista no ve costos ni RIF de proveedor', invP, 200,
+    d => d.lotes.every(l => l.costo_usd == null && l.proveedor_rif == null));
 
   console.log('\nVisitas / geofencing');
   const pdv1 = pdvs[0];
   const idemVisita = 'smoke-visita-' + Date.now();
   const v1 = check('check-in dentro del radio', await req('POST', '/api/visitas/checkin', { pdv_id: pdv1.id, lat: pdv1.lat, lng: pdv1.lng, idem: idemVisita }, p), 200, d => d.id > 0);
-  check('check-in idempotente', await req('POST', '/api/visitas/checkin', { pdv_id: pdv1.id, lat: pdv1.lat, lng: pdv1.lng, idem: idemVisita }, p), 200, d => d.duplicado === true);
+  check('check-in repetido rechazado', await req('POST', '/api/visitas/checkin', { pdv_id: pdv1.id, lat: pdv1.lat, lng: pdv1.lng, idem: idemVisita }, p), 409, d => /ya fue registrado/i.test(d.error || ''));
   check('check-in fuera del radio', await req('POST', '/api/visitas/checkin', { pdv_id: pdv1.id, lat: pdv1.lat + 0.01, lng: pdv1.lng }, p), 400);
 
   console.log('\nPedidos');
@@ -93,32 +127,31 @@ function check(nombre, r, esperado = 200, validar) {
   check('pedido vacío rechazado', await req('POST', '/api/pedidos', { pdv_id: pdv1.id, items: [] }, p), 400);
   check('pedido sin pago rechazado', await req('POST', '/api/pedidos', { pdv_id: pdv1.id, items: pedidoBase.items, pagos: [] }, p), 400);
 
-  const f = cfg.fiscal, g = f.igtf_activo ? f.igtf_pct / 100 : 0;
-  // El servidor calcula el total (promociones + IVA + IGTF). Para no duplicar esa
-  // fórmula en la prueba, se usa el total que devuelve el propio error de cuadre.
-  let idemPedido = 'smoke-pedido-' + Date.now();
-  const intento = await req('POST', '/api/pedidos', { ...pedidoBase, idem: idemPedido }, p);
-  const totalDetectado = Number((String(intento.data && intento.data.error || '').match(/pedido \(([\d.]+) USD\)/) || [])[1]);
-  console.log(`  (total calculado por el servidor: ${totalDetectado} USD)`);
+  const g = cfg.fiscal.igtf_activo ? cfg.fiscal.igtf_pct / 100 : 0;
+  const pagoEnUSD = total => r2s(total * (1 + g));   // Efectivo USD recibe IGTF como cualquier divisa
+  const totalDetectado = totalEsperado(pedidoBase.items);
+  console.log(`  (total esperado calculado en la prueba: ${totalDetectado} USD)`);
+  const pagoPedido = pagoEnUSD(totalDetectado);
+  const idemPedido = 'smoke-pedido-' + Date.now();
 
   const ped = check('crear pedido', await req('POST', '/api/pedidos', {
-    ...pedidoBase, pagos: [{ metodo: 'Efectivo USD', monto: Math.round(totalDetectado * (1 + g) * 100) / 100 }], idem: idemPedido
+    ...pedidoBase, pagos: [{ metodo: 'Efectivo USD', monto: pagoPedido }], idem: idemPedido
   }, p), 200, d => d.id > 0 && Math.abs(d.total - totalDetectado) < 0.02);
   if (ped && ped.id) {
-    check('pedido idempotente', await req('POST', '/api/pedidos', {
-      ...pedidoBase, pagos: [{ metodo: 'Efectivo USD', monto: Math.round(totalDetectado * (1 + g) * 100) / 100 }], idem: idemPedido
-    }, p), 200, d => d.duplicado === true);
+    check('pedido repetido rechazado', await req('POST', '/api/pedidos', {
+      ...pedidoBase, pagos: [{ metodo: 'Efectivo USD', monto: pagoPedido }], idem: idemPedido
+    }, p), 409, d => /ya fue registrado/i.test(d.error || ''));
     check('comprobante válido', await req('GET', `/api/pedidos/${ped.id}/comprobante`, undefined, T), 200, d => d.validacion.ok);
     check('GET /api/pedidos', await req('GET', '/api/pedidos', undefined, T), 200, d => d.some(x => x.id === ped.id));
   }
 
   // Pedido a crédito y cobranza
-  const credIn = await req('POST', '/api/pedidos', { pdv_id: pdv1.id, items: [{ producto_id: ref.id, cantidad: 1 }], pagos: [{ metodo: 'Crédito', monto: 0.01 }] }, p);
-  const totalCred = Number((String(credIn.data && credIn.data.error || '').match(/pedido \(([\d.]+) USD\)/) || [])[1]);
+  const itemsCred = [{ producto_id: ref.id, cantidad: 1 }];
+  const totalCred = totalEsperado(itemsCred);
   const pedCred = check('pedido a crédito', await req('POST', '/api/pedidos', {
     pdv_id: pdv1.id,
-    items: [{ producto_id: ref.id, cantidad: 1 }],
-    pagos: [{ metodo: 'Crédito', monto: totalCred }]
+    items: itemsCred,
+    pagos: [{ metodo: 'Crédito', monto: r2s(totalCred) }]
   }, p), 200, d => d.id > 0);
   if (pedCred && pedCred.id) {
     check('abono de crédito', await req('POST', '/api/cobranza', { pdv_id: pdv1.id, metodo: 'Efectivo Bs', monto: 10, referencia: '' }, p), 200, d => d.saldo >= 0);
@@ -127,12 +160,35 @@ function check(nombre, r, esperado = 200, validar) {
 
   console.log('\nEntregas');
   const ent = check('GET entregas con pendientes', await req('GET', '/api/entregas', undefined, p), 200);
-  const pend = (ent.pendientes || [])[0];
+  const pend = (ent.pendientes || []).find(x => x.items.some(i => i.cantidad > 1)) || (ent.pendientes || [])[0];
   if (pend) {
-    check('entrega parcial', await req('POST', `/api/pedidos/${pend.id}/entrega`, {
-      items: pend.items.map((x, i) => ({ id: x.id, cantidad_entregada: i === 0 ? Math.max(0, x.cantidad - 1) : x.cantidad }))
-    }, p), 200, d => ['Entregado', 'Entregado parcial'].includes(d.estado));
+    check('entrega parcial con ajuste financiero', await req('POST', `/api/pedidos/${pend.id}/entrega`, {
+      items: pend.items.map((x, i) => ({ id: x.id, cantidad_entregada: i === 0 && x.cantidad > 1 ? x.cantidad - 1 : x.cantidad }))
+    }, p), 200, d => d.estado === 'Entregado parcial' && d.faltante_usd > 0 && d.ajustado === true && d.entregado_usd < pend.total);
     check('entrega repetida rechazada', await req('POST', `/api/pedidos/${pend.id}/entrega`, {}, p), 409);
+    check('comprobante de entrega parcial válido', await req('GET', `/api/pedidos/${pend.id}/comprobante`, undefined, T), 200, d => d.validacion.ok);
+  }
+
+  console.log('\nRechazo sin cobro');
+  const saldoDe = async id => ((await req('GET', '/api/cobranza', undefined, T)).data || []).find(x => x.id === id)?.saldo || 0;
+  const saldoAntes = await saldoDe(pdv1.id);
+  const itemsRech = [{ producto_id: ref.id, cantidad: 2 }];
+  const pedRech = check('pedido a crédito para rechazar', await req('POST', '/api/pedidos', {
+    pdv_id: pdv1.id, items: itemsRech,
+    pagos: [{ metodo: 'Crédito', monto: r2s(totalEsperado(itemsRech)) }]
+  }, p), 200, d => d.id > 0);
+  if (pedRech && pedRech.id) {
+    const pendientes = (await req('GET', '/api/entregas', undefined, T)).data.pendientes || [];
+    const lineaRech = pendientes.find(x => x.id === pedRech.id);
+    check('rechazo reversa dinero', await req('POST', `/api/pedidos/${pedRech.id}/entrega`, {
+      items: (lineaRech ? lineaRech.items : []).map(x => ({ id: x.id, cantidad_entregada: 0 }))
+    }, p), 200, d => d.estado === 'Rechazado' && d.faltante_usd > 0 && d.ajustado === true);
+    const compRech = (await req('GET', `/api/pedidos/${pedRech.id}/comprobante`, undefined, T)).data;
+    check('comprobante de rechazo sin cobro', { status: 200, data: compRech }, 200,
+      d => d.totales.total === 0 && Math.abs(d.pagos.reduce((s, x) => s + x.monto_usd, 0)) < 0.02);
+    const saldoDespues = await saldoDe(pdv1.id);
+    check('rechazo no deja saldo por cobrar', { status: 200, data: { saldoAntes, saldoDespues } }, 200,
+      d => Math.abs(d.saldoDespues - d.saldoAntes) < 0.02);
   }
 
   console.log('\nInventario y proveedores');
@@ -155,16 +211,39 @@ function check(nombre, r, esperado = 200, validar) {
   check('auditoría RED', await req('POST', '/api/red', { pdv_id: pdv1.id, asignados: 10, propios: 7, competencia: 3 }, p), 200, d => d.cumplimiento_pct === 70);
   check('RED inválida', await req('POST', '/api/red', { pdv_id: pdv1.id, asignados: 0, propios: 0, competencia: 0 }, p), 400);
   const com = (await req('GET', '/api/comodatos', undefined, T)).data || [];
-  if (com.length) check('mantenimiento de activo', await req('POST', `/api/comodatos/${com[0].id}/mantenimiento`, {}, p), 200);
+  if (com.length) {
+    check('Preventista no da mantenimiento', await req('POST', `/api/comodatos/${com[0].id}/mantenimiento`, {}, p), 403);
+    check('mantenimiento de activo', await req('POST', `/api/comodatos/${com[0].id}/mantenimiento`, {}, T), 200);
+  }
 
   console.log('\nRuteo y despacho');
+  // Se deja un pedido confirmado nuevo para que el despacho tenga algo pendiente
+  // después de las entregas de la sección anterior.
+  const itemsRuta = [{ producto_id: ref.id, cantidad: 1 }];
+  check('pedido para despachar', await req('POST', '/api/pedidos', {
+    pdv_id: pdvs[1].id, items: itemsRuta,
+    pagos: [{ metodo: 'Efectivo USD', monto: pagoEnUSD(totalEsperado(itemsRuta)) }]
+  }, p), 200, d => d.id > 0);
   const vrp = check('calcular ruta', await req('POST', '/api/vrp', { pdv_ids: pdvs.slice(0, 3).map(x => x.id), capacidad_kg: 2000 }, p), 200, d => d.ruta.length >= 3);
   if (vrp) check('ruta con supuestos', { status: 200, data: vrp }, 200, d => d.total_km >= 0 && d.duracion_min >= 0);
-  check('despachar ruta', await req('POST', '/api/despachos', { pdv_ids: pdvs.slice(0, 3).map(x => x.id) }, p), 200);
+  check('Preventista no despacha ruta', await req('POST', '/api/despachos', { pdv_ids: pdvs.slice(0, 3).map(x => x.id) }, p), 403);
+  check('despachar ruta', await req('POST', '/api/despachos', { pdv_ids: pdvs.slice(0, 3).map(x => x.id) }, T), 200);
+
+  console.log('\nPago digital e IGTF');
+  const itemsDig = [{ producto_id: agua.id, cantidad: 1 }];
+  const montoDig = pagoEnUSD(totalEsperado(itemsDig));
+  const pedDig = check('pedido con pago digital', await req('POST', '/api/pedidos', {
+    pdv_id: pdv1.id, items: itemsDig,
+    pagos: [{ metodo: 'Zelle', monto: montoDig, referencia: 'ZEL-' + Date.now().toString().slice(-8) }]
+  }, p), 200, d => d.igtf_usd > 0 && d.pagos.some(x => x.igtf_usd > 0));
+  if (pedDig && pedDig.id) check('IGTF dividido cuadra', { status: 200, data: pedDig }, 200,
+    d => Math.abs(d.pagos.reduce((s, x) => s + x.monto_usd + x.igtf_usd, 0) - d.total - d.igtf_usd) < 0.02);
 
   console.log('\nCierre de caja');
   const resumen = check('resumen de caja', await req('GET', '/api/liquidaciones/resumen', undefined, p), 200, d => Array.isArray(d.filas));
   if (resumen) {
+    check('resumen incluye IGTF digital', { status: 200, data: resumen }, 200,
+      d => d.digital_usd >= montoDig - 0.02 && d.filas.some(f => f.metodo === 'Zelle' && f.igtf_usd > 0));
     const r = await req('POST', '/api/liquidaciones', {
       efectivo_usd: resumen.esperado_usd, efectivo_bs: resumen.esperado_bs, observaciones: 'Prueba automatizada'
     }, p);
@@ -204,10 +283,41 @@ function check(nombre, r, esperado = 200, validar) {
     lat: 10.64, lng: -71.61, geofence_radio_m: 50, limite_pedidos: 5, periodo_limite: 'Semanal'
   }, T), 400);
 
+  const pdvAlto = {
+    rif: pdv1.rif, nombre: 'Crédito alto ' + Date.now(), zona_id: pdv1.zona_id, canal: pdv1.canal,
+    nivel_cliente: 'Detalle', lat: pdv1.lat, lng: pdv1.lng, geofence_radio_m: pdv1.geofence_radio_m,
+    limite_credito: 8000, credito_fuera_rango: true, limite_pedidos: 5, periodo_limite: 'Semanal'
+  };
+  check('Supervisor no autoriza crédito fuera de rango', await req('POST', '/api/pdvs', pdvAlto, m), 400,
+    d => /Solo un Gerente/i.test(d.error || ''));
+  const pdvAutorizado = check('Gerente autoriza crédito fuera de rango', await req('POST', '/api/pdvs', pdvAlto, T), 200, d => d.id > 0);
+  if (pdvAutorizado && pdvAutorizado.id) {
+    const listaPDV = (await req('GET', '/api/pdvs', undefined, T)).data || [];
+    check('autorización queda registrada', { status: 200, data: listaPDV.find(x => x.id === pdvAutorizado.id) || {} }, 200,
+      d => d.credito_autorizado === 1);
+  }
+
   const usr = check('crear usuario', await req('POST', '/api/usuarios', {
     nombre: 'Usuario Prueba', usuario: 'prueba' + Date.now().toString().slice(-5), password: 'clave1234', rol: 'Preventista'
   }, T), 200, d => d.id > 0);
   if (usr && usr.id) check('editar usuario', await req('PUT', `/api/usuarios/${usr.id}`, { nombre: 'Usuario Prueba 2', activo: false }, T), 200);
+
+  const usuarioToken = 'token' + Date.now().toString().slice(-6);
+  const usrToken = check('crear usuario para probar sesiones', await req('POST', '/api/usuarios', {
+    nombre: 'Sesión Prueba', usuario: usuarioToken, password: 'clave1234', rol: 'Preventista'
+  }, T), 200, d => d.id > 0);
+  if (usrToken && usrToken.id) {
+    const lg = await login(usuarioToken, 'clave1234');
+    check('login de usuario temporal', { status: 200, data: lg }, 200, d => d.token);
+    if (lg && lg.token) {
+      check('cambiar clave propia', await req('POST', '/api/me/password', {
+        actual: 'clave1234', nueva: 'nueva1234'
+      }, lg.token), 200, d => d.sesiones_cerradas === true);
+      check('token anterior queda revocado', await req('GET', '/api/config', undefined, lg.token), 401);
+      const lg2 = await login(usuarioToken, 'nueva1234');
+      check('login con clave nueva', { status: 200, data: lg2 }, 200, d => d.token);
+    }
+  }
 
   check('cambiar contraseña (actual incorrecta)', await req('POST', '/api/me/password', { actual: 'mal', nueva: 'nueva1234' }, p), 400);
   check('empresa (datos inválidos)', await req('PUT', '/api/empresa', { emp_razon: 'X', emp_rif: 'J-1', iva_general: 16, iva_reducida: 8, igtf_pct: 3, comp_prefijo: 'CMP' }, T), 400);

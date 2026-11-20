@@ -91,8 +91,13 @@ label{display:block;font-size:.72rem;font-weight:700;color:var(--muted);margin-b
 .invalid input:focus,.invalid select:focus{box-shadow:0 0 0 3px rgba(185,28,28,.15)}
 .prod.invalid{border-color:var(--bad)}
 .err{color:var(--bad);font-size:.74rem;margin-top:4px;font-weight:500}
-.help{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;margin-left:5px;border-radius:50%;border:1px solid #CBD3DF;background:#fff;color:var(--muted);font-size:.65rem;font-weight:800;cursor:help;vertical-align:middle;text-transform:none;letter-spacing:0}
-.help:hover{color:var(--primary);border-color:var(--primary)}
+.help{position:relative;display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;min-width:24px;min-height:24px;margin-left:5px;padding:0;border-radius:50%;border:1px solid #64748B;background:#fff;color:#334155;font-size:.75rem;font-weight:800;cursor:help;vertical-align:middle;text-transform:none;letter-spacing:0}
+.help::before{content:'';position:absolute;inset:-10px}
+.help:hover,.help:focus-visible{color:var(--primary-d);border-color:var(--primary-d);background:#ECFDF5}
+.help:hover::after,.help:focus-visible::after{content:attr(title);position:absolute;left:50%;bottom:calc(100% + 12px);transform:translateX(-50%);width:max-content;max-width:230px;white-space:normal;background:#0F172A;color:#fff;padding:8px 10px;border-radius:8px;font-size:.74rem;font-weight:500;line-height:1.35;text-align:left;box-shadow:0 8px 20px rgba(0,0,0,.25);z-index:60}
+.foto-zona{width:100%;border:2px dashed #64748B;border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;margin-bottom:12px;background:#F8FAFC;color:var(--ink);font:inherit}
+.foto-zona:hover,.foto-zona:focus-visible{border-color:var(--primary-d);background:#ECFDF5}
+.foto-zona b{display:block;font-size:.9rem}.foto-zona span{display:block;color:#475569;margin-top:6px;font-size:.82rem}
 .step-tag{display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:999px;font-size:.68rem;font-weight:800;letter-spacing:.4px;text-transform:uppercase;margin-bottom:8px}
 .step-tag.registro{background:var(--info-l);color:var(--info)}
 .step-tag.pedido{background:var(--primary-l);color:var(--primary)}
@@ -264,7 +269,7 @@ body.sb-collapsed .main{margin-left:0}
 .topbar{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding:calc(10px + var(--sat)) calc(24px + var(--sar)) 10px calc(24px + var(--sal));display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;transition:box-shadow .2s}
 .topbar.scrolled{box-shadow:0 8px 24px rgba(15,23,42,.09)}
 .tl{display:flex;align-items:center;gap:12px;min-width:0}
-.topbar h4{font-size:1.1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.topbar h1{font-size:1.1rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0}
 .icon-btn{width:42px;height:42px;border-radius:10px;border:1px solid var(--line);background:#fff;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;flex:none;padding:0}
 .icon-btn:hover{background:#F6F8FA}.icon-btn span{display:block;width:18px;height:2px;background:var(--ink);border-radius:2px}
 .tools{display:flex;align-items:center;gap:10px}
@@ -294,7 +299,7 @@ body.sb-collapsed .main{margin-left:0}
 .rol-preventista{background:var(--info-l);color:var(--info)}
 .content{padding:22px calc(26px + var(--sar)) calc(40px + var(--sab)) calc(26px + var(--sal));max-width:1640px;margin:0 auto}
 .view-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:18px}
-.view-head h1{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--ink)}
+.view-head h1,.view-head h2{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--ink);margin:0}
 .view-head p{font-size:.82rem;color:var(--muted);margin-top:4px;text-transform:capitalize}
 .view{display:none}.view.active{display:block;animation:fd .22s ease}
 @keyframes fd{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
@@ -354,7 +359,7 @@ body.sb-collapsed .main{margin-left:0}
   .ld-links a{display:none}.ld-wrap{padding:0 18px}.ld-sec{padding:48px 0}
 }
 @media (max-width:640px){.ld-grid,.ld-steps{grid-template-columns:1fr}.ld-stats{gap:10px 16px}.ld-feat.hero{grid-column:1;grid-template-columns:1fr;padding:24px}.ld-feat.hero h3{font-size:1.18rem}.ld-hero-mini{min-height:150px}.ld-foot{flex-direction:column;text-align:center;justify-content:center}.ld-foot-links{justify-content:center}.ld-band .btn{display:block;margin:8px auto;width:100%;max-width:300px}.view-head{align-items:flex-start}}
-@media (max-width:560px){.g5,.g4{grid-template-columns:1fr 1fr}.kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}.topbar h4{font-size:1rem}.fgrid{grid-template-columns:1fr 1fr}.modal-b{padding:16px}.modal-h{padding:16px}}
+@media (max-width:560px){.g5,.g4{grid-template-columns:1fr 1fr}.kpi{padding:13px 14px}.kpi-sub{font-size:.72rem}.topbar h1{font-size:1rem}.fgrid{grid-template-columns:1fr 1fr}.modal-b{padding:16px}.modal-h{padding:16px}}
 @media (max-width:380px){.g5,.g4{grid-template-columns:1fr}.fgrid{grid-template-columns:1fr}}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 @media print{.sidebar,.topbar,.btn,.no-print,.scrim{display:none!important}.main{margin:0!important}.card{box-shadow:none}}
@@ -376,8 +381,8 @@ body.sb-collapsed .main{margin-left:0}
 
 <div id="loadbar"></div>
 <div id="scrollProgress" aria-hidden="true"></div>
-<a class="skip-link" href="#ld-modulos">Saltar a los módulos</a>
-<div id="offline" role="alert">Sin conexión a internet. Los cambios no se guardarán hasta que se restablezca.</div>
+<a class="skip-link" id="skipLink" href="#ld-modulos">Saltar a los módulos</a>
+<div id="offline" role="alert" aria-hidden="true">Sin conexión a internet. Los cambios no se guardarán hasta que se restablezca.</div>
 
 <!-- ================= BIENVENIDA ================= -->
 <div id="landing">
@@ -544,7 +549,7 @@ body.sb-collapsed .main{margin-left:0}
     <header class="topbar">
       <div class="tl">
         <button class="icon-btn" id="menuBtn" onclick="toggleMenu()" aria-label="Abrir o cerrar el menú" aria-expanded="false" aria-controls="sidebar"><span></span><span></span><span></span></button>
-        <h4 id="viewTitle">Dashboard gerencial</h4>
+        <h1 id="viewTitle">Resumen general</h1>
       </div>
       <div class="tools">
         <div class="rate" id="rateBox">
@@ -558,7 +563,7 @@ body.sb-collapsed .main{margin-left:0}
       </div>
     </header>
 
-    <main class="content">
+    <main class="content" id="contenidoPrincipal" tabindex="-1">
 
       <!-- ERROR DE ARRANQUE -->
       <div id="bootError" class="card" style="display:none;max-width:720px;margin:40px auto">
@@ -574,7 +579,7 @@ body.sb-collapsed .main{margin-left:0}
       <!-- DASHBOARD -->
       <div id="view-dashboard" class="view active">
         <div class="view-head">
-          <div><h1>Resumen de hoy</h1><p id="dashFecha">Cargando fecha…</p></div>
+          <div><h2>Resumen de hoy</h2><p id="dashFecha">Cargando fecha…</p></div>
           <button class="btn ghost sm" onclick="lock(this,cargarDashboard)">Actualizar datos</button>
         </div>
         <div class="grid g4">
@@ -634,7 +639,7 @@ body.sb-collapsed .main{margin-left:0}
               <div id="gpsStatus" style="font-size:.84rem;margin-bottom:8px">GPS: en espera</div>
               <div id="distInfo" style="font-size:.84rem;margin-bottom:14px"></div>
               <button class="btn block" style="background:#fff;color:var(--primary-d);margin-bottom:8px" onclick="lock(this,getLocation)">Usar mi ubicación</button>
-              <button class="btn block gold" onclick="lock(this,simularCheckin)">Simular check-in</button>
+              <p class="hint" style="margin:8px 0 0">El check-in usa la ubicación real del dispositivo y solo se registra dentro del radio del cliente.</p>
             </div>
             <div class="card"><div class="card-title">Últimas visitas</div><div id="visitasList" style="max-height:300px;overflow-y:auto;-webkit-overflow-scrolling:touch"></div></div>
           </div>
@@ -643,7 +648,7 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- PEDIDO -->
       <div id="view-pedido" class="view">
-        <div class="flujo"><span class="step-tag pedido">Paso 2</span><b>Tomar pedido para surtir</b><i>›</i><span>Después: entrega y cobro</span><button class="btn ghost sm" onclick="showView('pdvs')">¿Local nuevo? Registrarlo</button></div>
+        <div class="flujo"><span class="step-tag pedido">Paso 2</span><b>Tomar pedido y registrar el pago</b><i>›</i><span>Después: preparar y entregar lo pedido</span><button class="btn ghost sm" onclick="showView('pdvs')">¿Local nuevo? Registrarlo</button></div>
         <div class="grid s57">
           <div>
             <div class="card">
@@ -676,7 +681,7 @@ body.sb-collapsed .main{margin-left:0}
 
       <!-- ENTREGAS -->
       <div id="view-entregas" class="view">
-        <div class="flujo"><span class="step-tag entrega">Paso 3</span><b>Entregar y cobrar</b><i>›</i><span>Los pedidos confirmados descuentan inventario y llegan aquí.</span></div>
+        <div class="flujo"><span class="step-tag entrega">Paso 3</span><b>Preparar y entregar lo pedido</b><i>›</i><span>El cobro se registró en el Paso 2. Aquí solo confirma lo que se entregó.</span></div>
         <div class="grid g3">
           <div class="kpi blue"><div class="kpi-lbl">Pedidos por entregar</div><div class="kpi-val num" id="eN">0</div></div>
           <div class="kpi"><div class="kpi-lbl">Entregas a tiempo (30 días)</div><div class="kpi-val num" id="eOtif">-</div><div class="kpi-sub" id="eOtifSub"></div></div>
@@ -804,10 +809,10 @@ body.sb-collapsed .main{margin-left:0}
               <div class="field"><label for="redComp">Frentes de competencia</label><input type="number" id="redComp" min="0" step="1" inputmode="numeric" oninput="previewRED()"></div>
             </div>
             <div id="redPrev" style="margin-bottom:12px"></div>
-            <div style="border:2px dashed #CBD3DF;border-radius:12px;padding:20px 14px;text-align:center;cursor:pointer;margin-bottom:12px" onclick="$('fotoIn').click()">
-              <b>Fotografía del anaquel (opcional)</b><p style="color:var(--muted);margin:6px 0 0;font-size:.82rem">Toque para tomar o seleccionar una imagen</p>
-              <input type="file" id="fotoIn" accept="image/*" capture="environment" style="display:none" onchange="previewFoto(event)">
-            </div>
+            <button type="button" class="foto-zona" id="fotoZona" onclick="$('fotoIn').click()" aria-label="Agregar fotografía del anaquel: tome una foto o seleccione una imagen">
+              <b>Fotografía del anaquel (opcional)</b><span>Toque o pulse Enter para tomar o seleccionar una imagen</span>
+            </button>
+            <input type="file" id="fotoIn" accept="image/*" capture="environment" style="position:absolute;width:1px;height:1px;opacity:0;pointer-events:none" onchange="previewFoto(event)" aria-labelledby="fotoZona">
             <div id="fotoPrev" style="margin-bottom:12px"></div>
             <div class="field"><label for="redObs">Observaciones</label><input type="text" id="redObs" maxlength="300"></div>
             <button class="btn block" onclick="lock(this,guardarRED)">Guardar auditoría</button>
@@ -896,36 +901,36 @@ body.sb-collapsed .main{margin-left:0}
       <p class="hint" style="margin:0 0 14px">Primero queda registrado el local. Después podrá tomarle pedidos desde <b>Tomar pedido</b>.</p>
       <input type="hidden" id="pId"><input type="hidden" id="pLat"><input type="hidden" id="pLng">
       <div class="fgrid">
-        <div class="field"><label for="pRif">RIF <span class="help" title="Formato oficial: letra (V, E, J, P o G), 8 dígitos y un verificador. Ejemplo: J-12345678-9" aria-label="Ayuda sobre el formato del RIF">?</span></label>
+        <div class="field"><label for="pRif">RIF <button type="button" class="help" title="Formato oficial: letra (V, E, J, P o G), 8 dígitos y un verificador. Ejemplo: J-12345678-9" aria-label="Ayuda sobre el formato del RIF">?</button></label>
           <input type="text" id="pRif" maxlength="12" placeholder="J-12345678-9" oninput="formatearRIFInput(this)" onblur="validarRIFBlur(this)" aria-describedby="pRifAyuda" autocapitalize="characters" autocomplete="off">
           <span class="hint" id="pRifAyuda">Ejemplo: <b>J-12345678-9</b>. Puede escribirlo con o sin guiones.</span></div>
         <div class="field"><label for="pNombre">Nombre comercial</label><input type="text" id="pNombre" maxlength="120" aria-describedby="pNombreAyuda"><span class="hint" id="pNombreAyuda">El nombre que reconoce el cliente en la calle.</span></div>
       </div>
       <div class="fgrid">
-        <div class="field"><label for="pRazon">Razón social <span class="help" title="Es el nombre legal registrado ante el SENIAT; puede diferir del nombre comercial." aria-label="Ayuda sobre razón social">?</span></label>
+        <div class="field"><label for="pRazon">Razón social <button type="button" class="help" title="Es el nombre legal registrado ante el SENIAT; puede diferir del nombre comercial." aria-label="Ayuda sobre razón social">?</button></label>
           <input type="text" id="pRazon" maxlength="150" aria-describedby="pRazonAyuda"><span class="hint" id="pRazonAyuda">Nombre legal o denominación registrada del negocio (el que aparece en el RIF). Ej.: <b>Distribuidora La Esquina, C.A.</b></span></div>
         <div class="field"><label for="pDireccion">Dirección</label><input type="text" id="pDireccion" maxlength="200"></div>
       </div>
       <div class="fgrid">
         <div class="field"><label for="pZona">Zona</label><select id="pZona"></select><button class="btn ghost sm" data-roles="Gerente,Supervisor" style="margin-top:6px" onclick="abrirZonas()">Nueva zona</button></div>
         <div class="field"><label for="pCanal">Canal</label><select id="pCanal" onchange="sugerirNivel()"><option>Abasto/Bodega</option><option>Supermercado</option><option>Panadería</option><option>Mayorista</option></select><span class="hint">Tipo de local: sugiere el nivel comercial.</span></div>
-        <div class="field"><label for="pNivel">Nivel comercial <span class="help" title="Ordena el crédito sugerido. No cambia precios ni descuentos automáticos." aria-label="Ayuda sobre nivel comercial">?</span></label>
+        <div class="field"><label for="pNivel">Nivel comercial <button type="button" class="help" title="Ordena el crédito sugerido. No cambia precios ni descuentos automáticos." aria-label="Ayuda sobre nivel comercial">?</button></label>
           <select id="pNivel" onchange="actualizarCredito()"><option>Detalle</option><option>Mini mayorista</option><option>Mayorista</option><option>Supermercado / súper mayorista</option></select><span class="hint" id="pNivelAyuda">Rango sugerido: hasta $ 500,00</span></div>
       </div>
       <div class="fgrid">
-        <div class="field"><label for="pCredito">Límite de crédito (USD) <span class="help" title="Tope máximo de deuda abierta permitida para este local. No es un descuento ni una garantía." aria-label="Ayuda sobre límite de crédito">?</span></label>
+        <div class="field"><label for="pCredito">Límite de crédito (USD) <button type="button" class="help" title="Tope máximo de deuda abierta permitida para este local. No es un descuento ni una garantía." aria-label="Ayuda sobre límite de crédito">?</button></label>
           <input type="number" id="pCredito" min="0" max="100000" step="0.01" inputmode="decimal" oninput="actualizarCredito()" aria-describedby="pCreditoAyuda"><span class="hint" id="pCreditoAyuda">Tope de deuda permitida. No es un descuento ni una garantía.</span></div>
         <div class="field"><label for="pLimPed">Límite de pedidos</label><input type="number" id="pLimPed" min="1" max="500" step="1" inputmode="numeric"></div>
         <div class="field"><label for="pPeriodo">Por período</label><select id="pPeriodo"><option>Diario</option><option>Semanal</option><option>Mensual</option></select></div>
       </div>
       <div class="note warn" id="pCreditoAviso" hidden></div>
       <label class="chk" id="pFueraWrap" hidden style="margin-bottom:14px"><input type="checkbox" id="pFuera"><span>Autorizo un monto fuera del rango sugerido para este nivel.</span></label>
-      <div class="field" id="fUbic"><label>Ubicación del local <span class="help" title="Marque en el mapa dónde está el local. Se usa como referencia de la visita." aria-label="Ayuda sobre ubicación">?</span></label>
+      <div class="field" id="fUbic"><label>Ubicación del local <button type="button" class="help" title="Marque en el mapa dónde está el local. Se usa como referencia de la visita." aria-label="Ayuda sobre ubicación">?</button></label>
         <div id="pdvMap"></div>
         <div style="display:flex;gap:10px;align-items:center;margin-top:8px;flex-wrap:wrap"><button class="btn ghost sm" onclick="usarMiUbicacionPDV()">Usar mi ubicación actual</button><span class="hint" id="pUbic" style="margin:0">Toque el mapa para ubicar el local</span></div>
         <span class="hint">El punto en el mapa es la referencia del local para la visita y el check-in.</span>
       </div>
-      <details class="adv"><summary>Opciones avanzadas</summary><div class="field"><label for="pRadio">Radio de check-in (m) <span class="help" title="Distancia máxima permitida desde el local para registrar la visita. Si está más lejos, el sistema lo avisa." aria-label="Ayuda sobre radio de check-in">?</span></label>
+      <details class="adv"><summary>Opciones avanzadas</summary><div class="field"><label for="pRadio">Radio de check-in (m) <button type="button" class="help" title="Distancia máxima permitida desde el local para registrar la visita. Si está más lejos, el sistema lo avisa." aria-label="Ayuda sobre radio de check-in">?</button></label>
         <input type="number" id="pRadio" min="10" max="1000" step="1" inputmode="numeric"><span class="hint">Distancia máxima permitida para registrar el check-in de la visita. Si el vendedor está más lejos, el sistema lo avisa y no registra la visita. Por defecto 50 m.</span></div></details>
     </div>
     <div class="modal-f"><button class="btn ghost" onclick="closeModal('modalPDV')">Cancelar</button><button class="btn" onclick="lock(this,guardarPDV)">Guardar local</button></div>
@@ -1138,6 +1143,12 @@ const pctIvaF = t => t === 'E' ? 0 : t === 'R' ? +S.fiscal.iva_reducida : +S.fis
 const nombreAlic = (t, pct) => t === 'E' ? 'Exento' : 'IVA ' + (pct ?? pctIvaF(t)) + '%';
 const colorOk = (v, min) => v == null ? 'mute' : v >= min ? 'ok' : 'bad';
 
+// Toda cabecera de columna se marca para lectores de pantalla, también la que se
+// crea después al cargar tablas dinámicas.
+function marcarColumnas() { document.querySelectorAll('table thead th:not([scope])').forEach(th => th.setAttribute('scope', 'col')); }
+marcarColumnas();
+new MutationObserver(marcarColumnas).observe(document.documentElement, { childList: true, subtree: true });
+
 // ===== Carga, bloqueo de botones y API =====
 let _busy = 0;
 function busy(d) { _busy += d; $('loadbar').classList.toggle('on', _busy > 0); }
@@ -1214,21 +1225,32 @@ function formatearRIFInput(el) {   // coloca los guiones sin borrar lo que el us
 function validarRIFBlur(el) {
   if (!el.value.trim()) return;
   const error = rifError(el.value), f = el.closest('.field'); if (!f) return;
-  if (error) {
-    f.classList.add('invalid'); let e = f.querySelector('.err');
-    if (!e) { e = document.createElement('div'); e.className = 'err'; f.appendChild(e); }
-    e.textContent = error;
-  } else { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); }
+  if (error) marcarElemento(el, error);
+  else {
+    f.classList.remove('invalid'); f.querySelector('.err')?.remove();
+    el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby');
+  }
 }
 
 // ===== Validación de formularios =====
-function limpiarErr(scope) { (scope || document).querySelectorAll('.invalid').forEach(f => { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); }); }
-function marcar(id, msg) {
-  const el = $(id), f = el.closest('.field') || el.closest('.prod') || el.parentElement;
-  f.classList.add('invalid'); let e = f.querySelector('.err');
-  if (!e) { e = document.createElement('div'); e.className = 'err'; f.appendChild(e); }
-  e.textContent = msg; return false;
+function limpiarErr(scope) {
+  (scope || document).querySelectorAll('.invalid').forEach(f => {
+    f.classList.remove('invalid');
+    f.querySelector('.err')?.remove();
+    f.querySelectorAll('input,select,textarea').forEach(el => { el.removeAttribute('aria-invalid'); el.removeAttribute('aria-describedby'); });
+  });
 }
+function marcarElemento(el, msg) {
+  const f = el.closest('.field') || el.closest('.prod') || el.parentElement;
+  f.classList.add('invalid');
+  let e = f.querySelector('.err');
+  if (!e) { e = document.createElement('div'); e.className = 'err'; e.id = 'err-' + (el.id || Math.random().toString(36).slice(2)); f.appendChild(e); }
+  e.textContent = msg;
+  el.setAttribute('aria-invalid', 'true');
+  el.setAttribute('aria-describedby', e.id);
+  return false;
+}
+function marcar(id, msg) { return marcarElemento($(id), msg); }
 function validar(reglas, scope) {
   limpiarErr(scope); let ok = true, first = null;
   reglas.forEach(([id, fn]) => { const el = $(id), m = fn(String(el.value).trim()); if (m) { marcar(id, m); ok = false; if (!first) first = el; } });
@@ -1244,13 +1266,39 @@ const R = {
   rif: () => v => rifError(v) || null,
   clave: () => v => /^(?=.*[A-Za-z])(?=.*\d).{8,72}$/.test(v) ? null : 'Mínimo 8 caracteres, con letras y números'
 };
-document.addEventListener('input', e => { const f = e.target.closest && e.target.closest('.invalid'); if (f) { f.classList.remove('invalid'); f.querySelector('.err')?.remove(); } });
+document.addEventListener('input', e => {
+  const f = e.target.closest && e.target.closest('.invalid');
+  if (!f) return;
+  f.classList.remove('invalid'); f.querySelector('.err')?.remove();
+  e.target.removeAttribute('aria-invalid'); e.target.removeAttribute('aria-describedby');
+});
 
 // ===== Modales y diálogos =====
 const modalesAbiertos = () => [...document.querySelectorAll('.modal.open')];
-function syncLock() { document.body.classList.toggle('lock', modalesAbiertos().length > 0 || (mobile.matches && $('sidebar').classList.contains('open')) || $('mapWrap')?.classList.contains('full')); }
-function openModal(id) { $(id).classList.add('open'); syncLock(); }
-function closeModal(id) { if (id === 'modalDlg') return dlgClose(false); $(id).classList.remove('open'); syncLock(); }
+const esMovil = () => window.matchMedia('(max-width:900px)').matches;
+function syncLock() {
+  const hayModal = modalesAbiertos().length > 0, sidebar = $('sidebar'), app = $('app');
+  document.body.classList.toggle('lock', hayModal || (esMovil() && sidebar.classList.contains('open')) || $('mapWrap')?.classList.contains('full'));
+  // Lo que queda detrás de un modal (o del menú cerrado) no debe recibir el tabulador.
+  app.inert = hayModal;
+  sidebar.inert = hayModal || (esMovil() && !sidebar.classList.contains('open'));
+}
+const ENFOCABLES = 'a[href],button:not([disabled]),input:not([disabled]):not([type="hidden"]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])';
+const _focoModal = [];
+function openModal(id) {
+  const modal = $(id); if (modal.classList.contains('open')) return;
+  _focoModal.push(document.activeElement);
+  modal.classList.add('open'); syncLock();
+  const destino = modal.querySelector('[autofocus]') || modal.querySelector(ENFOCABLES);
+  setTimeout(() => { if (modal.classList.contains('open')) destino?.focus?.(); }, 40);
+}
+function cerrarModalReal(id) {
+  const modal = $(id); if (!modal.classList.contains('open')) return;
+  modal.classList.remove('open'); syncLock();
+  const anterior = _focoModal.pop();
+  if (anterior && document.contains(anterior)) anterior.focus({ preventScroll: true });
+}
+function closeModal(id) { if (id === 'modalDlg') return dlgClose(false); cerrarModalReal(id); }
 document.addEventListener('click', e => { if (e.target.classList && e.target.classList.contains('modal')) closeModal(e.target.id); });
 let _dlgRes = null;
 function dialogo({ titulo, texto = '', input = null, valor = '', tipo = 'text', ok = 'Aceptar', peligro = false, soloOk = false }) {
@@ -1264,7 +1312,7 @@ function dialogo({ titulo, texto = '', input = null, valor = '', tipo = 'text', 
 }
 function dlgClose(ok) {
   const hasIn = $('dlgField').style.display !== 'none', val = $('dlgI').value;
-  $('modalDlg').classList.remove('open'); syncLock();
+  cerrarModalReal('modalDlg');
   const r = _dlgRes; _dlgRes = null; if (r) r(hasIn ? (ok ? val : null) : ok);
 }
 
@@ -1286,11 +1334,19 @@ function resetMenu() {
 }
 mobile.addEventListener ? mobile.addEventListener('change', resetMenu) : mobile.addListener(resetMenu);
 document.addEventListener('keydown', e => {
-  if (e.key !== 'Escape') return;
   const m = modalesAbiertos().pop();
+  if (e.key === 'Tab' && m) {
+    const visibles = [...m.querySelectorAll(ENFOCABLES)].filter(x => x.getClientRects().length);
+    if (!visibles.length) return;
+    const primero = visibles[0], ultimo = visibles[visibles.length - 1], actual = document.activeElement;
+    if (e.shiftKey && (actual === primero || !m.contains(actual))) { e.preventDefault(); ultimo.focus(); }
+    else if (!e.shiftKey && (actual === ultimo || !m.contains(actual))) { e.preventDefault(); primero.focus(); }
+    return;
+  }
+  if (e.key !== 'Escape') return;
   if (m) closeModal(m.id);
   else if ($('mapWrap')?.classList.contains('full')) mapaCompleto();
-  else if (mobile.matches && menuAbierto()) toggleMenu(false);
+  else if (esMovil() && menuAbierto()) toggleMenu(false);
 });
 let _tx = 0, _ty = 0;   // gestos: deslizar desde el borde abre, deslizar a la izquierda cierra
 document.addEventListener('touchstart', e => { const t = e.touches[0]; _tx = t.clientX; _ty = t.clientY; }, { passive: true });
@@ -1882,7 +1938,11 @@ function refreshMarkers() {
   pdvsZona($('filtroZonaMapa').value).forEach(p => {
     if (p.lat == null || p.lng == null) return;
     const icon = L.divIcon({ html: `<div style="background:${esc(p.zona_color)};width:22px;height:22px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4)"></div>`, className: '', iconSize: [22, 22], iconAnchor: [11, 11], popupAnchor: [0, -12] });
-    L.marker([p.lat, p.lng], { icon }).addTo(S.markers).bindPopup(`<b>${esc(p.nombre)}</b><br>RIF ${esc(p.rif || 'sin RIF')}<br>${esc(p.zona_nombre || '')} · ${esc(p.canal)}`, { maxWidth: 240 });
+    const etiqueta = `${p.nombre} · ${p.zona_nombre || ''} · ${p.canal}`;
+    const marca = L.marker([p.lat, p.lng], { icon, title: etiqueta, alt: etiqueta, keyboard: true, riseOnHover: true })
+      .addTo(S.markers)
+      .bindPopup(`<b>${esc(p.nombre)}</b><br>RIF ${esc(p.rif || 'sin RIF')}<br>${esc(p.zona_nombre || '')} · ${esc(p.canal)}`, { maxWidth: 240 });
+    marca.getElement()?.setAttribute('aria-label', 'Cliente ' + etiqueta);
   });
   $('mapLegend').innerHTML = S.zonas.map(z => `<span><i style="background:${esc(z.color)}"></i>${esc(z.nombre)}</span>`).join('');
 }
@@ -1903,12 +1963,6 @@ async function getLocation() {
     $('distInfo').innerHTML = `Distancia: <b>${dist.toFixed(0)} m</b> · ${dist <= pdv.geofence_radio_m ? 'Dentro del radio' : 'Fuera del radio'}`;
     await post('/visitas/checkin', { pdv_id: pdv.id, lat, lng }); toast('Check-in registrado', `${pdv.nombre} · ${dist.toFixed(0)} m`); cargarVisitas();
   } catch (e) { $('gpsStatus').textContent = 'GPS: ' + e.message; toast('Check-in no realizado', e.message, 'error'); }
-}
-async function simularCheckin() {
-  const pdv = S.pdvs.find(p => p.id === +$('selPDVCheckin').value); if (!pdv) return toast('Seleccione un cliente', '', 'warn');
-  $('gpsStatus').textContent = `GPS simulado: ${(pdv.lat - 0.0001).toFixed(5)}, ${(pdv.lng - 0.0001).toFixed(5)}`; $('distInfo').innerHTML = 'Distancia: <b>aprox. 15 m</b> · Dentro del radio';
-  try { await post('/visitas/checkin', { pdv_id: pdv.id, lat: pdv.lat - 0.0001, lng: pdv.lng - 0.0001 }); toast('Check-in simulado', pdv.nombre); cargarVisitas(); }
-  catch (e) { toast('Error', e.message, 'error'); }
 }
 async function cargarVisitas() {
   const v = await api('/visitas');
@@ -1959,14 +2013,18 @@ async function cargarPDV() {
     </div>` : '';
   } catch (e) { $('smartOrder').innerHTML = ''; }
 }
+function sumarSugerido(el, cantidad) {
+  const tope = +el.max || 9999;
+  el.value = Math.min(tope, (+el.value || 0) + cantidad);
+}
 function agregarSugerido(id) {
   const s = (S.sugeridos || []).find(x => x.producto_id === id); if (!s) return;
   const el = $('prod_' + id); if (!el || el.disabled) return toast('Producto sin stock', '', 'warn');
-  el.value = s.cantidad_sugerida; calcPedido(); toast('Sugerencia agregada', s.nombre);
+  sumarSugerido(el, s.cantidad_sugerida); calcPedido(); toast('Sugerencia sumada', s.nombre);
 }
 function aplicarSugeridos() {
-  let n = 0; (S.sugeridos || []).forEach(s => { const el = $('prod_' + s.producto_id); if (el && !el.disabled) { el.value = s.cantidad_sugerida; n++; } });
-  calcPedido(); toast('Sugerencias aplicadas', n + ' producto(s)');
+  let n = 0; (S.sugeridos || []).forEach(s => { const el = $('prod_' + s.producto_id); if (el && !el.disabled) { sumarSugerido(el, s.cantidad_sugerida); n++; } });
+  calcPedido(); toast('Sugerencias sumadas', n + ' producto(s)');
 }
 
 // Cálculo idéntico al del servidor: cada línea se redondea a 2 decimales
@@ -2038,7 +2096,7 @@ async function confirmarPedido() {
   if (Math.abs(restUsd()) > 0.02) return toast('El pago no cubre el total', 'Saldo: ' + usd(restUsd()), 'warn');
   try {
     const r = await post('/pedidos', { pdv_id: pdv.id, items, pagos: PAGOS.map(p => ({ metodo: p.metodo, monto: p.monto, referencia: p.referencia })) });
-    $('pedidoMsg').innerHTML = `<div class="note ok"><b>Pedido #${r.id} confirmado</b><br>Base ${usd(r.base_usd)} · IVA ${usd(r.iva_usd)}${r.igtf_usd ? ' · IGTF ' + usd(r.igtf_usd) : ''}<br><b>Total ${usd(r.total)} / ${bs(r.total_bs)}</b> (tasa ${nf.format(r.tasa)})<br>${r.pagos.map(p => `${esc(p.metodo)}: ${fmtMonto(p.monto, p.moneda)}`).join('<br>')}<br><button class="btn sm" style="margin-top:10px" onclick="descargarComprobante(${r.id})">Descargar comprobante PDF</button></div>`;
+    $('pedidoMsg').innerHTML = `<div class="note ok"><b>Pedido #${r.id} confirmado</b><br>Base ${usd(r.base_usd)} · IVA ${usd(r.iva_usd)}${r.igtf_usd ? ' · IGTF ' + usd(r.igtf_usd) : ''}<br><b>Total ${usd(r.total)} / ${bs(r.total_bs)}</b> (tasa ${nf.format(r.tasa)})<br>${r.pagos.map(p => `${esc(p.metodo)}: ${fmtMonto(p.monto, p.moneda)}`).join('<br>')}<br><button class="btn sm" style="margin-top:10px" onclick="descargarComprobante(${r.id})">Descargar comprobante PDF</button><br><small style="color:var(--muted)">El PDF se arma en su dispositivo; la primera vez necesita conexión para cargar el generador.</small></div>`;
     toast('Pedido confirmado', `#${r.id} · ${usd(r.total)}`); PAGOS = []; S.prods.forEach(p => { const el = $('prod_' + p.id); if (el) el.value = 0; });
     S.prods = await api('/productos'); renderProductos(); calcPedido(); cargarPDV();
   } catch (e) { $('pedidoMsg').innerHTML = `<div class="note bad"><b>No se pudo registrar el pedido</b><br>${esc(e.message)}</div>`; toast('Pedido rechazado', e.message, 'error'); cargarPDV(); }
@@ -2375,7 +2433,7 @@ async function cerrarCaja() {
   try {
     const c = await post('/liquidaciones', { efectivo_usd: +$('liqUsd').value, efectivo_bs: +$('liqBs').value, observaciones: obs });
     toast('Caja cerrada', usd(c.dif_equiv_usd)); await cargarCierre();
-    $('liqResult').innerHTML = `<div class="note ${Math.abs(c.dif_equiv_usd) < 0.01 ? 'ok' : 'warn'}"><b>Cierre CC-${String(c.id).padStart(6, '0')} registrado</b><br>Diferencia equivalente: ${usd(c.dif_equiv_usd)}<br><button class="btn sm" style="margin-top:8px" onclick="descargarCierre(${c.id})">Descargar PDF</button></div>`;
+    $('liqResult').innerHTML = `<div class="note ${Math.abs(c.dif_equiv_usd) < 0.01 ? 'ok' : 'warn'}"><b>Cierre CC-${String(c.id).padStart(6, '0')} registrado</b><br>Diferencia equivalente: ${usd(c.dif_equiv_usd)}<br><button class="btn sm" style="margin-top:8px" onclick="descargarCierre(${c.id})">Descargar PDF</button><br><small style="color:var(--muted)">El documento se genera en su dispositivo; si es la primera vez, espere a que cargue el generador.</small></div>`;
   } catch (e) { toast('No se pudo cerrar la caja', e.message, 'error'); }
 }
 async function anularCierre(id) {
@@ -2460,7 +2518,7 @@ registrarVista('empresa', 'Empresa y fiscal', cargarEmpresa);
 /* Rutix · arranque: bienvenida, inicio de la aplicación y eventos globales */
 
 // ===== Bienvenida y login =====
-function mostrarLogin() { $('landing').style.display = 'none'; $('login').style.display = 'flex'; window.scrollTo(0, 0); setTimeout(() => $('lu').focus(), 60); }
+function mostrarLogin() { $('landing').style.display = 'none'; $('login').style.display = 'flex'; actualizarSkip(); window.scrollTo(0, 0); setTimeout(() => $('lu').focus(), 60); }
 function mostrarLanding() { $('login').style.display = 'none'; $('landing').style.display = 'block'; window.scrollTo(0, 0); }
 
 // Barras fijas: la navegación acompaña al desplazarse y gana sombra al bajar.
@@ -2488,8 +2546,19 @@ function tituloInicio() {
   return S.user?.rol === 'Gerente' ? 'Resumen general'
     : S.user?.rol === 'Supervisor' ? 'Resumen de operación' : 'Mi jornada';
 }
+function actualizarSkip() {
+  const enApp = $('app').style.display === 'block', link = $('skipLink');
+  link.href = enApp ? '#contenidoPrincipal' : '#ld-modulos';
+  link.textContent = enApp ? 'Saltar al contenido principal' : 'Saltar a los módulos';
+}
+function mostrarAvisoOffline(si) {
+  const aviso = $('offline');
+  aviso.classList.toggle('show', si);
+  aviso.setAttribute('aria-hidden', String(!si));
+}
 async function initApp() {
   $('landing').style.display = 'none'; $('login').style.display = 'none'; $('app').style.display = 'block';
+  actualizarSkip();
   $('bootError').style.display = 'none';
   $('userLabel').textContent = S.user.nombre;
   $('avatar').textContent = S.user.nombre[0].toUpperCase();
@@ -2514,9 +2583,9 @@ async function initApp() {
 }
 
 // ===== Conexión =====
-addEventListener('offline', () => $('offline').classList.add('show'));
-addEventListener('online', () => { $('offline').classList.remove('show'); toast('Conexión restablecida'); });
-if (!navigator.onLine) $('offline').classList.add('show');
+addEventListener('offline', () => mostrarAvisoOffline(true));
+addEventListener('online', () => { mostrarAvisoOffline(false); toast('Conexión restablecida'); });
+mostrarAvisoOffline(!navigator.onLine);
 
 // ===== Arranque =====
 const aviso = sessionStorage.getItem('aviso');

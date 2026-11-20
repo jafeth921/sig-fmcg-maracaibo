@@ -130,13 +130,64 @@ el sistema lo informa con claridad en lugar de fallar de forma genérica.
   proveedores y entradas; el Preventista consulta existencias. Cada lote sigue mostrando
   el proveedor y su RIF.
 
+## Auditoría completa · versión corregida
+
+Se dejan **dos versiones**. La anterior sigue intacta y se puede recuperar en cualquier
+momento:
+
+| Versión | Identificador | Entregable |
+|---------|---------------|------------|
+| Anterior (la que había publicada) | Etiqueta `version-anterior-c992f71` | `sig-fmcg-VERSION-ANTERIOR-c992f71.zip` |
+| Nueva (corregida) | Rama `mejoras-auditoria` | Código actual, publicado en los tres enlaces |
+
+Para recuperar la anterior: `git checkout version-anterior-c992f71` o descomprimir el ZIP.
+
+### Seguridad y dinero (problemas graves)
+
+- Rechazar un pedido o entregarlo parcialmente ahora **reversa el cobro y la deuda**:
+  ya no queda dinero "cobrado" por mercancía que no se entregó.
+- Un check-in o pedido repetido con el mismo identificador devuelve **409**, en vez de
+  crear registros dobles.
+- Se eliminó **Simular check-in**: la visita solo se registra con la ubicación real y
+  dentro del radio del local.
+- El Preventista ya no puede crear locales, dar mantenimiento a activos, descontar stock
+  por mermas ni modificar objetos de otros usuarios.
+- Un crédito fuera del rango sugerido solo lo autoriza un **Gerente** y queda en la bitácora.
+- Los mensajes de error 500 ya no filtran detalles internos.
+- Cambiar la contraseña cierra las sesiones abiertas con la clave anterior.
+- La venta sugerida **suma** cantidades (antes las sobrescribía) y explica el motivo;
+  el historial ignora pedidos rechazados y solo mira los últimos 90 días.
+- El IGTF se calcula por pago y el cierre incluye el efectivo digital, para que el PDF
+  cuadre con lo cobrado.
+- Las métricas de ventas usan el total real del pedido y excluyen los rechazados.
+
+### Interfaz (más clara y menos saturada)
+
+- Los pasos ahora dicen: **1 Registrar local**, **2 Tomar pedido y registrar el pago**,
+  **3 Preparar y entregar lo pedido**. El cobro ya no aparece como una etapa confusa al final.
+- La insignia del perfil y el título cambian con el rol: el Gerente ve *Resumen general*,
+  el Supervisor *Resumen de operación* y el Preventista *Mi jornada*.
+- Se añadió un enlace para saltar al contenido, foco visible al abrir/cerrar diálogos,
+  mensajes de error anunciados y campos con `aria-invalid`.
+- Los botones de ayuda `?` son más grandes y se pueden recorrer con el teclado.
+- El menú oculto deja de recibir el tabulador y las tablas marcan sus columnas.
+- Se añadió una nota aclarando que los PDF se generan en el dispositivo.
+- Se agregó una política de seguridad (CSP) con solo los recursos que usa la aplicación.
+
+### Lo que se conserva a propósito
+
+El **ingreso automático** y el **selector de perfiles sin contraseña** siguen igual porque
+son parte de la demostración que pidió el usuario. Con datos reales deben desactivarse.
+
 ## Verificación
 
-- **API:** 82 de 82 casos correctos (`npm test`): autenticación, permisos por rol,
-  geocercas, pedidos, promociones, IGTF, entregas parciales, cobranza, inventario,
-  proveedores, ruteo, cierre de caja, retornables, RED, comodatos, mermas y catálogos.
+- **API:** 105 de 105 casos correctos (`npm test`), incluidos rechazo sin cobro, entrega
+  parcial con ajuste, comprobantes válidos, IGTF dividido, sesiones revocadas y permisos
+  por objeto.
 - **Interfaz:** 18 vistas sin errores de JavaScript, pedido completo con pago y
-  comprobante PDF (14 KB) (`npm run test:ui`).
+  comprobante PDF (`npm run test:ui`).
 - **Roles y móvil:** menú correcto para Gerente (18 vistas), Supervisor (16) y
   Preventista (13); pedido funcional en 390×844 (`npm run test:roles`).
+- **Recorrido visual:** RIF, crédito fuera de rango, venta sugerida, pasos y perfiles
+  revisados en navegador sin errores.
 - **Referencias:** sin ids, funciones ni endpoints rotos (`npm run check`).
